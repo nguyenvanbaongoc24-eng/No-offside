@@ -30,8 +30,8 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <SignIn 
-        onLoginSuccess={() => {
-          login({ name: 'Tuấn Hưng', number: 9 });
+        onLoginSuccess={(userData) => {
+          login(userData || { name: 'Tuấn Hưng', number: 9 });
           setCurrentTab('dashboard');
         }} 
       />

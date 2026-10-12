@@ -31,6 +31,7 @@ import {
 import { formatCurrency, formatCompactCurrency } from '../lib/formatCurrency';
 import TeamManager from './TeamManager';
 import InviteShare from '../components/InviteShare';
+import WelcomeAnnouncementModal from '../components/WelcomeAnnouncementModal';
 
 export default function PlayerDashboard({ 
   user, 
@@ -221,6 +222,14 @@ export default function PlayerDashboard({
     <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-['Be_Vietnam_Pro'] antialiased select-none">
       
       {/* =========================================================
+          YÊU CẦU 1: BẢNG TIN CHÀO MỪNG (WELCOME POPUP / ANNOUNCEMENT)
+          - Hiển thị ngay sau khi vào Dashboard
+          - Tự động đóng sau 5 giây hoặc user bấm Đóng
+          - Checkbox lưu sessionStorage 'Không nhắc lại trong phiên đăng nhập này'
+          ========================================================= */}
+      <WelcomeAnnouncementModal />
+
+      {/* =========================================================
           1. HEADER DARK STYLE VỚI PATTERN MỜ (SLATE-900)
           ========================================================= */}
       <section className="bg-slate-900 text-white pt-safe-hero pb-12 px-5 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
@@ -228,17 +237,27 @@ export default function PlayerDashboard({
         {/* Top bar: Avatar + Team info bên trái, Role Switcher & Bell bên phải */}
         <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="relative">
+            {/* YÊU CẦU 2: CHUYỂN HƯỚNG BẰNG AVATAR (AVATAR NAVIGATION) */}
+            <button
+              type="button"
+              onClick={() => onNavigate && onNavigate('profile')}
+              className="relative hover:scale-105 active:scale-95 transition-transform cursor-pointer group text-left"
+              title="Xem trang cá nhân của bạn"
+            >
               <img 
                 src={user.avatar} 
                 alt={user.name} 
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-400/80 shadow-md"
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-400/80 shadow-md group-hover:ring-emerald-300 transition-all"
               />
               <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-slate-900 shadow">
                 #{user.number}
               </span>
-            </div>
-            <div>
+            </button>
+            <div 
+              onClick={() => onNavigate && onNavigate('profile')}
+              className="cursor-pointer hover:opacity-90 transition-opacity"
+              title="Xem trang cá nhân của bạn"
+            >
               <span className="text-xs text-gray-300 font-bold block tracking-tight">
                 {user.teamName}
               </span>

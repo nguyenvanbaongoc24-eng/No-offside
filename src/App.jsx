@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, Shield, Wallet, MessageSquare, User } from 'lucide-react';
 import PlayerDashboard from './pages/PlayerDashboard';
 import LineupBuilder from './pages/LineupBuilder';
@@ -19,8 +19,17 @@ export default function App() {
     }
     return 'dashboard';
   });
-  const [showNotificationToast, setShowNotificationToast] = useState(true);
+  const [showNotificationToast, setShowNotificationToast] = useState(false);
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
+
+  useEffect(() => {
+    if (showNotificationToast) {
+      const timer = setTimeout(() => {
+        setShowNotificationToast(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showNotificationToast]);
 
   const { 
     user, 

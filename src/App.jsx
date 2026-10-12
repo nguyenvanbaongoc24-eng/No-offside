@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import CreateTeam from './pages/CreateTeam';
 import InviteLanding from './pages/InviteLanding';
 import SignIn from './pages/SignIn';
+import TeamSettings from './pages/TeamSettings';
 import NotificationToast, { NotificationHistoryModal } from './components/NotificationToast';
 import { useAuth } from './hooks/useAuth';
 
@@ -34,9 +35,13 @@ export default function App() {
     teamSettings,
     updateTreasurerQr,
     updateTeamName,
+    updateTeamSettings,
     updateSubAdminTitle,
     addSubAdmin,
     removeSubAdmin,
+    transferOwnership,
+    approveAdminRequest,
+    rejectAdminRequest,
     login, 
     logout 
   } = useAuth();
@@ -53,13 +58,14 @@ export default function App() {
     );
   }
 
-  // Ensure member cannot stay in 'fund' tab if role switched
-  const activeTab = (currentUserRole !== 'admin' && currentTab === 'fund') ? 'dashboard' : currentTab;
+  // Ensure member cannot stay in 'fund' or 'team-settings' tab if role switched
+  const isLeader = currentUserRole === 'owner' || currentUserRole === 'admin';
+  const activeTab = (!isLeader && (currentTab === 'fund' || currentTab === 'team-settings')) ? 'dashboard' : currentTab;
 
   return (
     <div className="bg-slate-100 min-h-screen text-gray-900 flex justify-center font-['Be_Vietnam_Pro'] antialiased selection:bg-emerald-600 selection:text-white">
-      {/* Mobile Layout Frame (max-w-md mx-auto min-h-screen bg-slate-50 relative) */}
-      <div className="w-full max-w-md min-h-screen relative bg-slate-50 shadow-2xl flex flex-col justify-between overflow-x-hidden pb-24">
+      {/* Mobile Layout Frame (max-w-md mx-auto min-h-screen bg-slate-50 relative pb-safe pb-32) */}
+      <div className="w-full max-w-md min-h-screen relative bg-slate-50 shadow-2xl flex flex-col justify-between overflow-x-hidden pb-safe pb-32">
         
         {/* =========================================================
             HỆ THỐNG THÔNG BÁO (NOTIFICATIONS)
@@ -86,7 +92,7 @@ export default function App() {
             <CreateTeam 
               onTeamCreated={(teamData) => {
                 login(teamData);
-                setCurrentUserRole('admin');
+                setCurrentUserRole('owner');
                 setCurrentTab('dashboard');
               }}
               onBack={() => setCurrentTab('profile')}
@@ -108,6 +114,13 @@ export default function App() {
                 setCurrentTab('dashboard');
               }}
               onBackToApp={() => setCurrentTab('profile')}
+            />
+          ) : activeTab === 'team-settings' ? (
+            <TeamSettings 
+              teamSettings={teamSettings}
+              onUpdateTeamSettings={updateTeamSettings}
+              onBack={() => setCurrentTab('profile')}
+              currentUserRole={currentUserRole}
             />
           ) : activeTab === 'lineup' ? (
             <LineupBuilder onBack={() => setCurrentTab('dashboard')} />
@@ -135,6 +148,9 @@ export default function App() {
               onUpdateSubAdminTitle={updateSubAdminTitle}
               onAddSubAdmin={addSubAdmin}
               onRemoveSubAdmin={removeSubAdmin}
+              onTransferOwnership={transferOwnership}
+              onApproveAdminRequest={approveAdminRequest}
+              onRejectAdminRequest={rejectAdminRequest}
             />
           ) : (
             <PlayerDashboard 
@@ -154,19 +170,20 @@ export default function App() {
 
         {/* =========================================================
             FLOATING BOTTOM NAVIGATION (THANH MENU DƯỚI CÙNG)
-            - Ẩn khi đang ở màn hình tạo đội hoặc landing page mời
-            - Nếu là admin: 5 nút: [Trang chủ] - [Sa bàn] - [Quỹ đội] - [Chat] - [Tài khoản]
+            - Ẩn khi đang ở màn hình tạo đội, landing page mời hoặc cài đặt đội
+            - z-index cực cao z-[99], an toàn tuyệt đối với Home Indicator của iPhone (pb-safe)
+            - Nếu là owner/admin: 5 nút: [Trang chủ] - [Sa bàn] - [Quỹ đội] - [Chat] - [Tài khoản]
             - Nếu là member: 4 nút: [Trang chủ] - [Sa bàn] - [Chat] - [Tài khoản] (BỎ nút Quỹ đội)
-            - Có hiệu ứng active:scale-95, transition-all, duration-200 cho haptic visual feedback
+            - Nút bấm bo tròn Soft UI, không bị ngắt dòng chữ (whitespace-nowrap)
             ========================================================= */}
-        {!['create-team', 'invite-landing'].includes(activeTab) && (
-        <nav className="fixed bottom-5 left-3 right-3 max-w-md mx-auto z-40 pointer-events-auto">
+        {!['create-team', 'invite-landing', 'team-settings'].includes(activeTab) && (
+        <nav className="fixed bottom-3 sm:bottom-5 left-3 right-3 max-w-md mx-auto z-[99] pointer-events-auto pb-safe">
           <div className="bg-slate-900/95 backdrop-blur-xl text-white rounded-full px-3 py-2 shadow-[0_20px_45px_-10px_rgba(15,23,42,0.6)] border border-slate-800 flex items-center justify-around">
             
             {/* Nút 1: Trang chủ */}
             <button
               onClick={() => setCurrentTab('dashboard')}
-              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'dashboard'
                   ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                   : 'text-gray-400 hover:text-white'
@@ -179,7 +196,7 @@ export default function App() {
             {/* Nút 2: Sa bàn */}
             <button
               onClick={() => setCurrentTab('lineup')}
-              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'lineup'
                   ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                   : 'text-gray-400 hover:text-white'
@@ -189,11 +206,11 @@ export default function App() {
               {activeTab === 'lineup' && <span>Sa bàn</span>}
             </button>
 
-            {/* Nút 3: Quỹ đội (CHỈ HIỂN THỊ KHI LÀ ADMIN) */}
-            {currentUserRole === 'admin' && (
+            {/* Nút 3: Quỹ đội (HIỂN THỊ KHI LÀ OWNER HOẶC ADMIN) */}
+            {isLeader && (
               <button
                 onClick={() => setCurrentTab('fund')}
-                className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                   activeTab === 'fund'
                     ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                     : 'text-gray-400 hover:text-white'
@@ -208,7 +225,7 @@ export default function App() {
             {/* Nút 4: Chat */}
             <button
               onClick={() => setCurrentTab('chat')}
-              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'chat'
                   ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                   : 'text-gray-400 hover:text-white'
@@ -221,7 +238,7 @@ export default function App() {
             {/* Nút 5: Tài khoản */}
             <button
               onClick={() => setCurrentTab('profile')}
-              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'profile'
                   ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                   : 'text-gray-400 hover:text-white'
@@ -230,7 +247,6 @@ export default function App() {
               <User className="w-4 h-4 shrink-0" />
               {activeTab === 'profile' && <span>Tài khoản</span>}
             </button>
-
           </div>
         </nav>
         )}

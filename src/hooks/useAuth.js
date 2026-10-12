@@ -10,7 +10,7 @@ const INITIAL_USER = {
   avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
   fundDebt: 150000,
   isFundPaid: false,
-  isCaptain: true, // Only Captain can rename FC and assign sub-admins
+  isCaptain: true, // Only Owner has full root control
   customTitle: 'Đội Trưởng',
   stats: {
     matches: 5,
@@ -25,6 +25,17 @@ const INITIAL_USER = {
 const INITIAL_TEAM_SETTINGS = {
   teamName: 'FC No Offside',
   teamCategory: 'Sân 7 Sài Gòn',
+  logo: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=160&q=80',
+  venue: 'Sân bóng Chuyên Việt (18D Cộng Hòa, Tân Bình)',
+  schedule: 'Thứ 6 hàng tuần • 18:30',
+  appearance: {
+    theme: 'light',
+    language: 'vi',
+    fontFamily: 'Be Vietnam Pro',
+    timeFormat: '24h',
+    matchReminderNotif: true,
+    fundReminderNotif: true
+  },
   subAdmins: [
     { 
       id: 101, 
@@ -51,6 +62,19 @@ const INITIAL_TEAM_SETTINGS = {
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=60' 
     }
   ],
+  // Yêu cầu 2: Workflow phong Admin cần sự phê duyệt của Owner
+  pendingAdminRequests: [
+    {
+      id: 201,
+      name: 'Nguyễn Văn Toàn',
+      number: 14,
+      role: 'Tiền Đạo Cánh',
+      requestedBy: 'Thủ quỹ Hải',
+      requestedTitle: 'Đội Phó Kỹ Thuật',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&auto=format&fit=crop&q=60',
+      time: '20 phút trước'
+    }
+  ],
   treasurerQr: {
     bankName: 'MB Bank (Quân Đội)',
     accountNumber: '998877665544',
@@ -71,8 +95,11 @@ export function useAuth() {
     return saved ? JSON.parse(saved) : INITIAL_TEAM_SETTINGS;
   });
 
+  // 3 Cấp bậc phân quyền: 'owner' (Đội trưởng) | 'admin' (Admin phụ) | 'member' (Cầu thủ)
   const [currentUserRole, setCurrentUserRole] = useState(() => {
-    return localStorage.getItem('no_offside_role') || 'admin'; // 'admin' | 'player'
+    const saved = localStorage.getItem('no_offside_role');
+    if (saved === 'owner' || saved === 'admin' || saved === 'member') return saved;
+    return 'owner'; // Mặc định là Owner
   });
 
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -89,8 +116,13 @@ export function useAuth() {
     localStorage.setItem('no_offside_role', currentUserRole);
   }, [currentUserRole]);
 
+  // Chu kỳ đổi vai trò: Owner -> Admin -> Member -> Owner
   const toggleRole = () => {
-    setCurrentUserRole(prev => (prev === 'admin' ? 'player' : 'admin'));
+    setCurrentUserRole(prev => {
+      if (prev === 'owner') return 'admin';
+      if (prev === 'admin') return 'member';
+      return 'owner';
+    });
   };
 
   const setAttendance = (status) => {
@@ -149,6 +181,16 @@ export function useAuth() {
     }));
   };
 
+  const updateTeamSettings = (newSettings) => {
+    setTeamSettings(prev => ({
+      ...prev,
+      ...newSettings
+    }));
+    if (newSettings.teamName) {
+      setUser(prev => ({ ...prev, teamName: newSettings.teamName }));
+    }
+  };
+
   const updateSubAdminTitle = (subAdminId, newTitle) => {
     setTeamSettings(prev => ({
       ...prev,
@@ -165,10 +207,61 @@ export function useAuth() {
     }));
   };
 
+  // Giáng cấp/Xóa Admin phụ xuống thành Member
   const removeSubAdmin = (subAdminId) => {
     setTeamSettings(prev => ({
       ...prev,
       subAdmins: prev.subAdmins.filter(sa => sa.id !== subAdminId)
+    }));
+  };
+
+  // Yêu cầu 2: Từ chức / Nhường quyền Owner cho người khác và giáng mình xuống Member
+  const transferOwnership = (targetAdminId) => {
+    const targetAdmin = teamSettings.subAdmins.find(sa => sa.id === targetAdminId);
+    if (!targetAdmin) return;
+
+    setUser(prev => ({
+      ...prev,
+      isCaptain: false,
+      customTitle: 'Cầu thủ'
+    }));
+
+    // Cập nhật người mới làm Owner
+    setTeamSettings(prev => ({
+      ...prev,
+      subAdmins: prev.subAdmins.filter(sa => sa.id !== targetAdminId)
+    }));
+
+    // Tự giáng chức xuống Member
+    setCurrentUserRole('member');
+  };
+
+  // Yêu cầu 2: Owner duyệt phong chức Admin
+  const approveAdminRequest = (requestId) => {
+    const req = teamSettings.pendingAdminRequests.find(r => r.id === requestId);
+    if (!req) return;
+
+    setTeamSettings(prev => ({
+      ...prev,
+      subAdmins: [
+        ...prev.subAdmins,
+        {
+          id: req.id,
+          name: req.name,
+          number: req.number,
+          customTitle: req.requestedTitle || 'Đội Phó',
+          avatar: req.avatar,
+          phone: '0901234567'
+        }
+      ],
+      pendingAdminRequests: prev.pendingAdminRequests.filter(r => r.id !== requestId)
+    }));
+  };
+
+  const rejectAdminRequest = (requestId) => {
+    setTeamSettings(prev => ({
+      ...prev,
+      pendingAdminRequests: prev.pendingAdminRequests.filter(r => r.id !== requestId)
     }));
   };
 
@@ -194,9 +287,13 @@ export function useAuth() {
     teamSettings,
     updateTreasurerQr,
     updateTeamName,
+    updateTeamSettings,
     updateSubAdminTitle,
     addSubAdmin,
     removeSubAdmin,
+    transferOwnership,
+    approveAdminRequest,
+    rejectAdminRequest,
     login,
     logout,
   };

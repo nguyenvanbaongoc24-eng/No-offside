@@ -26,13 +26,16 @@ import {
   Users,
   Trash2,
   Sparkles,
-  Tag
+  Tag,
+  ArrowRightLeft,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import InviteShare from '../components/InviteShare';
 
 export default function Profile({ 
   user, 
-  currentUserRole = 'admin', 
+  currentUserRole = 'owner', 
   onToggleRole, 
   onLogout,
   onNavigate,
@@ -40,7 +43,10 @@ export default function Profile({
   onUpdateTeamName,
   onUpdateSubAdminTitle,
   onAddSubAdmin,
-  onRemoveSubAdmin
+  onRemoveSubAdmin,
+  onTransferOwnership,
+  onApproveAdminRequest,
+  onRejectAdminRequest
 }) {
   // Personal Info Form State
   const [avatar, setAvatar] = useState(user.avatar);
@@ -53,14 +59,10 @@ export default function Profile({
   const [isSaved, setIsSaved] = useState(false);
 
   // Captain Team Name State
-  const isCaptain = user.isCaptain ?? true;
+  const isOwner = currentUserRole === 'owner';
+  const isAdmin = currentUserRole === 'admin';
   const [editingTeamName, setEditingTeamName] = useState(teamSettings?.teamName || user.teamName || 'FC No Offside');
   const [teamNameSaved, setTeamNameSaved] = useState(false);
-
-  // Admin System Settings
-  const [matchReminderMinutes, setMatchReminderMinutes] = useState(120);
-  const [fundReminderDay, setFundReminderDay] = useState(25);
-  const [systemSaved, setSystemSaved] = useState(false);
 
   // Sub-Admins list
   const subAdmins = teamSettings?.subAdmins || [
@@ -68,11 +70,14 @@ export default function Profile({
     { id: 102, name: 'Đặng Văn Lâm', number: 1, customTitle: 'Đội Phó', phone: '0977889900' },
   ];
 
+  // Pending Admin Nominations
+  const pendingRequests = teamSettings?.pendingAdminRequests || [];
+
   // Title assignment modal / popover
   const [editingSubAdmin, setEditingSubAdmin] = useState(null);
   const [customTitleInput, setCustomTitleInput] = useState('');
 
-  // Admin Delegation Double Confirmation Modal
+  // Admin Delegation Modal
   const [selectedPromotee, setSelectedPromotee] = useState(null);
   const [promoteTitle, setPromoteTitle] = useState('Đội Phó');
   const [showPromoteModal, setShowPromoteModal] = useState(false);
@@ -80,6 +85,10 @@ export default function Profile({
   // Removing Admin Double Confirmation Modal
   const [adminToRemove, setAdminToRemove] = useState(null);
   const [showRemoveAdminModal, setShowRemoveAdminModal] = useState(false);
+
+  // Yêu cầu 2: Double Confirmation Modal Từ Chức / Nhường Quyền Owner
+  const [showTransferOwnerModal, setShowTransferOwnerModal] = useState(false);
+  const [selectedNewOwner, setSelectedNewOwner] = useState(null);
 
   // Invite QR & Link Modal
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -117,22 +126,21 @@ export default function Profile({
     setTimeout(() => setTeamNameSaved(false), 2500);
   };
 
-  const handleSaveSystemSettings = (e) => {
-    e.preventDefault();
-    setSystemSaved(true);
-    setTimeout(() => setSystemSaved(false), 2500);
-  };
-
   const handleConfirmPromote = () => {
-    if (onAddSubAdmin && selectedPromotee) {
-      onAddSubAdmin({
-        id: selectedPromotee.id,
-        name: selectedPromotee.name,
-        number: selectedPromotee.number,
-        customTitle: promoteTitle || 'Admin Phụ',
-      });
+    if (isOwner) {
+      if (onAddSubAdmin && selectedPromotee) {
+        onAddSubAdmin({
+          id: selectedPromotee.id,
+          name: selectedPromotee.name,
+          number: selectedPromotee.number,
+          customTitle: promoteTitle || 'Đội Phó',
+        });
+      }
+      alert(`Đã cấp quyền Admin với chức danh "${promoteTitle}" cho ${selectedPromotee.name} thành công!`);
+    } else {
+      // Admin phụ đề xuất lên Owner
+      alert(`Đã gửi yêu cầu phong Admin (${promoteTitle}) cho ${selectedPromotee.name} tới Đội Trưởng phê duyệt!`);
     }
-    alert(`Đã cấp quyền Admin với chức danh "${promoteTitle}" cho ${selectedPromotee.name} thành công!`);
     setShowPromoteModal(false);
     setSelectedPromotee(null);
   };
@@ -141,9 +149,19 @@ export default function Profile({
     if (onRemoveSubAdmin && adminToRemove) {
       onRemoveSubAdmin(adminToRemove.id);
     }
-    alert(`Đã gỡ quyền Admin của ${adminToRemove.name}!`);
+    alert(`Đã giáng chức ${adminToRemove.name} từ Admin xuống Thành viên!`);
     setShowRemoveAdminModal(false);
     setAdminToRemove(null);
+  };
+
+  const handleConfirmTransferOwner = () => {
+    if (!selectedNewOwner) return;
+    if (onTransferOwnership) {
+      onTransferOwnership(selectedNewOwner.id);
+    }
+    alert(`Bạn đã nhường toàn quyền Đội Trưởng cho ${selectedNewOwner.name}! Vai trò của bạn hiện là Thành Viên.`);
+    setShowTransferOwnerModal(false);
+    setSelectedNewOwner(null);
   };
 
   const handleUpdateTitleSubmit = () => {
@@ -155,58 +173,106 @@ export default function Profile({
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-['Be_Vietnam_Pro'] antialiased select-none">
+    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-['Be_Vietnam_Pro'] antialiased select-none">
       
       {/* 1. Header Dark Geometric Style */}
-      <section className="bg-slate-900 text-white pt-safe-hero pb-12 px-6 rounded-b-[40px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px] text-center">
-        <div className="relative z-10 flex flex-col items-center">
-          
-          {/* Avatar with Camera upload trigger */}
-          <div className="relative mb-3 group">
-            <img 
-              src={avatar} 
-              alt={name} 
-              className="w-20 h-20 rounded-full object-cover ring-4 ring-emerald-500/80 shadow-xl"
-            />
-            <label className="absolute bottom-0 right-0 w-7 h-7 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full flex items-center justify-center cursor-pointer shadow-md transition-transform active:scale-90">
-              <Camera className="w-3.5 h-3.5" />
-              <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-            </label>
+      <section className="bg-slate-900 text-white pt-safe-hero pb-8 px-5 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <img 
+                src={avatar} 
+                alt={name} 
+                className="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-400 shadow-md"
+              />
+              <label 
+                htmlFor="avatar-upload" 
+                className="absolute -bottom-1 -right-1 p-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full cursor-pointer transition-all active:scale-95 shadow"
+                title="Thay đổi ảnh đại diện"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <input 
+                  id="avatar-upload" 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleAvatarChange}
+                />
+              </label>
+            </div>
+
+            <div>
+              <h1 className="text-base font-black text-white flex items-center gap-1.5">
+                <span>{name}</span>
+                <span className="text-[10px] font-black bg-emerald-500 text-slate-950 px-1.5 py-0.2 rounded-full font-mono">
+                  #{number}
+                </span>
+              </h1>
+              <p className="text-xs text-gray-400 font-semibold">{user.teamName}</p>
+            </div>
           </div>
 
-          <h1 className="text-xl font-black text-white tracking-tight flex items-center justify-center gap-1.5">
-            <span>{name}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 font-mono">
-              #{number}
-            </span>
-          </h1>
+          <div className="flex items-center gap-2">
+            {/* Dev Switcher 3 Cấp bậc: Owner / Admin / Member */}
+            <button
+              onClick={onToggleRole}
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap flex-shrink-0 cursor-pointer ${
+                currentUserRole === 'owner'
+                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-amber-400/20'
+                  : currentUserRole === 'admin'
+                  ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
+                  : 'bg-white/10 text-gray-200 border-white/20 hover:bg-white/20'
+              }`}
+              title="Click để đổi vai trò thử nghiệm: Owner -> Admin -> Member"
+            >
+              {currentUserRole === 'owner' ? (
+                <>
+                  <Crown className="w-3.5 h-3.5 text-slate-950" />
+                  <span>👑 Đội Trưởng</span>
+                </>
+              ) : currentUserRole === 'admin' ? (
+                <>
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>⭐ Admin Phụ</span>
+                </>
+              ) : (
+                <span>⚽ Cầu Thủ</span>
+              )}
+            </button>
 
-          <p className="text-xs text-gray-400 font-semibold mt-0.5">
-            {teamSettings?.teamName || user.teamName} • {user.teamCategory}
-          </p>
-
-          <div className="mt-2 flex items-center justify-center gap-1.5">
-            {isCaptain ? (
-              <span className="text-[11px] bg-gradient-to-r from-amber-400/25 to-yellow-500/20 text-amber-300 font-black px-3 py-0.5 rounded-full border border-amber-400/50 flex items-center gap-1 shadow-xs">
-                <Crown className="w-3 h-3 text-amber-400" />
-                <span>👑 Đội Trưởng (Owner)</span>
-              </span>
-            ) : currentUserRole === 'admin' ? (
-              <span className="text-[11px] bg-amber-400/20 text-amber-300 font-black px-3 py-0.5 rounded-full border border-amber-400/40 flex items-center gap-1">
-                <Crown className="w-3 h-3 text-amber-400" />
-                <span>👑 {user.customTitle || 'Admin Phụ'}</span>
-              </span>
-            ) : (
-              <span className="text-[11px] bg-white/10 text-gray-300 font-bold px-3 py-0.5 rounded-full border border-white/15">
-                ⚽ Thành Viên
-              </span>
-            )}
+            {/* Logout button */}
+            <button 
+              onClick={onLogout}
+              className="p-2 rounded-full bg-white/10 hover:bg-rose-500/20 text-gray-300 hover:text-rose-400 border border-white/10 transition-all active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center justify-center"
+              title="Đăng xuất"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
+
+        {/* Cài Đặt Đội Bóng Button - DÀNH RIÊNG CHO OWNER */}
+        {isOwner && (
+          <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              <span className="text-xs text-amber-300 font-extrabold">Quyền Đội Trưởng Tối Cao</span>
+            </div>
+
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onNavigate && onNavigate('team-settings')}
+              className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 whitespace-nowrap flex-shrink-0 cursor-pointer"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Cài Đặt Đội Bóng</span>
+            </motion.button>
+          </div>
+        )}
       </section>
 
       {/* 2. FORM CẬP NHẬT THÔNG TIN CÁ NHÂN */}
-      <section className="bg-white rounded-[32px] shadow-soft p-5 mx-4 -mt-6 relative z-10 border border-gray-100">
+      <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 mx-3.5 -mt-4 relative z-10 border border-gray-100">
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-emerald-600" />
@@ -217,25 +283,25 @@ export default function Profile({
           <span className="text-[10px] text-gray-400 font-bold">Chỉnh sửa & Cập nhật</span>
         </div>
 
-        <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs">
+        <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
           <div>
             <label className="text-gray-600 block mb-1 font-bold">Họ và tên</label>
             <input 
               type="text" 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
-              className="w-full h-12 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 text-gray-900 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+              className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 text-gray-900 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner" 
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-gray-600 block mb-1 font-bold">Số áo</label>
+              <label className="text-gray-600 block mb-1 font-bold">Số áo thi đấu</label>
               <input 
                 type="number" 
                 value={number} 
                 onChange={(e) => setNumber(e.target.value)} 
-                className="w-full h-12 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 font-mono font-black text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 font-mono font-black text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner" 
               />
             </div>
             <div>
@@ -244,7 +310,7 @@ export default function Profile({
                 type="text" 
                 value={role} 
                 onChange={(e) => setRole(e.target.value)} 
-                className="w-full h-12 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 text-gray-900 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 text-gray-900 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner" 
               />
             </div>
           </div>
@@ -256,7 +322,7 @@ export default function Profile({
                 type="number" 
                 value={height} 
                 onChange={(e) => setHeight(e.target.value)} 
-                className="w-full h-12 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner" 
               />
             </div>
             <div>
@@ -265,7 +331,7 @@ export default function Profile({
                 type="number" 
                 value={weight} 
                 onChange={(e) => setWeight(e.target.value)} 
-                className="w-full h-12 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner" 
               />
             </div>
           </div>
@@ -273,52 +339,112 @@ export default function Profile({
           <motion.button
             whileTap={{ scale: 0.95 }}
             type="submit"
-            className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20 cursor-pointer mt-1"
+            className="w-full h-11 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-black text-xs shadow-lg shadow-green-500/30 flex items-center justify-center whitespace-nowrap cursor-pointer mt-1"
           >
             {isSaved ? '✓ Đã Lưu Thông Tin' : 'Lưu Hồ Sơ Cầu Thủ'}
           </motion.button>
         </form>
       </section>
 
-      {/* 3. QUẢN LÝ ĐỘI BÓNG & PHÂN QUYỀN (CAPTAIN VS ADMIN PHỤ) */}
-      {currentUserRole === 'admin' && (
-        <section className="bg-white rounded-[32px] shadow-soft p-5 mx-4 mt-3 border border-gray-100">
+      {/* 3. WORKFLOW XÉT DUYỆT PHONG ADMIN (CHỜ OWNER PHÊ DUYỆT) */}
+      {isOwner && pendingRequests.length > 0 && (
+        <section className="bg-amber-50/90 rounded-[28px] border border-amber-200 p-4 mx-3.5 mt-3 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+              <h3 className="text-xs font-black text-amber-950 uppercase tracking-tight">
+                Yêu Cầu Phong Admin Chờ Duyệt ({pendingRequests.length})
+              </h3>
+            </div>
+            <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+              Cần Owner Duyệt
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {pendingRequests.map((req) => (
+              <div key={req.id} className="p-3 bg-white rounded-2xl border border-amber-200 flex items-center justify-between shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <img src={req.avatar} alt={req.name} className="w-9 h-9 rounded-full object-cover ring-1 ring-amber-300" />
+                  <div>
+                    <p className="text-xs font-black text-gray-900">
+                      {req.name} <span className="text-amber-700 font-bold">#{req.number}</span>
+                    </p>
+                    <p className="text-[10px] text-gray-500">
+                      Đề xuất làm: <strong className="text-amber-800 font-bold">👑 {req.requestedTitle}</strong> • Bởi: {req.requestedBy}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (onApproveAdminRequest) onApproveAdminRequest(req.id);
+                      alert(`Đã chấp thuận phong chức ${req.requestedTitle} cho ${req.name}!`);
+                    }}
+                    className="px-2.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] shadow-sm flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Duyệt</span>
+                  </motion.button>
+
+                  <button
+                    onClick={() => {
+                      if (onRejectAdminRequest) onRejectAdminRequest(req.id);
+                      alert(`Đã từ chối yêu cầu của ${req.name}.`);
+                    }}
+                    className="p-1.5 rounded-full bg-gray-100 hover:bg-rose-100 text-gray-500 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+                    title="Từ chối"
+                  >
+                    <UserX className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 4. QUẢN LÝ ĐỘI BÓNG & PHÂN QUYỀN (CAPTAIN VS ADMIN PHỤ) */}
+      {(isOwner || isAdmin) && (
+        <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 mx-3.5 mt-3 border border-gray-100">
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="flex items-center gap-2">
               <Crown className="w-4 h-4 text-amber-500" />
               <h3 className="text-xs font-black uppercase tracking-wider text-gray-900">
-                {isCaptain ? 'QUẢN TRỊ ĐỘI (DÀNH CHO ĐỘI TRƯỞNG)' : 'QUẢN TRỊ ĐỘI (ADMIN PHỤ)'}
+                {isOwner ? 'QUẢN TRỊ ĐỘI BÓNG (ĐỘI TRƯỞNG)' : 'QUẢN TRỊ ĐỘI BÓNG (ADMIN PHỤ)'}
               </h3>
             </div>
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-              {isCaptain ? 'Quyền Cao Nhất' : 'Phân Quyền'}
+            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+              {isOwner ? 'Owner' : 'Sub-Admin'}
             </span>
           </div>
 
-          {/* Form Đổi Tên FC - CHỈ ĐỘI TRƯỞNG MỚI CÓ QUYỀN */}
-          <div className="p-3.5 bg-slate-50 rounded-2xl border border-gray-100 mb-4">
+          {/* Form Đổi Tên FC - CHỈ OWNER MỚI CÓ QUYỀN */}
+          <div className="p-3 bg-slate-50 rounded-2xl border border-gray-100 mb-3.5">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs font-bold text-gray-800 flex items-center gap-1">
                 <Shield className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Tên Đội Bóng (FC):</span>
               </span>
-              {!isCaptain && (
+              {!isOwner && (
                 <span className="text-[10px] text-gray-400 font-medium">Chỉ Đội Trưởng mới đổi được</span>
               )}
             </div>
 
-            {isCaptain ? (
+            {isOwner ? (
               <form onSubmit={handleSaveTeamName} className="flex items-center gap-2">
                 <input
                   type="text"
                   value={editingTeamName}
                   onChange={(e) => setEditingTeamName(e.target.value)}
-                  className="flex-1 h-11 bg-white border border-gray-200 rounded-xl px-3 text-xs font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 h-10 bg-white border border-gray-200 rounded-xl px-3 text-xs font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
                 />
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  className="h-11 px-3.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shrink-0 cursor-pointer"
+                  className="h-10 px-3.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shrink-0 cursor-pointer whitespace-nowrap flex items-center justify-center"
                 >
                   {teamNameSaved ? '✓ Đã Lưu' : 'Đổi Tên'}
                 </motion.button>
@@ -331,15 +457,15 @@ export default function Profile({
           </div>
 
           {/* Danh Sách Admin Phụ & Cấp Biệt Danh/Chức Danh (Badge Vàng Gold) */}
-          <div className="pt-2">
+          <div className="pt-1">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-black text-gray-900 flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Danh Sách Admin Phụ ({subAdmins.length}):</span>
+                <span>Danh Sách Admin ({subAdmins.length}):</span>
               </span>
-              {isCaptain && (
+              {isOwner && (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                  Có thể sửa chức danh
+                  Có thể sửa chức danh / giáng chức
                 </span>
               )}
             </div>
@@ -348,14 +474,14 @@ export default function Profile({
               {subAdmins.map((admin) => (
                 <div key={admin.id} className="p-3 rounded-2xl bg-slate-50 border border-gray-100 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-black flex items-center justify-center">
+                    <span className="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-black flex items-center justify-center shrink-0">
                       #{admin.number}
                     </span>
                     <div>
-                      <p className="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                      <p className="text-xs font-black text-gray-900 flex items-center gap-1.5 flex-wrap">
                         <span>{admin.name}</span>
                         {/* BADGE CHỨC DANH MÀU VÀNG GOLD */}
-                        <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400/25 to-yellow-500/20 text-amber-900 border border-amber-300 font-black text-[10px] inline-flex items-center gap-1 shadow-xs">
+                        <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400/25 to-yellow-500/20 text-amber-900 border border-amber-300 font-black text-[10px] inline-flex items-center gap-1 shadow-xs whitespace-nowrap">
                           👑 {admin.customTitle || 'Admin Phụ'}
                         </span>
                       </p>
@@ -364,14 +490,14 @@ export default function Profile({
                   </div>
 
                   {/* Nút sửa chức danh & Xóa (Chỉ Đội Trưởng) */}
-                  {isCaptain && (
+                  {isOwner && (
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => {
                           setEditingSubAdmin(admin);
                           setCustomTitleInput(admin.customTitle || '');
                         }}
-                        className="px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 font-bold text-[10px] border border-amber-200/80 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 font-bold text-[10px] border border-amber-200/80 active:scale-95 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap"
                         title="Đổi chức danh"
                       >
                         <Tag className="w-3 h-3 text-amber-600" />
@@ -383,8 +509,8 @@ export default function Profile({
                           setAdminToRemove(admin);
                           setShowRemoveAdminModal(true);
                         }}
-                        className="p-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 active:scale-90 transition-all cursor-pointer"
-                        title="Gỡ quyền Admin"
+                        className="p-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 active:scale-90 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center"
+                        title="Giáng cấp xuống Member"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -394,88 +520,58 @@ export default function Profile({
               ))}
             </div>
 
-            {/* Nút Cấp quyền Admin cho thành viên mới (Chỉ Đội Trưởng) */}
-            {isCaptain && (
-              <div className="pt-2 border-t border-gray-100">
-                <span className="text-[11px] font-bold text-gray-500 block mb-2">
-                  Cấp Quyền Admin Cho Thành Viên Khác:
-                </span>
+            {/* Nút Cấp quyền Admin cho thành viên mới */}
+            <div className="pt-2 border-t border-gray-100">
+              <span className="text-[11px] font-bold text-gray-500 block mb-2">
+                {isOwner ? 'Cấp Quyền Admin Cho Thành Viên:' : 'Đề Xuất Phong Admin Cho Thành Viên:'}
+              </span>
 
-                <div className="space-y-1.5">
-                  {availableMembers.map((member) => (
-                    <div key={member.id} className="p-2 rounded-xl bg-gray-50/70 border border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-[10px] font-bold flex items-center justify-center">
-                          #{member.number}
-                        </span>
-                        <span className="text-xs font-bold text-gray-800">{member.name}</span>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setSelectedPromotee(member);
-                          setPromoteTitle('Đội Phó');
-                          setShowPromoteModal(true);
-                        }}
-                        className="px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-200 active:scale-95 transition-all cursor-pointer"
-                      >
-                        + Cấp Quyền Admin
-                      </button>
+              <div className="space-y-1.5">
+                {availableMembers.map((member) => (
+                  <div key={member.id} className="p-2 rounded-xl bg-gray-50/80 border border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                        #{member.number}
+                      </span>
+                      <span className="text-xs font-bold text-gray-800">{member.name}</span>
                     </div>
-                  ))}
-                </div>
+                    <button
+                      onClick={() => {
+                        setSelectedPromotee(member);
+                        setPromoteTitle('Đội Phó');
+                        setShowPromoteModal(true);
+                      }}
+                      className="px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-200 active:scale-95 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center"
+                    >
+                      {isOwner ? '+ Cấp Quyền Admin' : '+ Đề Xuất Admin'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Yêu cầu 2: Nút Từ Chức / Nhường Quyền Đội Trưởng (Owner Only) */}
+            {isOwner && (
+              <div className="mt-4 pt-3 border-t border-rose-100">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferOwnerModal(true)}
+                  className="w-full py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-black text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  <span>Từ Chức & Nhường Quyền Đội Trưởng</span>
+                </button>
+                <p className="text-[10px] text-gray-400 text-center mt-1">
+                  Chuyển quyền kiểm soát toàn đội cho một Admin phụ khác
+                </p>
               </div>
             )}
-          </div>
-
-          {/* Form Cài đặt nhắc nhở hệ thống */}
-          <div className="mt-4 pt-3 border-t border-gray-100">
-            <span className="text-xs font-black text-gray-900 block mb-2">
-              Cài Đặt Lịch Nhắc Nhở Tự Động:
-            </span>
-
-            <form onSubmit={handleSaveSystemSettings} className="space-y-2.5 text-xs">
-              <div className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100">
-                <span className="text-gray-700 font-semibold">Nhắc trận trước:</span>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    value={matchReminderMinutes}
-                    onChange={(e) => setMatchReminderMinutes(e.target.value)}
-                    className="w-16 h-8 bg-white border border-gray-200 rounded-lg text-center font-mono font-bold text-gray-900"
-                  />
-                  <span className="text-[11px] text-gray-500">phút</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100">
-                <span className="text-gray-700 font-semibold">Nhắc nợ quỹ ngày:</span>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={fundReminderDay}
-                    onChange={(e) => setFundReminderDay(e.target.value)}
-                    className="w-16 h-8 bg-white border border-gray-200 rounded-lg text-center font-mono font-bold text-gray-900"
-                  />
-                  <span className="text-[11px] text-gray-500">hàng tháng</span>
-                </div>
-              </div>
-
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                type="submit"
-                className="w-full py-2.5 rounded-full bg-slate-900 hover:bg-black text-white font-bold text-xs cursor-pointer mt-1"
-              >
-                {systemSaved ? '✓ Đã Lưu Cài Đặt' : 'Lưu Cài Đặt Nhắc Nhở'}
-              </motion.button>
-            </form>
           </div>
         </section>
       )}
 
-      {/* 4. GIA NHẬP & MỜI THÀNH VIÊN (INVITE QR & LINK) */}
-      <section className="bg-white rounded-[32px] shadow-soft p-5 mx-4 mt-3 border border-gray-100">
+      {/* 5. GIA NHẬP & MỜI THÀNH VIÊN (INVITE QR & LINK) */}
+      <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 mx-3.5 mt-3 border border-gray-100">
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-600" />
@@ -488,66 +584,15 @@ export default function Profile({
           </span>
         </div>
 
-        <div className="space-y-2.5">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            type="button"
-            onClick={() => setShowInviteModal(true)}
-            className="w-full h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Mời Thành Viên Mới Qua QR & Link</span>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            type="button"
-            onClick={() => onNavigate && onNavigate('create-team')}
-            className="w-full h-12 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer border border-gray-200/80"
-          >
-            <PlusCircle className="w-4 h-4 text-emerald-600" />
-            <span>Tạo Thêm Đội Bóng Mới (Làm Đội Trưởng)</span>
-          </motion.button>
-        </div>
-      </section>
-
-      {/* 5. CHUYỂN ĐỔI ROLE & ĐĂNG XUẤT */}
-      <section className="bg-white rounded-[32px] shadow-soft p-5 mx-4 mt-3 border border-gray-100">
-        <div className="divide-y divide-gray-100 text-xs">
-          <div className="py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <Crown className="w-4 h-4 text-amber-500" />
-              <div>
-                <p className="font-bold text-gray-800">Quyền xem hiện tại</p>
-                <p className="text-[11px] text-gray-400">
-                  {currentUserRole === 'admin' ? 'Đội Trưởng / Admin' : 'Cầu thủ (Member)'}
-                </p>
-              </div>
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={onToggleRole}
-              className={`px-3 py-1.5 rounded-full font-bold text-xs transition-all ${
-                currentUserRole === 'admin'
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'bg-emerald-600 text-white shadow-sm'
-              }`}
-            >
-              {currentUserRole === 'admin' ? 'Đổi sang Member' : 'Đổi sang Admin'}
-            </motion.button>
-          </div>
-
-          <div className="pt-3">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={onLogout}
-              className="w-full py-3 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 border border-rose-200/80"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Đăng Xuất Tài Khoản</span>
-            </motion.button>
-          </div>
-        </div>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          type="button"
+          onClick={() => setShowInviteModal(true)}
+          className="w-full h-12 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 cursor-pointer whitespace-nowrap"
+        >
+          <QrCode className="w-4 h-4" />
+          <span>Mời Thành Viên Mới Qua QR & Link</span>
+        </motion.button>
       </section>
 
       {/* MODAL SỬA CHỨC DANH / BIỆT DANH CHO ADMIN PHỤ */}
@@ -561,7 +606,7 @@ export default function Profile({
                   Cấp Chức Danh Cho {editingSubAdmin.name}
                 </h3>
               </div>
-              <button onClick={() => setEditingSubAdmin(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+              <button onClick={() => setEditingSubAdmin(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -577,7 +622,7 @@ export default function Profile({
                       key={t}
                       type="button"
                       onClick={() => setCustomTitleInput(t)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         customTitleInput === t 
                           ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-400/50 shadow-sm' 
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -598,7 +643,7 @@ export default function Profile({
                   value={customTitleInput}
                   onChange={(e) => setCustomTitleInput(e.target.value)}
                   placeholder="Ví dụ: Bầu Đội, Kế Toán, Trưởng Đoàn..."
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-inner"
                 />
               </div>
 
@@ -606,7 +651,7 @@ export default function Profile({
                 whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={handleUpdateTitleSubmit}
-                className="w-full h-11 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer mt-2"
+                className="w-full h-11 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer mt-2 whitespace-nowrap flex items-center justify-center"
               >
                 Lưu Chức Danh (Hiện Badge Vàng)
               </motion.button>
@@ -625,11 +670,15 @@ export default function Profile({
             </div>
 
             <h3 className="font-black text-base text-gray-900">
-              Xác Nhận Cấp Quyền Admin
+              {isOwner ? 'Xác Nhận Cấp Quyền Admin' : 'Đề Xuất Phong Admin'}
             </h3>
             
             <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
-              Bạn có chắc chắn muốn cấp quyền Admin cho <strong>{selectedPromotee.name} (#{selectedPromotee.number})</strong>?
+              {isOwner ? (
+                <>Bạn có chắc chắn muốn cấp quyền Admin cho <strong>{selectedPromotee.name} (#{selectedPromotee.number})</strong>?</>
+              ) : (
+                <>Gửi đề xuất phong Admin cho <strong>{selectedPromotee.name}</strong> tới Đội Trưởng?</>
+              )}
             </p>
 
             {/* Chọn chức danh khi cấp */}
@@ -643,7 +692,7 @@ export default function Profile({
                     key={tp}
                     type="button"
                     onClick={() => setPromoteTitle(tp)}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer whitespace-nowrap ${
                       promoteTitle === tp ? 'bg-amber-400 text-slate-950' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
@@ -657,14 +706,14 @@ export default function Profile({
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleConfirmPromote}
-                className="w-full py-3.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow-md shadow-amber-600/20 cursor-pointer"
+                className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer whitespace-nowrap flex items-center justify-center"
               >
-                Xác Nhận Cấp Quyền Admin
+                {isOwner ? 'Xác Nhận Cấp Quyền Admin' : 'Gửi Yêu Cầu Cho Đội Trưởng'}
               </motion.button>
               
               <button
                 onClick={() => { setShowPromoteModal(false); setSelectedPromotee(null); }}
-                className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer"
+                className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
               </button>
@@ -674,7 +723,7 @@ export default function Profile({
         </div>
       )}
 
-      {/* DOUBLE CONFIRMATION MODAL KHI GỠ QUYỀN ADMIN */}
+      {/* DOUBLE CONFIRMATION MODAL KHI GIÁNG CHỨC / GỠ QUYỀN ADMIN */}
       {showRemoveAdminModal && adminToRemove && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100 text-center">
@@ -684,25 +733,106 @@ export default function Profile({
             </div>
 
             <h3 className="font-black text-base text-gray-900">
-              Gỡ Quyền Admin
+              Giáng Chức Admin
             </h3>
             
             <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
-              Bạn có chắc chắn muốn gỡ quyền Admin của <strong>{adminToRemove.name}</strong>? Người này sẽ trở thành thành viên thường.
+              Bạn có chắc chắn muốn xóa quyền Admin của <strong>{adminToRemove.name}</strong>? Người này sẽ bị giáng xuống thành Cầu thủ (Member).
             </p>
 
             <div className="mt-5 space-y-2">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleConfirmRemoveAdmin}
-                className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 cursor-pointer"
+                className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 cursor-pointer whitespace-nowrap flex items-center justify-center"
               >
-                Xác Nhận Gỡ Quyền
+                Xác Nhận Giáng Chức
               </motion.button>
               
               <button
                 onClick={() => { setShowRemoveAdminModal(false); setAdminToRemove(null); }}
-                className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer"
+                className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
+              >
+                Hủy Bỏ
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* YÊU CẦU 2: DOUBLE CONFIRMATION MODAL TỪ CHỨC & NHƯỜNG QUYỀN OWNER */}
+      {showTransferOwnerModal && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100 text-center">
+            
+            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-300 text-amber-600 flex items-center justify-center mx-auto mb-3">
+              <Crown className="w-7 h-7" />
+            </div>
+
+            <h3 className="font-black text-base text-gray-900">
+              Nhường Quyền Đội Trưởng
+            </h3>
+            
+            <p className="text-xs text-rose-600 mt-2 leading-relaxed font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+              ⚠️ LƯU Ý QUAN TRỌNG: Bạn sẽ mất toàn quyền kiểm soát đội bóng và tự giáng cấp mình xuống làm Cầu thủ (Member)!
+            </p>
+
+            <div className="my-4 text-left">
+              <label className="text-[11px] font-bold text-gray-700 block mb-1.5">
+                Chọn người tiếp quản vị trí Đội Trưởng:
+              </label>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {subAdmins.map((sa) => (
+                  <div 
+                    key={sa.id}
+                    onClick={() => setSelectedNewOwner(sa)}
+                    className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      selectedNewOwner?.id === sa.id 
+                        ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/20'
+                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-slate-900 text-white text-[10px] font-mono font-black flex items-center justify-center">
+                        #{sa.number}
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-gray-900">{sa.name}</p>
+                        <p className="text-[10px] text-amber-800 font-semibold">{sa.customTitle}</p>
+                      </div>
+                    </div>
+                    {selectedNewOwner?.id === sa.id && (
+                      <Check className="w-4 h-4 text-amber-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {selectedNewOwner && (
+              <p className="text-[11px] text-gray-700 font-semibold mb-3">
+                Bạn có chắc chắn muốn nhường quyền Đội trưởng cho <strong>{selectedNewOwner.name}</strong>?
+              </p>
+            )}
+
+            <div className="space-y-2">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                disabled={!selectedNewOwner}
+                onClick={handleConfirmTransferOwner}
+                className={`w-full py-3.5 rounded-full font-black text-xs shadow-md transition-all whitespace-nowrap flex items-center justify-center ${
+                  selectedNewOwner
+                    ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-rose-500/25 cursor-pointer'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Xác Nhận Nhường Quyền Đội Trưởng
+              </motion.button>
+              
+              <button
+                onClick={() => { setShowTransferOwnerModal(false); setSelectedNewOwner(null); }}
+                className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
               </button>

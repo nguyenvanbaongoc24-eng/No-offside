@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   Info
 } from 'lucide-react';
+import { formatCurrency, formatCompactCurrency } from '../lib/formatCurrency';
 
 export default function PlayerDashboard({ 
   user, 
@@ -205,8 +206,12 @@ export default function PlayerDashboard({
     alert(`⚠️ Đã ghi nhận phạt quỹ 50.000đ cho ${playerName} vì không điểm danh đúng hạn!`);
   };
 
+  const isOwner = currentUserRole === 'owner';
+  const isAdmin = currentUserRole === 'admin';
+  const isLeader = isOwner || isAdmin;
+
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-24 font-['Be_Vietnam_Pro'] antialiased select-none">
+    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-['Be_Vietnam_Pro'] antialiased select-none">
       
       {/* =========================================================
           1. HEADER DARK STYLE VỚI PATTERN MỜ (SLATE-900)
@@ -231,11 +236,16 @@ export default function PlayerDashboard({
                 {user.teamName}
               </span>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] bg-white/10 text-emerald-400 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30 inline-flex items-center gap-1">
-                  {currentUserRole === 'admin' ? (
+                <span className="text-[10px] bg-white/10 text-emerald-400 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30 inline-flex items-center gap-1 whitespace-nowrap">
+                  {isOwner ? (
                     <>
                       <Crown className="w-3 h-3 text-amber-400" />
                       <span>👑 Đội Trưởng</span>
+                    </>
+                  ) : isAdmin ? (
+                    <>
+                      <Shield className="w-3 h-3 text-emerald-300" />
+                      <span>⭐ Admin Phụ</span>
                     </>
                   ) : (
                     <span>⚽ {user.role}</span>
@@ -249,16 +259,23 @@ export default function PlayerDashboard({
             {/* Dev Role Switcher */}
             <button
               onClick={onToggleRole}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold border transition-all duration-200 active:scale-95 shadow-sm flex items-center gap-1.5 cursor-pointer ${
-                currentUserRole === 'admin'
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                isOwner
                   ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-amber-400/20'
+                  : isAdmin
+                  ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
                   : 'bg-white/10 text-gray-200 border-white/20 hover:bg-white/20'
               }`}
-              title="Chuyển đổi vai trò Admin / Cầu thủ"
+              title="Click để đổi nhanh vai trò: Owner -> Admin -> Member"
             >
-              {currentUserRole === 'admin' ? (
+              {isOwner ? (
                 <>
                   <Crown className="w-3 h-3" />
+                  <span>Owner</span>
+                </>
+              ) : isAdmin ? (
+                <>
+                  <Shield className="w-3 h-3" />
                   <span>Admin</span>
                 </>
               ) : (
@@ -266,12 +283,12 @@ export default function PlayerDashboard({
               )}
             </button>
 
-            {/* Admin Settings Button */}
-            {currentUserRole === 'admin' && (
+            {/* Owner/Admin Settings Button */}
+            {isOwner && (
               <button 
-                onClick={() => setShowSettingsModal(true)}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 transition-all duration-200 active:scale-95 border border-white/10 cursor-pointer"
-                title="Cài đặt đội bóng"
+                onClick={() => onNavigate && onNavigate('team-settings')}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-amber-300 transition-all duration-200 active:scale-95 border border-white/10 cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center justify-center"
+                title="Cài đặt đội bóng (Dành riêng cho Owner)"
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -280,7 +297,7 @@ export default function PlayerDashboard({
             {/* Bell Notifications Button */}
             <button 
               onClick={onOpenNotifications}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 transition-all duration-200 active:scale-95 relative border border-white/10 cursor-pointer"
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 transition-all duration-200 active:scale-95 relative border border-white/10 cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center justify-center"
               title="Thông báo đội"
             >
               <Bell className="w-4 h-4" />
@@ -292,12 +309,12 @@ export default function PlayerDashboard({
         {/* Greeting Banner */}
         <div className="relative z-10 mt-1">
           <p className="text-xs font-semibold text-gray-400 tracking-wide uppercase">
-            {currentUserRole === 'admin' ? 'Bảng Điều Khiển Quản Trị' : 'Chào Mừng Trở Lại'}
+            {isOwner ? 'Bảng Quản Trị Đội Trưởng' : isAdmin ? 'Bảng Quản Trị Admin Phụ' : 'Chào Mừng Trở Lại'}
           </p>
           <h1 className="text-xl font-black text-white tracking-tight mt-0.5 flex items-center gap-2">
-            <span>{currentUserRole === 'admin' ? 'Đội Trưởng Tuấn Hưng' : `Cầu thủ Số ${user.number}`}</span>
-            {currentUserRole === 'admin' && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <span>{isOwner ? 'Đội Trưởng Tuấn Hưng' : isAdmin ? 'Admin Tuấn Hưng' : `Cầu thủ Số ${user.number}`}</span>
+            {isLeader && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
                 Tuần này: {weeklyMatchesCount}/4 trận
               </span>
             )}
@@ -658,27 +675,33 @@ export default function PlayerDashboard({
         <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
           <div className="flex items-center justify-between mb-2.5 px-1">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">
-              {currentUserRole === 'admin' ? 'TỔNG QUAN QUỸ TOÀN ĐỘI' : 'TÀI CHÍNH & QUỸ ĐỘI'}
+              {isLeader ? 'TỔNG QUAN QUỸ TOÀN ĐỘI' : 'TÀI CHÍNH & QUỸ ĐỘI'}
             </span>
             <span className="text-[11px] font-bold text-emerald-600">
               Tháng 10/2026
             </span>
           </div>
 
-          {currentUserRole === 'admin' ? (
-            /* Admin Summary */
+          {isLeader ? (
+            /* Admin / Owner Summary */
             <div className="space-y-2.5">
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-100">
                   <span className="text-[10px] font-bold text-emerald-800 block">Tổng Quỹ Hiện Tại</span>
-                  <span className="text-lg font-black text-emerald-700 font-mono mt-0.5 block">+5.850.000 đ</span>
-                  <span className="text-[10px] text-emerald-600">Đã chốt sổ T9</span>
+                  <span className="text-lg font-black text-emerald-700 font-mono mt-0.5 block truncate">
+                    +{formatCompactCurrency(5850000)}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-medium block truncate" title={formatCurrency(5850000)}>
+                    {formatCurrency(5850000)}
+                  </span>
                 </div>
 
                 <div className="bg-rose-50/80 p-3 rounded-2xl border border-rose-100">
                   <span className="text-[10px] font-bold text-rose-700 block">Chưa Nộp Quỹ</span>
                   <span className="text-lg font-black text-rose-600 font-mono mt-0.5 block">6/20 Người</span>
-                  <span className="text-[10px] text-rose-500 font-medium">Tổng nợ: 900.000 đ</span>
+                  <span className="text-[10px] text-rose-500 font-medium block truncate" title={formatCurrency(900000)}>
+                    Tổng nợ: {formatCurrency(900000)}
+                  </span>
                 </div>
               </div>
 
@@ -686,7 +709,7 @@ export default function PlayerDashboard({
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   onClick={() => onNavigate && onNavigate('fund')}
-                  className="py-2.5 px-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
+                  className="py-2.5 px-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
                 >
                   <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Sổ Quỹ Chi Tiết</span>
@@ -694,7 +717,7 @@ export default function PlayerDashboard({
 
                 <button
                   onClick={() => setShowAdminApproveModal(true)}
-                  className="py-2.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all duration-200 active:scale-95 cursor-pointer"
+                  className="py-2.5 px-3 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-green-500/20 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
                 >
                   <FileCheck className="w-3.5 h-3.5" />
                   <span>Duyệt tiền ({pendingApprovals.length})</span>
@@ -722,7 +745,7 @@ export default function PlayerDashboard({
                     </span>
                   ) : (
                     <span className="text-sm font-black text-rose-500 font-mono">
-                      -150.000 đ
+                      -{formatCurrency(150000)}
                     </span>
                   )}
                 </div>

@@ -85,7 +85,7 @@ export default function Chat({ user }) {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-['Be_Vietnam_Pro'] antialiased select-none flex flex-col justify-between">
+    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe font-['Be_Vietnam_Pro'] antialiased select-none flex flex-col justify-between">
       
       {/* 1. Header Dark Geometric Style */}
       <section className="bg-slate-900 text-white pt-safe-hero pb-4 px-5 rounded-b-[32px] shadow-lg bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
@@ -103,14 +103,14 @@ export default function Chat({ user }) {
             </div>
           </div>
 
-          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-white/10">
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/10 text-emerald-300 border border-white/10 whitespace-nowrap flex-shrink-0">
             Nội Bộ Đội
           </span>
         </div>
       </section>
 
-      {/* 2. Messages Stream */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+      {/* 2. Messages Stream với mb-32 pb-16 để cuộn không bao giờ bị thanh nav đè lên */}
+      <div className="flex-1 p-4 space-y-3 overflow-y-auto mb-32 pb-12">
         {messages.map((msg) => (
           <div 
             key={msg.id} 
@@ -126,13 +126,13 @@ export default function Chat({ user }) {
 
             <div className={`max-w-[78%] rounded-[22px] p-3 shadow-soft ${
               msg.isMe 
-                ? 'bg-emerald-600 text-white rounded-br-sm' 
+                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-br-sm shadow-md shadow-emerald-500/20' 
                 : 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm'
             }`}>
               {!msg.isMe && (
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="font-bold text-[11px] text-gray-900">{msg.sender}</span>
-                  <span className="text-[10px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.2 rounded-full">
+                  <span className="font-bold text-[11px] text-gray-900 whitespace-nowrap">{msg.sender}</span>
+                  <span className="text-[10px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.2 rounded-full whitespace-nowrap">
                     #{msg.number}
                   </span>
                 </div>
@@ -150,15 +150,15 @@ export default function Chat({ user }) {
         ))}
       </div>
 
-      {/* 3. Quick Chips & Input Bar */}
-      <div className="p-3 bg-white/90 backdrop-blur-md border-t border-gray-200/80 sticky bottom-20 z-20">
+      {/* 3. Quick Chips & Input Bar - Neo phía trên Bottom Nav (bottom-20 / pb-safe) */}
+      <div className="p-3 bg-white/95 backdrop-blur-xl border-t border-gray-200/80 fixed bottom-20 left-0 right-0 max-w-md mx-auto z-30 shadow-lg">
         {/* Quick Chips */}
         <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
           {quickMessages.map((chip, idx) => (
             <button
               key={idx}
               onClick={() => handleSend(chip)}
-              className="text-[11px] font-bold whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 transition-all border border-gray-200 active:scale-95"
+              className="text-[11px] font-bold whitespace-nowrap flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 transition-all border border-gray-200 active:scale-95"
             >
               {chip}
             </button>
@@ -175,11 +175,11 @@ export default function Chat({ user }) {
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             placeholder="Nhắn tin với anh em trong đội..."
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-emerald-600 focus:bg-white font-medium"
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-xs text-gray-900 focus:outline-none focus:border-emerald-600 focus:bg-white font-medium shadow-inner"
           />
           <button
             type="submit"
-            className="w-9 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20 active:scale-95 transition-all"
+            className="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white flex items-center justify-center shrink-0 whitespace-nowrap shadow-lg shadow-green-500/30 active:scale-95 transition-all cursor-pointer"
           >
             <Send className="w-4 h-4" />
           </button>

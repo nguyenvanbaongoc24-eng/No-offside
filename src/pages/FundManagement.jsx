@@ -23,12 +23,13 @@ import {
   Camera,
   ChevronLeft
 } from 'lucide-react';
+import { formatCurrency, formatCompactCurrency } from '../lib/formatCurrency';
 
 export default function FundManagement({ 
   onBack, 
   treasurerQr,
   onUpdateTreasurerQr,
-  currentUserRole = 'admin' 
+  currentUserRole = 'owner' 
 }) {
   const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
   const [showAddTxModal, setShowAddTxModal] = useState(false);
@@ -86,10 +87,8 @@ export default function FundManagement({
 
   // HÀM XUẤT EXCEL (CSV VỚI UTF-8 BOM CHO EXCEL VIỆT NAM)
   const handleExportExcel = () => {
-    // Header line
     const headers = ['STT', 'Ngày Giao Dịch', 'Nội Dung Thu Chi', 'Loại', 'Số Tiền (VNĐ)', 'Người Phụ Trách'];
     
-    // Rows data
     const rows = transactions.map((t, index) => [
       index + 1,
       `"${t.date}"`,
@@ -99,16 +98,12 @@ export default function FundManagement({
       `"${t.author}"`
     ]);
 
-    // Summary rows
     rows.push([]);
     rows.push(['', '', 'Tổng Thu:', '', totalIncome, '']);
     rows.push(['', '', 'Tổng Chi:', '', totalExpense, '']);
     rows.push(['', '', 'Số Dư Hiện Tại:', '', currentBalance, '']);
 
-    // Build CSV string with UTF-8 BOM (\uFEFF)
     const csvContent = '\uFEFF' + [headers, ...rows].map(e => e.join(',')).join('\n');
-    
-    // Create Blob and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -138,14 +133,13 @@ export default function FundManagement({
 
   const handleSaveQrConfig = (e) => {
     e.preventDefault();
-    const updated = {
-      bankName: qrBankName,
-      accountNumber: qrAccountNumber,
-      accountHolder: qrAccountHolder,
-      qrImageUrl: qrPreviewUrl
-    };
     if (onUpdateTreasurerQr) {
-      onUpdateTreasurerQr(updated);
+      onUpdateTreasurerQr({
+        bankName: qrBankName,
+        accountNumber: qrAccountNumber,
+        accountHolder: qrAccountHolder,
+        qrImageUrl: qrPreviewUrl
+      });
     }
     setQrSavedNotice(true);
     setTimeout(() => setQrSavedNotice(false), 2500);
@@ -162,9 +156,7 @@ export default function FundManagement({
   const handleSaveEditedTx = (e) => {
     e.preventDefault();
     if (!editingTransaction) return;
-    setTransactions(prev => prev.map(t => 
-      t.id === editingTransaction.id ? editingTransaction : t
-    ));
+    setTransactions(prev => prev.map(t => t.id === editingTransaction.id ? editingTransaction : t));
     setEditingTransaction(null);
   };
 
@@ -179,44 +171,44 @@ export default function FundManagement({
       date: 'Hôm nay',
       author: 'Thủ quỹ'
     };
-    setTransactions(prev => [newTx, ...prev]);
+    setTransactions([newTx, ...transactions]);
     setNewTxTitle('');
     setNewTxAmount('');
     setShowAddTxModal(false);
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-['Be_Vietnam_Pro'] antialiased select-none">
+    <div className="min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-['Be_Vietnam_Pro'] antialiased select-none">
       
       {/* 1. Header Dark Geometric Style */}
-      <section className="bg-slate-900 text-white pt-safe-hero pb-12 px-5 rounded-b-[40px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
-        <div className="relative z-10">
+      <section className="bg-slate-900 text-white pt-safe-hero pb-8 px-4 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
+        <div className="max-w-md mx-auto">
           <div className="flex items-center justify-between mb-3">
             {onBack && (
-              <motion.button 
+              <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={onBack}
-                className="flex items-center gap-1 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 rounded-full bg-white/10 active:scale-95 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
               >
-                <ChevronLeft className="w-4 h-4" /> Quay lại
+                <ChevronLeft className="w-4 h-4" /> <span>Quay lại</span>
               </motion.button>
             )}
 
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 whitespace-nowrap flex-shrink-0">
               Module Thủ Quỹ Chuyên Nghiệp
             </span>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
                 <span>Quản Lý Quỹ Đội</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30">
-                  Thủ Quỹ
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30 whitespace-nowrap">
+                  👑 Thủ Quỹ
                 </span>
               </h1>
               <p className="text-xs text-gray-400 mt-0.5">
-                Sổ quỹ thu chi, duyệt VietQR và cấu hình tài khoản nhận tiền
+                Sổ quỹ thu chi, duyệt VietQR và xuất báo cáo
               </p>
             </div>
 
@@ -224,7 +216,7 @@ export default function FundManagement({
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleExportExcel}
-              className="px-3.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
+              className="px-3.5 py-2 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-green-500/30 cursor-pointer whitespace-nowrap flex-shrink-0"
               title="Tải file CSV báo cáo thu chi"
             >
               <FileSpreadsheet className="w-4 h-4" />
@@ -234,10 +226,10 @@ export default function FundManagement({
         </div>
       </section>
 
-      {/* 2. DASHBOARD HIỂN THỊ: TỔNG THU - TỔNG CHI - SỐ DƯ HIỆN TẠI */}
-      <div className="max-w-md mx-auto px-4 -mt-6 relative z-10">
-        <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 block mb-3 px-1">
+      {/* 2. DASHBOARD HIỂN THỊ: TỔNG THU - TỔNG CHI - SỐ DƯ HIỆN TẠI (ÁP DỤNG HELPER FORMAT CURRENCY) */}
+      <div className="max-w-md mx-auto px-3.5 -mt-4 relative z-10">
+        <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-4 sm:p-5">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 block mb-2.5 px-1">
             BÁO CÁO TÀI CHÍNH THỰC TẾ
           </span>
 
@@ -246,38 +238,44 @@ export default function FundManagement({
             <div className="p-3 rounded-2xl bg-emerald-50/80 border border-emerald-100/80">
               <span className="text-[10px] font-bold text-emerald-800 block">Tổng Thu</span>
               <span className="text-base font-black text-emerald-700 font-mono mt-0.5 block truncate">
-                +{totalIncome.toLocaleString('vi-VN')} đ
+                +{formatCompactCurrency(totalIncome)}
               </span>
-              <span className="text-[9px] text-emerald-600 font-medium">Từ nộp quỹ & tài trợ</span>
+              <span className="text-[9px] text-emerald-600 font-medium block truncate" title={formatCurrency(totalIncome)}>
+                {formatCurrency(totalIncome)}
+              </span>
             </div>
 
             {/* Tổng Chi */}
             <div className="p-3 rounded-2xl bg-rose-50/80 border border-rose-100/80">
               <span className="text-[10px] font-bold text-rose-800 block">Tổng Chi</span>
               <span className="text-base font-black text-rose-600 font-mono mt-0.5 block truncate">
-                -{totalExpense.toLocaleString('vi-VN')} đ
+                -{formatCompactCurrency(totalExpense)}
               </span>
-              <span className="text-[9px] text-rose-500 font-medium">Sân, bóng, nước</span>
+              <span className="text-[9px] text-rose-500 font-medium block truncate" title={formatCurrency(totalExpense)}>
+                {formatCurrency(totalExpense)}
+              </span>
             </div>
 
             {/* Số Dư Hiện Tại */}
             <div className="p-3 rounded-2xl bg-slate-900 text-white shadow-sm">
               <span className="text-[10px] font-bold text-emerald-400 block">Số Dư Quỹ</span>
               <span className="text-base font-black text-white font-mono mt-0.5 block truncate">
-                {currentBalance.toLocaleString('vi-VN')} đ
+                {currentBalance >= 0 ? '+' : ''}{formatCompactCurrency(currentBalance)}
               </span>
-              <span className="text-[9px] text-gray-300 font-medium">Tồn quỹ an toàn</span>
+              <span className="text-[9px] text-gray-300 font-medium block truncate" title={formatCurrency(currentBalance)}>
+                {formatCurrency(currentBalance)}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {/* 3. TABS ĐIỀU HƯỚNG SUB-MODULES */}
-      <div className="max-w-md mx-auto px-4 mt-3">
+      <div className="max-w-md mx-auto px-3.5 mt-3">
         <div className="grid grid-cols-4 gap-1 p-1 bg-gray-100 rounded-2xl text-xs font-bold text-center">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`py-2 rounded-xl transition-all ${
+            className={`py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'transactions' 
                 ? 'bg-slate-900 text-white shadow-sm' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -288,7 +286,7 @@ export default function FundManagement({
 
           <button
             onClick={() => setActiveTab('approvals')}
-            className={`py-2 rounded-xl transition-all ${
+            className={`py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'approvals' 
                 ? 'bg-emerald-600 text-white shadow-sm' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -299,7 +297,7 @@ export default function FundManagement({
 
           <button
             onClick={() => setActiveTab('debtors')}
-            className={`py-2 rounded-xl transition-all ${
+            className={`py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'debtors' 
                 ? 'bg-rose-500 text-white shadow-sm' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -310,7 +308,7 @@ export default function FundManagement({
 
           <button
             onClick={() => setActiveTab('qr-config')}
-            className={`py-2 rounded-xl transition-all ${
+            className={`py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'qr-config' 
                 ? 'bg-amber-500 text-white shadow-sm' 
                 : 'text-gray-600 hover:text-gray-900'
@@ -322,11 +320,11 @@ export default function FundManagement({
       </div>
 
       {/* 4. NỘI DUNG TỪNG TAB */}
-      <div className="max-w-md mx-auto px-4 mt-3">
+      <div className="max-w-md mx-auto px-3.5 mt-3">
 
         {/* TAB 1: LỊCH SỬ THU CHI (CÓ THỂ SỬA EDIT & XUẤT EXCEL) */}
         {activeTab === 'transactions' && (
-          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+          <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3 px-1">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
@@ -338,7 +336,7 @@ export default function FundManagement({
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowAddTxModal(true)}
-                className="px-3 py-1.5 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+                className="px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-green-500/25 whitespace-nowrap flex-shrink-0 cursor-pointer"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>+ Thêm khoản</span>
@@ -364,7 +362,7 @@ export default function FundManagement({
                     <span className={`text-xs font-mono font-black ${
                       t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
                     }`}>
-                      {t.type === 'income' ? '+' : '-'}{t.amount.toLocaleString('vi-VN')} đ
+                      {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                     </span>
 
                     {/* NÚT EDIT (SỬA) KHOẢN TIỀN / NỘI DUNG */}
@@ -384,7 +382,7 @@ export default function FundManagement({
 
         {/* TAB 2: DUYỆT TIỀN THÀNH VIÊN ĐÓNG QUA VIETQR */}
         {activeTab === 'approvals' && (
-          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+          <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3 px-1">
               <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
                 CHỜ THỦ QUỸ DUYỆT TIỀN ({pendingApprovals.length})
@@ -401,14 +399,16 @@ export default function FundManagement({
                   <div key={p.id} className="p-3 rounded-2xl bg-slate-50 border border-gray-100 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-black text-gray-900">{p.name}</p>
-                      <p className="text-[11px] font-bold text-emerald-600">{p.amount.toLocaleString('vi-VN')} đ • {p.bank}</p>
+                      <p className="text-[11px] font-bold text-emerald-600 font-mono">
+                        {formatCurrency(p.amount)} • {p.bank}
+                      </p>
                       <p className="text-[9px] text-gray-400 font-mono">{p.memo}</p>
                     </div>
 
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleApprove(p.id)}
-                      className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs shadow-md shadow-green-500/25 cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center justify-center"
                     >
                       Duyệt
                     </motion.button>
@@ -421,13 +421,13 @@ export default function FundManagement({
 
         {/* TAB 3: DANH SÁCH THÀNH VIÊN CHƯA NỘP QUỸ */}
         {activeTab === 'debtors' && (
-          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+          <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3 px-1">
               <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
                 DANH SÁCH CHƯA NỘP QUỸ ({debtors.length})
               </h3>
               <span className="text-xs font-black text-rose-600 font-mono">
-                Tổng nợ: {(debtors.length * 150000).toLocaleString('vi-VN')} đ
+                Tổng nợ: {formatCurrency(debtors.length * 150000)}
               </span>
             </div>
 
@@ -440,10 +440,12 @@ export default function FundManagement({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-rose-600 font-mono">-150.000 đ</span>
+                    <span className="text-xs font-black text-rose-600 font-mono">
+                      -{formatCurrency(d.amount)}
+                    </span>
                     <button
-                      onClick={() => alert(`Đã gửi thông báo nhắc nợ quỹ tới ${d.name} qua Zalo!`)}
-                      className="px-2.5 py-1 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[10px] cursor-pointer"
+                      onClick={() => alert(`Đã gửi thông báo nhắc nợ quỹ tới ${d.name} qua Zalo/SMS!`)}
+                      className="px-2.5 py-1 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[10px] cursor-pointer whitespace-nowrap"
                     >
                       🔔 Nhắc
                     </button>
@@ -456,7 +458,7 @@ export default function FundManagement({
 
         {/* TAB 4: CẤU HÌNH QR THỦ QUỸ (HIỂN THỊ CHO TOÀN BỘ THÀNH VIÊN) */}
         {activeTab === 'qr-config' && (
-          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+          <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3 px-1">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
@@ -466,12 +468,12 @@ export default function FundManagement({
                   Mã QR này sẽ hiển thị ở trang chủ cho mọi thành viên khi bấm Nộp Quỹ
                 </p>
               </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">
                 Thủ Quỹ
               </span>
             </div>
 
-            <form onSubmit={handleSaveQrConfig} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveQrConfig} className="space-y-3 text-xs">
               {/* QR Code Preview */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center">
                 <img 
@@ -479,7 +481,7 @@ export default function FundManagement({
                   alt="QR Thủ Quỹ" 
                   className="w-44 h-44 object-contain rounded-xl shadow-sm border border-gray-200 bg-white"
                 />
-                <label className="mt-3 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-700 text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-50 cursor-pointer shadow-xs active:scale-95">
+                <label className="mt-3 px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-gray-700 text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-50 cursor-pointer shadow-xs active:scale-95 whitespace-nowrap">
                   <Camera className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Tải ảnh mã QR ngân hàng cá nhân</span>
                   <input type="file" accept="image/*" onChange={handleQrImageUpload} className="hidden" />
@@ -494,7 +496,7 @@ export default function FundManagement({
                   value={qrBankName}
                   onChange={(e) => setQrBankName(e.target.value)}
                   placeholder="MB Bank, Vietcombank, Techcombank..."
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-inner"
                 />
               </div>
 
@@ -506,7 +508,7 @@ export default function FundManagement({
                   value={qrAccountNumber}
                   onChange={(e) => setQrAccountNumber(e.target.value)}
                   placeholder="Số tài khoản ngân hàng"
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-inner"
                 />
               </div>
 
@@ -518,14 +520,14 @@ export default function FundManagement({
                   value={qrAccountHolder}
                   onChange={(e) => setQrAccountHolder(e.target.value.toUpperCase())}
                   placeholder="NGUYEN HOANG HAI"
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-inner"
                 />
               </div>
 
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 type="submit"
-                className="w-full h-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer mt-2"
+                className="w-full h-12 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer mt-2 whitespace-nowrap flex items-center justify-center"
               >
                 {qrSavedNotice ? '✓ Đã Lưu Cấu Hình QR Thủ Quỹ' : 'Lưu QR Vào Trang Chủ Cả Đội'}
               </motion.button>
@@ -544,7 +546,7 @@ export default function FundManagement({
                 <Edit3 className="w-4 h-4 text-emerald-600" />
                 <h3 className="font-black text-sm text-gray-900">Sửa Khoản Thu Chi</h3>
               </div>
-              <button onClick={() => setEditingTransaction(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+              <button onClick={() => setEditingTransaction(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -557,7 +559,7 @@ export default function FundManagement({
                   required
                   value={editingTransaction.title}
                   onChange={(e) => setEditingTransaction({ ...editingTransaction, title: e.target.value })}
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-bold text-gray-900 focus:bg-white focus:outline-none"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-bold text-gray-900 focus:bg-white focus:outline-none shadow-inner"
                 />
               </div>
 
@@ -568,7 +570,7 @@ export default function FundManagement({
                   required
                   value={editingTransaction.amount}
                   onChange={(e) => setEditingTransaction({ ...editingTransaction, amount: parseInt(e.target.value) || 0 })}
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-black text-gray-900 focus:bg-white focus:outline-none"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-black text-gray-900 focus:bg-white focus:outline-none shadow-inner"
                 />
               </div>
 
@@ -578,7 +580,7 @@ export default function FundManagement({
                   <button
                     type="button"
                     onClick={() => setEditingTransaction({ ...editingTransaction, type: 'income' })}
-                    className={`h-10 rounded-xl font-bold transition-all ${
+                    className={`h-10 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       editingTransaction.type === 'income' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -587,7 +589,7 @@ export default function FundManagement({
                   <button
                     type="button"
                     onClick={() => setEditingTransaction({ ...editingTransaction, type: 'expense' })}
-                    className={`h-10 rounded-xl font-bold transition-all ${
+                    className={`h-10 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       editingTransaction.type === 'expense' ? 'bg-rose-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -600,7 +602,7 @@ export default function FundManagement({
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  className="w-full h-12 rounded-full bg-slate-900 hover:bg-black text-white font-black text-xs shadow-md cursor-pointer"
+                  className="w-full h-12 rounded-full bg-slate-900 hover:bg-black text-white font-black text-xs shadow-md cursor-pointer whitespace-nowrap flex items-center justify-center"
                 >
                   Lưu Chỉnh Sửa Khoản Này
                 </motion.button>
@@ -619,7 +621,7 @@ export default function FundManagement({
                 <PlusCircle className="w-4 h-4 text-emerald-600" />
                 <h3 className="font-black text-sm text-gray-900">Tạo Khoản Thu/Chi Mới</h3>
               </div>
-              <button onClick={() => setShowAddTxModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+              <button onClick={() => setShowAddTxModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -633,7 +635,7 @@ export default function FundManagement({
                   value={newTxTitle}
                   onChange={(e) => setNewTxTitle(e.target.value)}
                   placeholder="Ví dụ: Tiền nước, bóng thi đấu..."
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-bold text-gray-900 focus:bg-white focus:outline-none"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-bold text-gray-900 focus:bg-white focus:outline-none shadow-inner"
                 />
               </div>
 
@@ -645,7 +647,7 @@ export default function FundManagement({
                   value={newTxAmount}
                   onChange={(e) => setNewTxAmount(e.target.value)}
                   placeholder="150000"
-                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-black text-gray-900 focus:bg-white focus:outline-none"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-black text-gray-900 focus:bg-white focus:outline-none shadow-inner"
                 />
               </div>
 
@@ -655,7 +657,7 @@ export default function FundManagement({
                   <button
                     type="button"
                     onClick={() => setNewTxType('income')}
-                    className={`h-10 rounded-xl font-bold transition-all ${
+                    className={`h-10 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       newTxType === 'income' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -664,7 +666,7 @@ export default function FundManagement({
                   <button
                     type="button"
                     onClick={() => setNewTxType('expense')}
-                    className={`h-10 rounded-xl font-bold transition-all ${
+                    className={`h-10 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       newTxType === 'expense' ? 'bg-rose-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -677,7 +679,7 @@ export default function FundManagement({
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md cursor-pointer"
+                  className="w-full h-12 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-black text-xs shadow-lg shadow-green-500/30 cursor-pointer whitespace-nowrap flex items-center justify-center"
                 >
                   Xác Nhận Thêm Vào Sổ Quỹ
                 </motion.button>

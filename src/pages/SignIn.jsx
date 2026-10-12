@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowRight, 
   ArrowUpRight, 
@@ -15,10 +16,11 @@ import {
 } from 'lucide-react';
 
 /* =====================================================================
-   BƯỚC 1: SPLASH SCREEN COMPONENT
-   - Nền trắng tinh khiết
-   - Chính giữa màn hình là Logo (Quả bóng + Mũi tên từ Lucide) màu Xanh/Navy
-   - Animation: Icon đập nhịp (pulse) nhẹ nhàng
+   BƯỚC 1: SPLASH SCREEN COMPONENT (WOW EFFECT VỚI FRAMER MOTION)
+   - Nền xanh sân cỏ dạng Gradient với Pattern các đường kẻ sân bóng mờ ảo
+   - Kết hợp Glassmorphism
+   - Spring animation: Logo từ từ mờ ra và nảy nhẹ lên
+   - Text trượt từ dưới lên mượt mà
    - Tự động chuyển sang Bước 2 sau 2 giây
    ===================================================================== */
 export function SplashScreen({ onFinish }) {
@@ -32,59 +34,84 @@ export function SplashScreen({ onFinish }) {
   return (
     <div 
       onClick={onFinish}
-      className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-between p-8 select-none cursor-pointer animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-between p-8 select-none cursor-pointer overflow-hidden bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#0f172a]"
     >
-      {/* Top spacer */}
-      <div className="w-full flex justify-end">
-        <button 
-          onClick={(e) => { e.stopPropagation(); onFinish(); }}
-          className="text-xs font-bold text-gray-400 hover:text-gray-700 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 transition-all active:scale-95"
-        >
-          Bỏ qua
-        </button>
+      {/* Stylized Pitch Lines Pattern */}
+      <div className="absolute inset-0 pointer-events-none opacity-20">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full border-2 border-emerald-400"></div>
+        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-emerald-400 -translate-y-1/2"></div>
+        <div className="absolute inset-4 border-2 border-emerald-400/30 rounded-[40px]"></div>
       </div>
 
-      {/* Center Brand Logo with subtle pulsing motion */}
-      <div className="flex flex-col items-center text-center">
-        <div className="relative mb-6">
-          {/* Subtle outer glow / aura */}
-          <div className="absolute inset-0 rounded-[36px] bg-emerald-400/20 blur-xl animate-pulse"></div>
+      {/* Top spacer / Skip button */}
+      <div className="w-full flex justify-end relative z-10">
+        <motion.button 
+          whileTap={{ scale: 0.95 }}
+          onClick={(e) => { e.stopPropagation(); onFinish(); }}
+          className="text-xs font-bold text-gray-200 hover:text-white px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 transition-all cursor-pointer"
+        >
+          Bỏ qua
+        </motion.button>
+      </div>
 
-          {/* Logo Badge (Navy background with Green Accent) */}
-          <div className="relative w-24 h-24 rounded-[32px] bg-slate-900 border-2 border-emerald-500/40 shadow-2xl flex items-center justify-center p-3 animate-pulse">
+      {/* Center Brand Logo with Framer Motion Spring Animation */}
+      <div className="flex flex-col items-center text-center relative z-10">
+        <motion.div 
+          initial={{ scale: 0.3, opacity: 0, y: 35 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+          className="relative mb-6"
+        >
+          {/* Subtle outer glow / aura */}
+          <div className="absolute inset-0 rounded-[36px] bg-emerald-400/30 blur-2xl animate-pulse"></div>
+
+          {/* Logo Badge (Glassmorphic Navy with Emerald Accent) */}
+          <div className="relative w-28 h-28 rounded-[36px] bg-slate-900/90 backdrop-blur-xl border-2 border-emerald-400/60 shadow-2xl flex items-center justify-center p-3">
             {/* Custom Soccer Ball + Arrow Dynamic Composition */}
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Soccer Ball Core */}
-              <div className="w-12 h-12 rounded-full border-2 border-white/90 flex items-center justify-center bg-white/5 relative">
-                <span className="text-2xl filter drop-shadow">⚽</span>
+              <div className="w-14 h-14 rounded-full border-2 border-white/90 flex items-center justify-center bg-white/10 relative shadow-inner">
+                <span className="text-3xl filter drop-shadow">⚽</span>
               </div>
               {/* Arrow Up-Right overlaying corner for forward motion */}
-              <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-md font-black border-2 border-white">
+              <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg font-black border-2 border-white">
                 <ArrowUpRight className="w-4 h-4 stroke-[3]" />
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <h1 className="text-3xl font-black tracking-tight text-slate-900 font-['Be_Vietnam_Pro']">
-          NO OFFSIDE
-        </h1>
-        <p className="text-xs font-semibold text-emerald-600 uppercase tracking-widest mt-1">
-          Bóng Đá Phong Trào
-        </p>
+        {/* Text sliding up smoothly */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <h1 className="text-4xl font-black tracking-tight text-white font-['Be_Vietnam_Pro'] drop-shadow-md">
+            NO OFFSIDE
+          </h1>
+          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mt-1.5 drop-shadow">
+            Nền Tảng Quản Lý Đội Bóng 4.0
+          </p>
+        </motion.div>
       </div>
 
       {/* Footer loading indicator */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '0ms' }}></span>
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '150ms' }}></span>
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="flex flex-col items-center gap-3 relative z-10"
+      >
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }}></span>
         </div>
-        <p className="text-[11px] text-gray-400 font-medium">
+        <p className="text-[11px] text-emerald-200/70 font-medium">
           Chạm vào màn hình để bắt đầu ngay
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

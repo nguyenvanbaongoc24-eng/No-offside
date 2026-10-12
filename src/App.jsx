@@ -30,6 +30,13 @@ export default function App() {
     setAttendance, 
     markFundPaid, 
     resetFund, 
+    updateMatchStats,
+    teamSettings,
+    updateTreasurerQr,
+    updateTeamName,
+    updateSubAdminTitle,
+    addSubAdmin,
+    removeSubAdmin,
     login, 
     logout 
   } = useAuth();
@@ -105,7 +112,12 @@ export default function App() {
           ) : activeTab === 'lineup' ? (
             <LineupBuilder onBack={() => setCurrentTab('dashboard')} />
           ) : activeTab === 'fund' ? (
-            <FundManagement onBack={() => setCurrentTab('dashboard')} />
+            <FundManagement 
+              onBack={() => setCurrentTab('dashboard')} 
+              treasurerQr={teamSettings?.treasurerQr}
+              onUpdateTreasurerQr={updateTreasurerQr}
+              currentUserRole={currentUserRole}
+            />
           ) : activeTab === 'chat' ? (
             <Chat user={user} />
           ) : activeTab === 'profile' ? (
@@ -118,6 +130,11 @@ export default function App() {
                 setCurrentTab('dashboard');
               }}
               onNavigate={(tab) => setCurrentTab(tab)}
+              teamSettings={teamSettings}
+              onUpdateTeamName={updateTeamName}
+              onUpdateSubAdminTitle={updateSubAdminTitle}
+              onAddSubAdmin={addSubAdmin}
+              onRemoveSubAdmin={removeSubAdmin}
             />
           ) : (
             <PlayerDashboard 
@@ -129,6 +146,8 @@ export default function App() {
               onResetPaid={resetFund}
               onNavigate={(tab) => setCurrentTab(tab)}
               onOpenNotifications={() => setShowNotificationHistory(true)}
+              treasurerQr={teamSettings?.treasurerQr}
+              onUpdateMatchStats={updateMatchStats}
             />
           )}
         </main>

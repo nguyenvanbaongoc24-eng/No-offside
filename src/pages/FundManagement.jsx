@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wallet, 
   DollarSign, 
@@ -11,15 +12,49 @@ import {
   Share2, 
   Calendar, 
   ChevronRight, 
-  Sparkles,
-  X,
-  CreditCard
+  Sparkles, 
+  X, 
+  CreditCard,
+  Download,
+  Edit3,
+  QrCode,
+  Save,
+  FileSpreadsheet,
+  Camera,
+  ChevronLeft
 } from 'lucide-react';
 
-export default function FundManagement({ onBack }) {
-  const [activeTab, setActiveTab] = useState('approvals'); // 'approvals' | 'debtors' | 'transactions'
+export default function FundManagement({ 
+  onBack, 
+  treasurerQr,
+  onUpdateTreasurerQr,
+  currentUserRole = 'admin' 
+}) {
+  const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
   const [showAddTxModal, setShowAddTxModal] = useState(false);
-  const [txType, setTxType] = useState('expense'); // 'income' | 'expense'
+  const [editingTransaction, setEditingTransaction] = useState(null);
+
+  // QR config state
+  const [qrBankName, setQrBankName] = useState(treasurerQr?.bankName || 'MB Bank (Quân Đội)');
+  const [qrAccountNumber, setQrAccountNumber] = useState(treasurerQr?.accountNumber || '998877665544');
+  const [qrAccountHolder, setQrAccountHolder] = useState(treasurerQr?.accountHolder || 'NGUYEN HOANG HAI');
+  const [qrPreviewUrl, setQrPreviewUrl] = useState(treasurerQr?.qrImageUrl || `https://api.vietqr.io/image/970422-998877665544-compact2.png?amount=150000&addInfo=NO%20OFFSIDE%20DONG%20QUY&accountName=NGUYEN%20HOANG%20HAI`);
+  const [qrSavedNotice, setQrSavedNotice] = useState(false);
+
+  // New Transaction State
+  const [newTxTitle, setNewTxTitle] = useState('');
+  const [newTxAmount, setNewTxAmount] = useState('');
+  const [newTxType, setNewTxType] = useState('expense'); // 'income' | 'expense'
+
+  // Transactions list (Có thể Edit / Sửa)
+  const [transactions, setTransactions] = useState([
+    { id: 1, title: 'Thu quỹ tháng 10 (14 thành viên)', amount: 2100000, type: 'income', date: '12/10/2026', author: 'Thủ quỹ Hải' },
+    { id: 2, title: 'Tiền thuê Sân Chuyên Việt (Tháng 9)', amount: 1200000, type: 'expense', date: '10/10/2026', author: 'Thủ quỹ Hải' },
+    { id: 3, title: 'Mua 2 lốc nước khoáng Lavie', amount: 120000, type: 'expense', date: '08/10/2026', author: 'Thủ quỹ Hải' },
+    { id: 4, title: 'Mua 2 quả bóng Động Lực UHV 2.05', amount: 980000, type: 'expense', date: '01/10/2026', author: 'Đội trưởng' },
+    { id: 5, title: 'Thu tiền tài trợ áo đấu mới', amount: 3500000, type: 'income', date: '28/09/2026', author: 'Bầu Thắng' },
+    { id: 6, title: 'In ấn logo và số áo thi đấu', amount: 850000, type: 'expense', date: '26/09/2026', author: 'Thủ quỹ Hải' },
+  ]);
 
   // Pending Approvals
   const [pendingApprovals, setPendingApprovals] = useState([
@@ -38,19 +73,56 @@ export default function FundManagement({ onBack }) {
     { id: 6, name: 'Hồ Tấn Tài (#13)', phone: '0906789012', amount: 150000, status: 'unpaid' },
   ]);
 
-  // Transactions list
-  const [transactions, setTransactions] = useState([
-    { id: 1, title: 'Thu quỹ tháng 10 (14 thành viên)', amount: 2100000, type: 'income', date: '12/10/2026', author: 'Thủ quỹ Hải' },
-    { id: 2, title: 'Tiền thuê Sân Chuyên Việt (Tháng 9)', amount: 1200000, type: 'expense', date: '10/10/2026', author: 'Thủ quỹ Hải' },
-    { id: 3, title: 'Mua 2 lốc nước khoáng Lavie', amount: 120000, type: 'expense', date: '08/10/2026', author: 'Thủ quỹ Hải' },
-    { id: 4, title: 'Mua 2 quả bóng Động Lực UHV 2.05', amount: 980000, type: 'expense', date: '01/10/2026', author: 'Đội trưởng' },
-  ]);
+  // Dynamic calculations for Tổng thu, Tổng chi, Số dư
+  const totalIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpense = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const currentBalance = totalIncome - totalExpense;
+
+  // HÀM XUẤT EXCEL (CSV VỚI UTF-8 BOM CHO EXCEL VIỆT NAM)
+  const handleExportExcel = () => {
+    // Header line
+    const headers = ['STT', 'Ngày Giao Dịch', 'Nội Dung Thu Chi', 'Loại', 'Số Tiền (VNĐ)', 'Người Phụ Trách'];
+    
+    // Rows data
+    const rows = transactions.map((t, index) => [
+      index + 1,
+      `"${t.date}"`,
+      `"${t.title.replace(/"/g, '""')}"`,
+      t.type === 'income' ? 'Khoản Thu' : 'Khoản Chi',
+      t.amount,
+      `"${t.author}"`
+    ]);
+
+    // Summary rows
+    rows.push([]);
+    rows.push(['', '', 'Tổng Thu:', '', totalIncome, '']);
+    rows.push(['', '', 'Tổng Chi:', '', totalExpense, '']);
+    rows.push(['', '', 'Số Dư Hiện Tại:', '', currentBalance, '']);
+
+    // Build CSV string with UTF-8 BOM (\uFEFF)
+    const csvContent = '\uFEFF' + [headers, ...rows].map(e => e.join(',')).join('\n');
+    
+    // Create Blob and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `No_Offside_So_Quy_FC_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleApprove = (id) => {
     const item = pendingApprovals.find(p => p.id === id);
     if (!item) return;
     setPendingApprovals(prev => prev.filter(p => p.id !== id));
-    // Add to transactions
     setTransactions(prev => [
       {
         id: Date.now(),
@@ -64,249 +136,553 @@ export default function FundManagement({ onBack }) {
     ]);
   };
 
-  const handleRemindDebtor = (name) => {
-    alert(`Đã gửi thông báo nhắc nợ quỹ tháng 10 tới ${name} qua Zalo Đội!`);
+  const handleSaveQrConfig = (e) => {
+    e.preventDefault();
+    const updated = {
+      bankName: qrBankName,
+      accountNumber: qrAccountNumber,
+      accountHolder: qrAccountHolder,
+      qrImageUrl: qrPreviewUrl
+    };
+    if (onUpdateTreasurerQr) {
+      onUpdateTreasurerQr(updated);
+    }
+    setQrSavedNotice(true);
+    setTimeout(() => setQrSavedNotice(false), 2500);
+  };
+
+  const handleQrImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setQrPreviewUrl(url);
+    }
+  };
+
+  const handleSaveEditedTx = (e) => {
+    e.preventDefault();
+    if (!editingTransaction) return;
+    setTransactions(prev => prev.map(t => 
+      t.id === editingTransaction.id ? editingTransaction : t
+    ));
+    setEditingTransaction(null);
+  };
+
+  const handleCreateTx = (e) => {
+    e.preventDefault();
+    if (!newTxTitle.trim() || !newTxAmount) return;
+    const newTx = {
+      id: Date.now(),
+      title: newTxTitle.trim(),
+      amount: parseInt(newTxAmount) || 0,
+      type: newTxType,
+      date: 'Hôm nay',
+      author: 'Thủ quỹ'
+    };
+    setTransactions(prev => [newTx, ...prev]);
+    setNewTxTitle('');
+    setNewTxAmount('');
+    setShowAddTxModal(false);
   };
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-['Be_Vietnam_Pro'] antialiased select-none">
       
-      {/* 1. Header Dark Style với texture geometric */}
-      <section className="bg-slate-900 text-white pt-safe-hero pb-12 px-6 rounded-b-[40px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
+      {/* 1. Header Dark Geometric Style */}
+      <section className="bg-slate-900 text-white pt-safe-hero pb-12 px-5 rounded-b-[40px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
-                <Wallet className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">
-                  Kế Toán & Thủ Quỹ
-                </span>
-                <h1 className="text-xl font-black text-white">Quản Lý Quỹ Đội</h1>
-              </div>
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            {onBack && (
+              <motion.button 
+                whileTap={{ scale: 0.95 }}
+                onClick={onBack}
+                className="flex items-center gap-1 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 rounded-full bg-white/10 active:scale-95 transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" /> Quay lại
+              </motion.button>
+            )}
 
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
-              Chỉ Dành Cho Admin
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+              Module Thủ Quỹ Chuyên Nghiệp
             </span>
           </div>
 
-          {/* Sổ quỹ tổng quan */}
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-              <span className="text-[11px] text-gray-400 block font-medium">Tổng Quỹ Hiện Tại</span>
-              <span className="text-xl font-black text-emerald-400 font-mono mt-0.5 block">+5.850.000 đ</span>
-              <span className="text-[10px] text-emerald-300/80">Số dư thực tế</span>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>Quản Lý Quỹ Đội</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30">
+                  Thủ Quỹ
+                </span>
+              </h1>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Sổ quỹ thu chi, duyệt VietQR và cấu hình tài khoản nhận tiền
+              </p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-              <span className="text-[11px] text-gray-400 block font-medium">Chưa Thu (6 người)</span>
-              <span className="text-xl font-black text-rose-400 font-mono mt-0.5 block">-900.000 đ</span>
-              <span className="text-[10px] text-rose-300/80">Nợ quỹ tháng 10</span>
-            </div>
-          </div>
-
-          {/* 2 Nút Thu / Chi */}
-          <div className="grid grid-cols-2 gap-2 mt-3">
-            <button
-              onClick={() => { setTxType('income'); setShowAddTxModal(true); }}
-              className="py-2.5 px-3 rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all duration-200"
+            {/* NÚT XUẤT EXCEL (.CSV) */}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleExportExcel}
+              className="px-3.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
+              title="Tải file CSV báo cáo thu chi"
             >
-              <ArrowDownLeft className="w-4 h-4" />
-              <span>+ Ghi Khoản Thu</span>
-            </button>
-            <button
-              onClick={() => { setTxType('expense'); setShowAddTxModal(true); }}
-              className="py-2.5 px-3 rounded-full bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all duration-200"
-            >
-              <ArrowUpRight className="w-4 h-4" />
-              <span>- Ghi Khoản Chi</span>
-            </button>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Xuất Excel</span>
+            </motion.button>
           </div>
         </div>
       </section>
 
-      {/* 2. Tabs Selector (Approvals, Debtors, Transactions) */}
-      <div className="px-4 mt-3">
-        <div className="bg-white p-1 rounded-2xl shadow-soft border border-gray-100 flex gap-1">
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 ${
-              activeTab === 'approvals'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            Chờ Duyệt ({pendingApprovals.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('debtors')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 ${
-              activeTab === 'debtors'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            Nợ Quỹ ({debtors.length})
-          </button>
+      {/* 2. DASHBOARD HIỂN THỊ: TỔNG THU - TỔNG CHI - SỐ DƯ HIỆN TẠI */}
+      <div className="max-w-md mx-auto px-4 -mt-6 relative z-10">
+        <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400 block mb-3 px-1">
+            BÁO CÁO TÀI CHÍNH THỰC TẾ
+          </span>
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {/* Tổng Thu */}
+            <div className="p-3 rounded-2xl bg-emerald-50/80 border border-emerald-100/80">
+              <span className="text-[10px] font-bold text-emerald-800 block">Tổng Thu</span>
+              <span className="text-base font-black text-emerald-700 font-mono mt-0.5 block truncate">
+                +{totalIncome.toLocaleString('vi-VN')} đ
+              </span>
+              <span className="text-[9px] text-emerald-600 font-medium">Từ nộp quỹ & tài trợ</span>
+            </div>
+
+            {/* Tổng Chi */}
+            <div className="p-3 rounded-2xl bg-rose-50/80 border border-rose-100/80">
+              <span className="text-[10px] font-bold text-rose-800 block">Tổng Chi</span>
+              <span className="text-base font-black text-rose-600 font-mono mt-0.5 block truncate">
+                -{totalExpense.toLocaleString('vi-VN')} đ
+              </span>
+              <span className="text-[9px] text-rose-500 font-medium">Sân, bóng, nước</span>
+            </div>
+
+            {/* Số Dư Hiện Tại */}
+            <div className="p-3 rounded-2xl bg-slate-900 text-white shadow-sm">
+              <span className="text-[10px] font-bold text-emerald-400 block">Số Dư Quỹ</span>
+              <span className="text-base font-black text-white font-mono mt-0.5 block truncate">
+                {currentBalance.toLocaleString('vi-VN')} đ
+              </span>
+              <span className="text-[9px] text-gray-300 font-medium">Tồn quỹ an toàn</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. TABS ĐIỀU HƯỚNG SUB-MODULES */}
+      <div className="max-w-md mx-auto px-4 mt-3">
+        <div className="grid grid-cols-4 gap-1 p-1 bg-gray-100 rounded-2xl text-xs font-bold text-center">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 ${
-              activeTab === 'transactions'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-800'
+            className={`py-2 rounded-xl transition-all ${
+              activeTab === 'transactions' 
+                ? 'bg-slate-900 text-white shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Lịch Sử Thu Chi
+            Lịch sử ({transactions.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('approvals')}
+            className={`py-2 rounded-xl transition-all ${
+              activeTab === 'approvals' 
+                ? 'bg-emerald-600 text-white shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Duyệt ({pendingApprovals.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('debtors')}
+            className={`py-2 rounded-xl transition-all ${
+              activeTab === 'debtors' 
+                ? 'bg-rose-500 text-white shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Chưa nộp ({debtors.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('qr-config')}
+            className={`py-2 rounded-xl transition-all ${
+              activeTab === 'qr-config' 
+                ? 'bg-amber-500 text-white shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            QR Thủ Quỹ
           </button>
         </div>
       </div>
 
-      {/* 3. Tab Content */}
-      <div className="px-4 mt-3">
+      {/* 4. NỘI DUNG TỪNG TAB */}
+      <div className="max-w-md mx-auto px-4 mt-3">
 
-        {/* Tab 1: Chờ duyệt tiền */}
+        {/* TAB 1: LỊCH SỬ THU CHI (CÓ THỂ SỬA EDIT & XUẤT EXCEL) */}
+        {activeTab === 'transactions' && (
+          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
+                  LỊCH SỬ THU / CHI ĐỘI BÓNG
+                </h3>
+                <p className="text-[10px] text-gray-400">Chạm icon bút chì để sửa khoản đã nhập sai</p>
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowAddTxModal(true)}
+                className="px-3 py-1.5 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>+ Thêm khoản</span>
+              </motion.button>
+            </div>
+
+            <div className="space-y-2">
+              {transactions.map((t) => (
+                <div key={t.id} className="p-3 rounded-2xl bg-slate-50 border border-gray-100 flex items-center justify-between group hover:bg-slate-100/80 transition-colors">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      t.type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-600'
+                    }`}>
+                      {t.type === 'income' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-gray-900 truncate">{t.title}</p>
+                      <p className="text-[10px] text-gray-400">{t.date} • {t.author}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs font-mono font-black ${
+                      t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
+                    }`}>
+                      {t.type === 'income' ? '+' : '-'}{t.amount.toLocaleString('vi-VN')} đ
+                    </span>
+
+                    {/* NÚT EDIT (SỬA) KHOẢN TIỀN / NỘI DUNG */}
+                    <button
+                      onClick={() => setEditingTransaction({ ...t })}
+                      className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-emerald-600 hover:border-emerald-300 active:scale-90 transition-all cursor-pointer shadow-xs"
+                      title="Sửa khoản giao dịch này"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: DUYỆT TIỀN THÀNH VIÊN ĐÓNG QUA VIETQR */}
         {activeTab === 'approvals' && (
-          <div className="space-y-2.5">
+          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
+                CHỜ THỦ QUỸ DUYỆT TIỀN ({pendingApprovals.length})
+              </h3>
+            </div>
+
             {pendingApprovals.length === 0 ? (
-              <div className="bg-white rounded-[28px] p-8 text-center border border-gray-100 shadow-soft">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
-                <h4 className="font-extrabold text-sm text-gray-900">Không có khoản chờ duyệt</h4>
-                <p className="text-xs text-gray-400 mt-1">Toàn bộ giao dịch chuyển khoản VietQR đã được xử lý xong!</p>
+              <div className="text-center py-8 text-gray-400 text-xs">
+                🎉 Đã duyệt hết tất cả các khoản đóng quỹ!
               </div>
             ) : (
-              pendingApprovals.map((item) => (
-                <div key={item.id} className="bg-white rounded-[24px] p-4 border border-gray-100 shadow-soft flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-black text-gray-900">{item.name}</h4>
-                    <p className="text-xs font-black text-emerald-600 font-mono mt-0.5">
-                      +{item.amount.toLocaleString('vi-VN')} đ
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 font-mono">{item.bank} • {item.time}</p>
+              <div className="space-y-2">
+                {pendingApprovals.map((p) => (
+                  <div key={p.id} className="p-3 rounded-2xl bg-slate-50 border border-gray-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-black text-gray-900">{p.name}</p>
+                      <p className="text-[11px] font-bold text-emerald-600">{p.amount.toLocaleString('vi-VN')} đ • {p.bank}</p>
+                      <p className="text-[9px] text-gray-400 font-mono">{p.memo}</p>
+                    </div>
+
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleApprove(p.id)}
+                      className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer"
+                    >
+                      Duyệt
+                    </motion.button>
                   </div>
-                  <button
-                    onClick={() => handleApprove(item.id)}
-                    className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition-all duration-200"
-                  >
-                    Duyệt Tiền
-                  </button>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         )}
 
-        {/* Tab 2: Danh sách nợ quỹ */}
+        {/* TAB 3: DANH SÁCH THÀNH VIÊN CHƯA NỘP QUỸ */}
         {activeTab === 'debtors' && (
-          <div className="space-y-2.5">
-            <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200/80 flex items-center justify-between text-xs">
-              <span className="text-amber-800 font-bold flex items-center gap-1.5">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
-                6 thành viên chưa nộp quỹ T10
+          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
+                DANH SÁCH CHƯA NỘP QUỸ ({debtors.length})
+              </h3>
+              <span className="text-xs font-black text-rose-600 font-mono">
+                Tổng nợ: {(debtors.length * 150000).toLocaleString('vi-VN')} đ
               </span>
-              <button
-                onClick={() => alert('Đã gửi thông báo nhắc nợ toàn bộ thành viên vào nhóm Zalo Đội!')}
-                className="px-2.5 py-1 rounded-full bg-amber-600 text-white font-bold text-[11px] active:scale-95 transition-all"
-              >
-                Nhắc Tất Cả
-              </button>
             </div>
 
-            {debtors.map((debtor) => (
-              <div key={debtor.id} className="bg-white rounded-[24px] p-3.5 border border-gray-100 shadow-soft flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-gray-900">{debtor.name}</h4>
-                  <p className="text-xs font-black text-rose-500 font-mono">
-                    -{debtor.amount.toLocaleString('vi-VN')} đ
-                  </p>
+            <div className="space-y-2">
+              {debtors.map((d) => (
+                <div key={d.id} className="p-3 rounded-2xl bg-rose-50/50 border border-rose-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black text-gray-900">{d.name}</p>
+                    <p className="text-[10px] text-gray-500">SĐT: {d.phone}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-rose-600 font-mono">-150.000 đ</span>
+                    <button
+                      onClick={() => alert(`Đã gửi thông báo nhắc nợ quỹ tới ${d.name} qua Zalo!`)}
+                      className="px-2.5 py-1 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[10px] cursor-pointer"
+                    >
+                      🔔 Nhắc
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleRemindDebtor(debtor.name)}
-                  className="px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center gap-1 active:scale-95 transition-all duration-200"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Nhắc Nợ</span>
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Tab 3: Lịch sử thu chi */}
-        {activeTab === 'transactions' && (
-          <div className="space-y-2.5">
-            {transactions.map((tx) => (
-              <div key={tx.id} className="bg-white rounded-[24px] p-3.5 border border-gray-100 shadow-soft flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                    tx.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                  }`}>
-                    {tx.type === 'income' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-gray-900">{tx.title}</h4>
-                    <p className="text-[10px] text-gray-400 font-medium">{tx.date} • {tx.author}</p>
-                  </div>
-                </div>
-                <span className={`text-xs font-black font-mono ${
-                  tx.type === 'income' ? 'text-emerald-600' : 'text-rose-500'
-                }`}>
-                  {tx.type === 'income' ? '+' : '-'}{tx.amount.toLocaleString('vi-VN')} đ
-                </span>
+        {/* TAB 4: CẤU HÌNH QR THỦ QUỸ (HIỂN THỊ CHO TOÀN BỘ THÀNH VIÊN) */}
+        {activeTab === 'qr-config' && (
+          <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
+                  CẤU HÌNH QR THỦ QUỸ
+                </h3>
+                <p className="text-[10px] text-gray-400">
+                  Mã QR này sẽ hiển thị ở trang chủ cho mọi thành viên khi bấm Nộp Quỹ
+                </p>
               </div>
-            ))}
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                Thủ Quỹ
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveQrConfig} className="space-y-3.5 text-xs">
+              {/* QR Code Preview */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center">
+                <img 
+                  src={qrPreviewUrl} 
+                  alt="QR Thủ Quỹ" 
+                  className="w-44 h-44 object-contain rounded-xl shadow-sm border border-gray-200 bg-white"
+                />
+                <label className="mt-3 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-700 text-[11px] font-bold flex items-center gap-1.5 hover:bg-gray-50 cursor-pointer shadow-xs active:scale-95">
+                  <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Tải ảnh mã QR ngân hàng cá nhân</span>
+                  <input type="file" accept="image/*" onChange={handleQrImageUpload} className="hidden" />
+                </label>
+              </div>
+
+              <div>
+                <label className="text-gray-700 block mb-1 font-bold">Tên Ngân Hàng</label>
+                <input
+                  type="text"
+                  required
+                  value={qrBankName}
+                  onChange={(e) => setQrBankName(e.target.value)}
+                  placeholder="MB Bank, Vietcombank, Techcombank..."
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-700 block mb-1 font-bold">Số Tài Khoản</label>
+                <input
+                  type="text"
+                  required
+                  value={qrAccountNumber}
+                  onChange={(e) => setQrAccountNumber(e.target.value)}
+                  placeholder="Số tài khoản ngân hàng"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-700 block mb-1 font-bold">Tên Chủ Tài Khoản (In hoa không dấu)</label>
+                <input
+                  type="text"
+                  required
+                  value={qrAccountHolder}
+                  onChange={(e) => setQrAccountHolder(e.target.value.toUpperCase())}
+                  placeholder="NGUYEN HOANG HAI"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                type="submit"
+                className="w-full h-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-500/20 cursor-pointer mt-2"
+              >
+                {qrSavedNotice ? '✓ Đã Lưu Cấu Hình QR Thủ Quỹ' : 'Lưu QR Vào Trang Chủ Cả Đội'}
+              </motion.button>
+            </form>
           </div>
         )}
 
       </div>
 
-      {/* Modal Thêm Khoản Thu / Chi */}
-      {showAddTxModal && (
+      {/* MODAL EDIT (SỬA) KHOẢN TIỀN & NỘI DUNG ĐÃ NHẬP SAI */}
+      {editingTransaction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100">
+          <div className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="font-black text-base text-gray-900">
-                {txType === 'income' ? '+ Ghi Khoản Thu' : '- Ghi Khoản Chi'}
-              </h3>
-              <button onClick={() => setShowAddTxModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
-                <X className="w-5 h-5" />
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-black text-sm text-gray-900">Sửa Khoản Thu Chi</h3>
+              </div>
+              <button onClick={() => setEditingTransaction(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="mt-4 space-y-3 text-xs">
+            <form onSubmit={handleSaveEditedTx} className="mt-3.5 space-y-3 text-xs">
               <div>
-                <label className="text-gray-500 block mb-1 font-bold">Nội dung</label>
+                <label className="text-gray-600 block mb-1 font-bold">Nội dung khoản tiền</label>
                 <input
                   type="text"
-                  placeholder={txType === 'income' ? 'Ví dụ: Tiền đóng thêm áo đấu' : 'Ví dụ: Mua đá lạnh & nước suối'}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900"
+                  required
+                  value={editingTransaction.title}
+                  onChange={(e) => setEditingTransaction({ ...editingTransaction, title: e.target.value })}
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-bold text-gray-900 focus:bg-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-gray-500 block mb-1 font-bold">Số tiền (VNĐ)</label>
+                <label className="text-gray-600 block mb-1 font-bold">Số tiền (VNĐ)</label>
                 <input
                   type="number"
-                  placeholder="Ví dụ: 120000"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 font-mono"
+                  required
+                  value={editingTransaction.amount}
+                  onChange={(e) => setEditingTransaction({ ...editingTransaction, amount: parseInt(e.target.value) || 0 })}
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-black text-gray-900 focus:bg-white focus:outline-none"
                 />
               </div>
-            </div>
 
-            <div className="mt-5 pt-2">
-              <button
-                onClick={() => {
-                  alert('Đã lưu giao dịch vào sổ quỹ đội thành công!');
-                  setShowAddTxModal(false);
-                }}
-                className={`w-full py-3.5 rounded-full text-white font-bold text-xs active:scale-95 transition-all shadow-md ${
-                  txType === 'income' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
-                }`}
-              >
-                Xác Nhận Lưu Sổ Quỹ
+              <div>
+                <label className="text-gray-600 block mb-1 font-bold">Loại giao dịch</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingTransaction({ ...editingTransaction, type: 'income' })}
+                    className={`h-10 rounded-xl font-bold transition-all ${
+                      editingTransaction.type === 'income' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Khoản Thu (+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingTransaction({ ...editingTransaction, type: 'expense' })}
+                    className={`h-10 rounded-xl font-bold transition-all ${
+                      editingTransaction.type === 'expense' ? 'bg-rose-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Khoản Chi (-)
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  type="submit"
+                  className="w-full h-12 rounded-full bg-slate-900 hover:bg-black text-white font-black text-xs shadow-md cursor-pointer"
+                >
+                  Lưu Chỉnh Sửa Khoản Này
+                </motion.button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL THÊM KHOẢN MỚI */}
+      {showAddTxModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <PlusCircle className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-black text-sm text-gray-900">Tạo Khoản Thu/Chi Mới</h3>
+              </div>
+              <button onClick={() => setShowAddTxModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                <X className="w-4 h-4" />
               </button>
             </div>
+
+            <form onSubmit={handleCreateTx} className="mt-3.5 space-y-3 text-xs">
+              <div>
+                <label className="text-gray-600 block mb-1 font-bold">Nội dung</label>
+                <input
+                  type="text"
+                  required
+                  value={newTxTitle}
+                  onChange={(e) => setNewTxTitle(e.target.value)}
+                  placeholder="Ví dụ: Tiền nước, bóng thi đấu..."
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-bold text-gray-900 focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-600 block mb-1 font-bold">Số tiền (VNĐ)</label>
+                <input
+                  type="number"
+                  required
+                  value={newTxAmount}
+                  onChange={(e) => setNewTxAmount(e.target.value)}
+                  placeholder="150000"
+                  className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-mono font-black text-gray-900 focus:bg-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-600 block mb-1 font-bold">Loại</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewTxType('income')}
+                    className={`h-10 rounded-xl font-bold transition-all ${
+                      newTxType === 'income' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Khoản Thu (+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewTxType('expense')}
+                    className={`h-10 rounded-xl font-bold transition-all ${
+                      newTxType === 'expense' ? 'bg-rose-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Khoản Chi (-)
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  type="submit"
+                  className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md cursor-pointer"
+                >
+                  Xác Nhận Thêm Vào Sổ Quỹ
+                </motion.button>
+              </div>
+            </form>
           </div>
         </div>
       )}

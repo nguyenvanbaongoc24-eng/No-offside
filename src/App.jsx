@@ -39,6 +39,8 @@ export default function App() {
     updateSubAdminTitle,
     addSubAdmin,
     removeSubAdmin,
+    removeMember,
+    addMember,
     transferOwnership,
     approveAdminRequest,
     rejectAdminRequest,
@@ -132,7 +134,7 @@ export default function App() {
               currentUserRole={currentUserRole}
             />
           ) : activeTab === 'chat' ? (
-            <Chat user={user} />
+            <Chat user={user} members={teamSettings?.members} />
           ) : activeTab === 'profile' ? (
             <Profile 
               user={user} 
@@ -164,6 +166,9 @@ export default function App() {
               onOpenNotifications={() => setShowNotificationHistory(true)}
               treasurerQr={teamSettings?.treasurerQr}
               onUpdateMatchStats={updateMatchStats}
+              members={teamSettings?.members}
+              onRemoveMember={removeMember}
+              onAddMember={addMember}
             />
           )}
         </main>

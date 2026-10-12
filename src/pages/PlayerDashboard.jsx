@@ -29,6 +29,8 @@ import {
   Info
 } from 'lucide-react';
 import { formatCurrency, formatCompactCurrency } from '../lib/formatCurrency';
+import TeamManager from './TeamManager';
+import InviteShare from '../components/InviteShare';
 
 export default function PlayerDashboard({ 
   user, 
@@ -40,7 +42,10 @@ export default function PlayerDashboard({
   onNavigate,
   onOpenNotifications,
   treasurerQr,
-  onUpdateMatchStats
+  onUpdateMatchStats,
+  members = [],
+  onRemoveMember,
+  onAddMember
 }) {
   // Modal states
   const [showQrModal, setShowQrModal] = useState(false);
@@ -48,6 +53,8 @@ export default function PlayerDashboard({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [attendanceActiveTab, setAttendanceActiveTab] = useState('attending'); // 'attending' | 'maybe' | 'absent' | 'unvoted'
   const [copiedField, setCopiedField] = useState('');
 
@@ -326,6 +333,41 @@ export default function PlayerDashboard({
           2. CARDS CONTAINER VỚI TIGHT SPACING & MOTION
           ========================================================= */}
       <div className="px-3.5 space-y-3 -mt-6 relative z-10">
+
+        {/* YÊU CẦU 2: CARD/BUTTON LỚN NẰM NGANG [👥 Quản lý Nhân sự & Đội hình] (DÀNH CHO OWNER & ADMIN) */}
+        {isLeader && (
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={() => setShowTeamManagerModal(true)}
+            className="w-full bg-white rounded-[26px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex items-center justify-between transition-all group cursor-pointer text-left relative overflow-hidden"
+          >
+            <div className="flex items-center gap-3.5 relative z-10">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+                <Users2 className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-gray-900 tracking-tight">
+                    Quản lý Nhân sự & Đội hình
+                  </h3>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {members?.length || 16} người
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                  Danh sách thành viên, thêm/xóa cầu thủ & sinh nhật 🎂
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 text-gray-400 group-hover:text-emerald-600 transition-colors shrink-0">
+              <span className="text-xs font-bold hidden sm:inline">Chi tiết</span>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </motion.button>
+        )}
 
         {/* CARD 1: TRẬN ĐẤU TIẾP THEO & BỘ ĐẾM NGƯỢC REAL-TIME */}
         <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
@@ -1352,6 +1394,31 @@ export default function PlayerDashboard({
           </div>
         </div>
       )}
+
+      {/* MODAL QUẢN LÝ THÀNH VIÊN NHANH (TEAM MANAGER) */}
+      <TeamManager 
+        isOpen={showTeamManagerModal}
+        onClose={() => setShowTeamManagerModal(false)}
+        members={members}
+        currentUserRole={currentUserRole}
+        onRemoveMember={onRemoveMember}
+        onOpenInvite={() => {
+          setShowTeamManagerModal(false);
+          setShowInviteModal(true);
+        }}
+      />
+
+      {/* POPUP CHIA SẺ MÃ QR / LINK THAM GIA ĐỘI */}
+      <InviteShare 
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        teamName={user?.teamName || 'FC No Offside'}
+        teamCode="fc-no-offside-99"
+        onPreviewLanding={() => {
+          setShowInviteModal(false);
+          if (onNavigate) onNavigate('invite-landing');
+        }}
+      />
 
     </div>
   );

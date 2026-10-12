@@ -1,7 +1,29 @@
-import React, { useState } from 'react';
-import { Send, Smile, Users, Shield, Sparkles, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
+import { Send, Smile, Users, Shield, Sparkles, MessageSquare, Cake, Gift } from 'lucide-react';
 
-export default function Chat({ user }) {
+export default function Chat({ user, members = [] }) {
+  // Tìm thành viên có sinh nhật hôm nay
+  const todayBirthdayMember = useMemo(() => {
+    const today = new Date();
+    if (members && members.length > 0) {
+      const match = members.find(m => {
+        if (!m.birthday) return false;
+        const b = new Date(m.birthday);
+        return b.getDate() === today.getDate() && b.getMonth() === today.getMonth();
+      });
+      if (match) return match;
+    }
+    // Mặc định cho demo nếu chưa có dữ liệu: Nguyễn Quang Hải (13/10)
+    return {
+      name: 'Nguyễn Quang Hải',
+      number: 19,
+      role: 'Tiền Vệ',
+      birthday: '1997-10-13'
+    };
+  }, [members]);
+
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -45,10 +67,10 @@ export default function Chat({ user }) {
     },
     {
       id: 5,
-      sender: user.name,
-      number: user.number,
-      role: user.role,
-      avatar: user.avatar,
+      sender: user?.name || 'Tuấn Hưng',
+      number: user?.number || 9,
+      role: user?.role || 'Tiền Đạo',
+      avatar: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
       text: 'Đã sẵn sàng! Trận này quyết tâm lấy 3 điểm anh em ơi 🔥⚽',
       time: '18:35',
       isMe: true,
@@ -57,9 +79,33 @@ export default function Chat({ user }) {
 
   const [inputVal, setInputVal] = useState('');
 
+  // Hàm bắn pháo giấy Confetti mượt mà
+  const triggerConfetti = () => {
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.65 },
+        colors: ['#22c55e', '#ec4899', '#f59e0b', '#3b82f6', '#8b5cf6']
+      });
+    } catch (err) {
+      console.warn('Canvas confetti execution error:', err);
+    }
+  };
+
+  // Tự động bắn pháo giấy khi vào phòng chat nếu hôm nay có sinh nhật
+  useEffect(() => {
+    if (todayBirthdayMember) {
+      const timer = setTimeout(() => {
+        triggerConfetti();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [todayBirthdayMember]);
+
   const quickMessages = [
+    `Chúc mừng sinh nhật ${todayBirthdayMember?.name || 'đồng đội'}! 🎂`,
     'Thứ 6 mặc áo nào?',
-    'Ai có xe đón tôi không?',
     'Chiến thôi anh em! ⚽🔥',
     'Tôi có mặt trước 15p nhé!',
   ];
@@ -68,14 +114,19 @@ export default function Chat({ user }) {
     const text = textToSend || inputVal;
     if (!text.trim()) return;
 
+    // Nếu tin nhắn chúc mừng hoặc hôm nay có sinh nhật, bắn pháo giấy
+    if (text.includes('🎂') || text.includes('sinh nhật') || text.includes('🎉')) {
+      triggerConfetti();
+    }
+
     setMessages((prev) => [
       ...prev,
       {
         id: Date.now(),
-        sender: user.name,
-        number: user.number,
-        role: user.role,
-        avatar: user.avatar,
+        sender: user?.name || 'Tuấn Hưng',
+        number: user?.number || 9,
+        role: user?.role || 'Tiền Đạo',
+        avatar: user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80',
         text: text.trim(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isMe: true,
@@ -111,7 +162,91 @@ export default function Chat({ user }) {
 
       {/* 2. Messages Stream với mb-32 pb-16 để cuộn không bao giờ bị thanh nav đè lên */}
       <div className="flex-1 p-4 space-y-3 overflow-y-auto mb-32 pb-12">
-        {messages.map((msg) => (
+        
+        {/* Tin nhắn 1 & 2 */}
+        {messages.slice(0, 2).map((msg) => (
+          <div 
+            key={msg.id} 
+            className={`flex items-end gap-2 ${msg.isMe ? 'justify-end' : 'justify-start'}`}
+          >
+            {!msg.isMe && (
+              <img 
+                src={msg.avatar} 
+                alt={msg.sender} 
+                className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200 shrink-0 mb-1" 
+              />
+            )}
+
+            <div className={`max-w-[78%] rounded-[22px] p-3 shadow-soft ${
+              msg.isMe 
+                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-br-sm shadow-md shadow-emerald-500/20' 
+                : 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm'
+            }`}>
+              {!msg.isMe && (
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="font-bold text-[11px] text-gray-900 whitespace-nowrap">{msg.sender}</span>
+                  <span className="text-[10px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.2 rounded-full whitespace-nowrap">
+                    #{msg.number}
+                  </span>
+                </div>
+              )}
+
+              <p className="text-xs leading-relaxed font-medium">{msg.text}</p>
+              
+              <span className={`text-[9px] block text-right mt-1 font-mono ${
+                msg.isMe ? 'text-emerald-100' : 'text-gray-400'
+              }`}>
+                {msg.time}
+              </span>
+            </div>
+          </div>
+        ))}
+
+        {/* =========================================================
+            YÊU CẦU 3: TIN NHẮN HỆ THỐNG ĐẶC BIỆT (SYSTEM MESSAGE SINH NHẬT)
+            - Căn giữa (centered)
+            - Chữ màu xám / xanh lá nhẹ
+            - Có icon hộp quà 🎁
+            - Nội dung: "Hôm nay là sinh nhật của [Tên Cầu Thủ]! Chúc tuổi mới bùng nổ trên sân cỏ nhé! 🎉"
+            ========================================================= */}
+        {todayBirthdayMember && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', damping: 20 }}
+            className="my-4 mx-auto max-w-[92%] sm:max-w-sm text-center"
+          >
+            <div className="bg-gradient-to-b from-emerald-50/90 via-slate-50/80 to-pink-50/60 border border-emerald-200/80 rounded-2xl p-3.5 shadow-sm">
+              {/* Icon hộp quà 🎁 */}
+              <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-base mx-auto mb-1.5 shadow-xs animate-bounce">
+                🎁
+              </div>
+
+              {/* Tag System Message */}
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full inline-block">
+                Hệ Thống Tự Động
+              </span>
+
+              {/* Nội dung chúc mừng sinh nhật căn giữa */}
+              <p className="text-xs font-bold text-gray-600 mt-1.5 leading-relaxed">
+                Hôm nay là sinh nhật của <span className="text-emerald-700 font-extrabold">{todayBirthdayMember.name}</span>! Chúc tuổi mới bùng nổ trên sân cỏ nhé! 🎉
+              </p>
+
+              {/* Nút bấm tương tác kích hoạt Confetti */}
+              <button 
+                type="button"
+                onClick={triggerConfetti}
+                className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-extrabold text-[11px] shadow-sm shadow-emerald-500/25 active:scale-95 transition-all cursor-pointer"
+                title="Bấm để bắn pháo hoa chúc mừng"
+              >
+                <span>🎉 Bắn pháo giấy chúc mừng</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Các tin nhắn tiếp theo */}
+        {messages.slice(2).map((msg) => (
           <div 
             key={msg.id} 
             className={`flex items-end gap-2 ${msg.isMe ? 'justify-end' : 'justify-start'}`}
@@ -158,7 +293,7 @@ export default function Chat({ user }) {
             <button
               key={idx}
               onClick={() => handleSend(chip)}
-              className="text-[11px] font-bold whitespace-nowrap flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 transition-all border border-gray-200 active:scale-95"
+              className="text-[11px] font-bold whitespace-nowrap flex-shrink-0 flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-700 transition-all border border-gray-200 active:scale-95 cursor-pointer"
             >
               {chip}
             </button>
@@ -170,6 +305,16 @@ export default function Chat({ user }) {
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="flex items-center gap-2 mt-1"
         >
+          {/* Nút pháo giấy sinh nhật cạnh ô chat */}
+          <button
+            type="button"
+            onClick={triggerConfetti}
+            className="w-10 h-10 rounded-full bg-pink-50 hover:bg-pink-100 text-pink-600 border border-pink-200 flex items-center justify-center shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer"
+            title="Bắn pháo giấy confetti"
+          >
+            <span>🎉</span>
+          </button>
+
           <input
             type="text"
             value={inputVal}

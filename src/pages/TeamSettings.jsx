@@ -48,6 +48,9 @@ export default function TeamSettings({
   const [matchReminderNotif, setMatchReminderNotif] = useState(teamSettings?.appearance?.matchReminderNotif ?? true);
   const [fundReminderNotif, setFundReminderNotif] = useState(teamSettings?.appearance?.fundReminderNotif ?? true);
 
+  // Section 5: Quản lý sinh nhật (Birthday Module)
+  const [birthdayReportEnabled, setBirthdayReportEnabled] = useState(teamSettings?.appearance?.birthdayReportEnabled ?? true);
+
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSave = (e) => {
@@ -65,7 +68,8 @@ export default function TeamSettings({
           fontFamily,
           timeFormat,
           matchReminderNotif,
-          fundReminderNotif
+          fundReminderNotif,
+          birthdayReportEnabled
         }
       });
     }
@@ -442,6 +446,60 @@ export default function TeamSettings({
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:width-5 after:transition-all peer-checked:bg-emerald-600"></div>
               </label>
             </div>
+          </div>
+        </div>
+
+        {/* SECTION 5: QUẢN LÝ SINH NHẬT (BIRTHDAY MODULE) */}
+        <div className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100">
+          <div className="flex items-center gap-2 pb-3 mb-3 border-b border-gray-100">
+            <div className="w-8 h-8 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center font-bold">
+              <span className="text-base">🎂</span>
+            </div>
+            <div>
+              <h2 className="text-sm font-extrabold text-gray-900">Quản Lý Sinh Nhật Đội Bóng</h2>
+              <p className="text-[10px] text-gray-400">Tự động nhắc nhở và tạo không khí vui vẻ cho anh em</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-800">Báo cáo sinh nhật theo tháng</p>
+                <p className="text-[10px] text-gray-400">Đầu mỗi tháng hệ thống hiện thông báo tóm tắt sinh nhật</p>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={birthdayReportEnabled}
+                  onChange={(e) => setBirthdayReportEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:width-5 after:transition-all peer-checked:bg-pink-500"></div>
+              </label>
+            </div>
+
+            {/* Alert preview khi bật tính năng */}
+            {birthdayReportEnabled && (
+              <motion.div 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 bg-gradient-to-r from-pink-50/80 to-rose-50/80 border border-pink-200/90 rounded-2xl flex items-start gap-2.5 shadow-xs"
+              >
+                <div className="w-8 h-8 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center shrink-0">
+                  🎁
+                </div>
+                <div>
+                  <p className="text-xs font-black text-pink-950 flex items-center gap-1.5">
+                    <span>Thông Báo Đầu Tháng 10</span>
+                    <span className="text-[9px] bg-pink-200 text-pink-900 px-1.5 py-0.2 rounded-full font-bold">Tự động</span>
+                  </p>
+                  <p className="text-[11px] text-pink-900 font-medium mt-1 leading-relaxed">
+                    Tháng 10 này có sinh nhật của: <strong>Nguyễn Quang Hải</strong> (13/10 🎂), <strong>Nguyễn Hoàng Đức</strong> (18/10), <strong>Nguyễn Tiến Linh</strong> (20/10), <strong>Bầu Thắng</strong> (25/10). Anh em chuẩn bị bắn pháo hoa chúc mừng nhé! 🎉
+                  </p>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
 

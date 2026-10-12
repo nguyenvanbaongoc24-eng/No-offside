@@ -37,6 +37,7 @@ export default function InviteLanding({
 
   // Profile step state
   const [fullName, setFullName] = useState('');
+  const [birthday, setBirthday] = useState('1998-10-13');
   const [position, setPosition] = useState('Tiền đạo (ST)');
   const [jerseyNumber, setJerseyNumber] = useState(10);
 
@@ -67,6 +68,7 @@ export default function InviteLanding({
 
     const newMemberProfile = {
       name: fullName.trim(),
+      birthday: birthday,
       role: position,
       number: parseInt(jerseyNumber) || 10,
       teamName: teamData.name,
@@ -327,8 +329,28 @@ export default function InviteLanding({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Ví dụ: Nguyễn Văn An"
-                    className="w-full h-14 bg-gray-100 border border-gray-200/80 rounded-full px-5 text-sm font-bold text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-[#22C55E] focus:ring-4 focus:ring-emerald-500/15 transition-all duration-200"
+                    className="w-full h-12 bg-gray-100 border border-gray-200/80 rounded-full px-5 text-sm font-bold text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-[#22C55E] focus:ring-4 focus:ring-emerald-500/15 transition-all duration-200 shadow-inner"
                   />
+                </div>
+
+                {/* Ngày tháng năm sinh (Bắt buộc) */}
+                <div>
+                  <label className="text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
+                    <span>Ngày tháng năm sinh *</span>
+                    <span className="text-[10px] text-pink-600 font-bold flex items-center gap-1">
+                      🎂 Sinh nhật
+                    </span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={birthday}
+                    onChange={(e) => setBirthday(e.target.value)}
+                    className="w-full h-12 bg-gray-100 border border-gray-200/80 rounded-full px-5 text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#22C55E] focus:ring-4 focus:ring-emerald-500/15 transition-all duration-200 shadow-inner"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1 pl-1">
+                    Giúp đội bóng không bỏ lỡ sinh nhật của bạn 🎂
+                  </p>
                 </div>
 
                 {/* Vị trí sở trường dạng Chip buttons */}

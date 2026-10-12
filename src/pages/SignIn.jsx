@@ -341,6 +341,7 @@ export function AuthScreen({ onVerifySuccess }) {
    ===================================================================== */
 export function OnboardingScreen({ defaultData = {}, onComplete }) {
   const [fullName, setFullName] = useState(defaultData.name || 'Tuấn Hưng');
+  const [birthday, setBirthday] = useState(defaultData.birthday || '1997-10-13');
   const [position, setPosition] = useState('Tiền đạo (ST)');
   const [jerseyNumber, setJerseyNumber] = useState(defaultData.number || 9);
 
@@ -359,9 +360,14 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
       alert('Vui lòng nhập họ và tên của bạn!');
       return;
     }
+    if (!birthday) {
+      alert('Vui lòng chọn ngày tháng năm sinh!');
+      return;
+    }
 
     const userData = {
       name: fullName.trim(),
+      birthday: birthday,
       role: position,
       number: parseInt(jerseyNumber) || 9,
     };
@@ -390,7 +396,7 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
         </div>
 
         {/* Soft UI Form Card */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 space-y-5 transition-all">
+        <form onSubmit={handleSubmit} className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 space-y-4 transition-all">
           
           {/* 1. INPUT: HỌ VÀ TÊN (BẮT BUỘC) */}
           <div>
@@ -407,8 +413,29 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Ví dụ: Nguyễn Tuấn Hưng"
-              className="w-full bg-gray-100 border border-gray-200/80 rounded-full py-3.5 px-5 text-sm font-bold text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-[#22C55E] focus:ring-4 focus:ring-emerald-500/15 transition-all duration-200"
+              className="w-full bg-gray-100 border border-gray-200/80 rounded-full py-3 px-4 text-xs font-bold text-gray-900 placeholder-gray-400 focus:bg-white focus:outline-none focus:border-[#22C55E] focus:ring-4 focus:ring-emerald-500/15 transition-all duration-200"
             />
+          </div>
+
+          {/* 2. INPUT: NGÀY THÁNG NĂM SINH (BẮT BUỘC) */}
+          <div>
+            <label className="text-xs font-bold text-gray-700 mb-1 flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Ngày tháng năm sinh</span>
+              </span>
+              <span className="text-[10px] text-rose-500 font-bold">* Bắt buộc</span>
+            </label>
+            <input
+              type="date"
+              required
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
+              className="w-full bg-gray-100 border border-gray-200/80 rounded-full py-3 px-4 text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#22C55E] focus:ring-4 focus:ring-emerald-500/15 transition-all duration-200"
+            />
+            <p className="text-[10px] text-gray-400 font-medium mt-1 pl-1">
+              Giúp đội bóng không bỏ lỡ sinh nhật của bạn 🎂
+            </p>
           </div>
 
           {/* 2. SELECT/PILL CHIPS: VỊ TRÍ SỞ TRƯỜNG */}

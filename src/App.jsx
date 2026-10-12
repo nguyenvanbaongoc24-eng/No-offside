@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { Home, Shield, Wallet, User } from 'lucide-react';
+import { Home, Shield, Wallet, MessageSquare, User } from 'lucide-react';
 import PlayerDashboard from './pages/PlayerDashboard';
 import LineupBuilder from './pages/LineupBuilder';
-import SignIn from './pages/SignIn';
+import FundManagement from './pages/FundManagement';
+import Chat from './pages/Chat';
 import Profile from './pages/Profile';
+import SignIn from './pages/SignIn';
+import NotificationToast, { NotificationHistoryModal } from './components/NotificationToast';
 import { useAuth } from './hooks/useAuth';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('dashboard');
+  const [showNotificationToast, setShowNotificationToast] = useState(true);
+  const [showNotificationHistory, setShowNotificationHistory] = useState(false);
+
   const { 
     user, 
     currentUserRole,
@@ -32,16 +38,42 @@ export default function App() {
     );
   }
 
+  // Ensure member cannot stay in 'fund' tab if role switched
+  const activeTab = (currentUserRole !== 'admin' && currentTab === 'fund') ? 'dashboard' : currentTab;
+
   return (
-    <div className="bg-slate-100 min-h-screen text-gray-900 flex justify-center font-['Be_Vietnam_Pro'] antialiased selection:bg-green-600 selection:text-white">
+    <div className="bg-slate-100 min-h-screen text-gray-900 flex justify-center font-['Be_Vietnam_Pro'] antialiased selection:bg-emerald-600 selection:text-white">
       {/* Mobile Layout Frame (max-w-md mx-auto min-h-screen bg-slate-50 relative) */}
-      <div className="w-full max-w-md min-h-screen relative bg-slate-50 shadow-xl flex flex-col justify-between overflow-x-hidden pb-24">
+      <div className="w-full max-w-md min-h-screen relative bg-slate-50 shadow-2xl flex flex-col justify-between overflow-x-hidden pb-24">
         
+        {/* =========================================================
+            HỆ THỐNG THÔNG BÁO (NOTIFICATIONS)
+            - Toast thông báo phong cách Facebook/Zalo (slide-in-from-top)
+            - Modal xem lại toàn bộ lịch sử thông báo
+            ========================================================= */}
+        <NotificationToast 
+          isOpen={showNotificationToast}
+          onClose={() => setShowNotificationToast(false)}
+          onOpenHistory={() => {
+            setShowNotificationToast(false);
+            setShowNotificationHistory(true);
+          }}
+        />
+
+        <NotificationHistoryModal 
+          isOpen={showNotificationHistory}
+          onClose={() => setShowNotificationHistory(false)}
+        />
+
         {/* Dynamic Screen View */}
         <main className="flex-1">
-          {currentTab === 'lineup' ? (
+          {activeTab === 'lineup' ? (
             <LineupBuilder onBack={() => setCurrentTab('dashboard')} />
-          ) : currentTab === 'profile' ? (
+          ) : activeTab === 'fund' ? (
+            <FundManagement onBack={() => setCurrentTab('dashboard')} />
+          ) : activeTab === 'chat' ? (
+            <Chat user={user} />
+          ) : activeTab === 'profile' ? (
             <Profile 
               user={user} 
               currentUserRole={currentUserRole}
@@ -60,63 +92,86 @@ export default function App() {
               onMarkPaid={markFundPaid}
               onResetPaid={resetFund}
               onNavigate={(tab) => setCurrentTab(tab)}
+              onOpenNotifications={() => setShowNotificationHistory(true)}
             />
           )}
         </main>
 
-        {/* FLOATING BOTTOM NAVIGATION */}
-        <nav className="fixed bottom-6 left-4 right-4 max-w-sm mx-auto z-50 pointer-events-auto">
-          <div className="bg-gray-900 text-white rounded-full px-5 py-3 shadow-[0_20px_45px_-10px_rgba(17,24,39,0.5)] border border-gray-800 flex items-center justify-between">
+        {/* =========================================================
+            FLOATING BOTTOM NAVIGATION (THANH MENU DƯỚI CÙNG)
+            - Nếu là admin: 5 nút: [Trang chủ] - [Sa bàn] - [Quỹ đội] - [Chat] - [Tài khoản]
+            - Nếu là member: 4 nút: [Trang chủ] - [Sa bàn] - [Chat] - [Tài khoản] (BỎ nút Quỹ đội)
+            - Có hiệu ứng active:scale-95, transition-all, duration-200 cho haptic visual feedback
+            ========================================================= */}
+        <nav className="fixed bottom-5 left-3 right-3 max-w-md mx-auto z-40 pointer-events-auto">
+          <div className="bg-slate-900/95 backdrop-blur-xl text-white rounded-full px-3 py-2 shadow-[0_20px_45px_-10px_rgba(15,23,42,0.6)] border border-slate-800 flex items-center justify-around">
             
-            {/* Tab 1: Trang chủ */}
+            {/* Nút 1: Trang chủ */}
             <button
               onClick={() => setCurrentTab('dashboard')}
-              className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all duration-200 ${
-                currentTab === 'dashboard'
-                  ? 'bg-white text-gray-900 shadow-md'
+              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                activeTab === 'dashboard'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
               <Home className="w-4 h-4 shrink-0" />
-              {currentTab === 'dashboard' && <span>Trang chủ</span>}
+              {activeTab === 'dashboard' && <span>Trang chủ</span>}
             </button>
 
-            {/* Tab 2: Sa bàn */}
+            {/* Nút 2: Sa bàn */}
             <button
               onClick={() => setCurrentTab('lineup')}
-              className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all duration-200 ${
-                currentTab === 'lineup'
-                  ? 'bg-white text-gray-900 shadow-md'
+              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                activeTab === 'lineup'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
               <Shield className="w-4 h-4 shrink-0" />
-              {currentTab === 'lineup' && <span>Sa bàn</span>}
+              {activeTab === 'lineup' && <span>Sa bàn</span>}
             </button>
 
-            {/* Tab 3: Quỹ đội */}
+            {/* Nút 3: Quỹ đội (CHỈ HIỂN THỊ KHI LÀ ADMIN) */}
+            {currentUserRole === 'admin' && (
+              <button
+                onClick={() => setCurrentTab('fund')}
+                className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                  activeTab === 'fund'
+                    ? 'bg-white text-slate-900 shadow-md shadow-white/20'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                title="Quỹ đội"
+              >
+                <Wallet className="w-4 h-4 shrink-0" />
+                {activeTab === 'fund' && <span>Quỹ đội</span>}
+              </button>
+            )}
+
+            {/* Nút 4: Chat */}
             <button
-              onClick={() => {
-                if (currentTab !== 'dashboard') setCurrentTab('dashboard');
-                window.scrollTo({ top: 380, behavior: 'smooth' });
-              }}
-              className="flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold text-gray-400 hover:text-white transition-all duration-200"
-              title="Quỹ đội"
+              onClick={() => setCurrentTab('chat')}
+              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                activeTab === 'chat'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/20'
+                  : 'text-gray-400 hover:text-white'
+              }`}
             >
-              <Wallet className="w-4 h-4 shrink-0" />
+              <MessageSquare className="w-4 h-4 shrink-0" />
+              {activeTab === 'chat' && <span>Chat</span>}
             </button>
 
-            {/* Tab 4: Tài khoản (Mở màn hình Hồ sơ Cầu thủ Profile) */}
+            {/* Nút 5: Tài khoản */}
             <button
               onClick={() => setCurrentTab('profile')}
-              className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-bold transition-all duration-200 ${
-                currentTab === 'profile'
-                  ? 'bg-white text-gray-900 shadow-md'
+              className={`flex items-center gap-1.5 py-2 px-3 rounded-full text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
+                activeTab === 'profile'
+                  ? 'bg-white text-slate-900 shadow-md shadow-white/20'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
               <User className="w-4 h-4 shrink-0" />
-              {currentTab === 'profile' && <span>Tài khoản</span>}
+              {activeTab === 'profile' && <span>Tài khoản</span>}
             </button>
 
           </div>

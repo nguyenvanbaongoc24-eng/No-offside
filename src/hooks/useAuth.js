@@ -299,14 +299,7 @@ const INITIAL_FUNDS = {
     { id: 2, name: 'Đoàn Văn Hậu (#5)', amount: 150000, time: '35 phút trước', bank: 'MB Bank', memo: 'NO OFFSIDE SO 5 DONG QUY' },
     { id: 3, name: 'Bùi Tiến Dũng (#4)', amount: 150000, time: '1 giờ trước', bank: 'Techcombank', memo: 'NO OFFSIDE SO 4 DONG QUY' },
   ].map(p => ({ ...p, playerId: ({1:301,2:305,3:308})[p.id], month: '2026-10' })),
-  debtors: [
-    { id: 1, name: 'Nguyễn Tuấn Anh (#11)', phone: '0901234567', amount: 150000, status: 'unpaid' },
-    { id: 2, name: 'Nguyễn Tiến Linh (#22)', phone: '0902345678', amount: 150000, status: 'unpaid' },
-    { id: 3, name: 'Đỗ Duy Mạnh (#28)', phone: '0903456789', amount: 150000, status: 'unpaid' },
-    { id: 4, name: 'Vũ Văn Thanh (#17)', phone: '0904567890', amount: 150000, status: 'unpaid' },
-    { id: 5, name: 'Phan Văn Đức (#20)', phone: '0905678901', amount: 150000, status: 'unpaid' },
-    { id: 6, name: 'Hồ Tấn Tài (#13)', phone: '0906789012', amount: 150000, status: 'unpaid' },
-  ].map(p => ({ ...p, playerId: ({1:310,2:303,3:306,4:307,5:311,6:312})[p.id], month: '2026-10' })),
+  debtors: [301, 305, 308, 'usr-9', 303, 311].map((playerId, index) => { const player = INITIAL_MEMBERS.find(m => m.id === playerId); return { id: index + 1, playerId, name: `${player.name} (#${player.number})`, phone: player.phone, amount: 150000, status: 'unpaid', month: '2026-10' }; }),
 };
 const INITIAL_MATCH = { id: 'match-2026-10-24', title: 'Kèo sân 7 — FC Hàng Xóm', category: 'Sân 7', datetime: '2026-10-24T18:30', deadline: '2026-10-24T12:00', venue: 'Sân Chuyên Việt (Sân 3) - 18D Cộng Hòa', penaltyEnabled: true, penaltyAmount: '50.000 đ', status: 'upcoming' };
 
@@ -384,6 +377,7 @@ export function useAuth() {
   };
   const markFundPaid = () => {
     const month = monthKey();
+    if (!(user.fundDebt > 0)) { alert('Bạn chưa có khoản quỹ cần nộp.'); return; }
     if (funds.pendingApprovals.some(p => p.playerId === user.id && p.month === month)) return;
     setData(prev => ({ ...prev, funds: { ...prev.funds, pendingApprovals: [...prev.funds.pendingApprovals, { id: uid(), playerId: user.id, month, name: user.name + ' (#' + user.number + ')', amount: user.fundDebt || 150000, bank: teamSettings.treasurerQr.bankName, time: 'Vừa gửi', memo: 'NO OFFSIDE DONG QUY' }] } }));
     setUser(prev => ({ ...prev, fundPaymentPending: true }));

@@ -14,6 +14,7 @@ import { useAuth } from './hooks/useAuth';
 import { useAppearance } from './hooks/useAppearance';
 import { useDialogAccessibility } from './hooks/useDialogAccessibility';
 import { readStored } from './lib/storage';
+import { monthKey } from './lib/teamModel';
 
 export default function App() {
   const auth = useAuth();
@@ -30,7 +31,10 @@ export default function App() {
   if (auth.authLoading) return <div className="min-h-screen grid place-items-center bg-slate-50"><Loader2 className="animate-spin text-emerald-600" aria-label="Đang kiểm tra phiên đăng nhập"/></div>;
   if (!auth.isLoggedIn) return <Login onLoginSuccess={profile => { auth.login(profile); if (tab !== 'invite-landing') navigate('dashboard'); }}/>;
   const fundProps = { funds: auth.funds, onChangeFunds: auth.setFunds, onApprove: auth.approveFundPayment };
-  const shared = { user: auth.user, currentUserRole: auth.currentUserRole, onNavigate: navigate, demoSession: auth.demoSession };
+  const currentMonth = monthKey();
+  const paid = auth.funds.transactions.some(tx => tx.type === 'income' && tx.playerId === auth.user.id && tx.month === currentMonth);
+  const debt = auth.funds.debtors.filter(d => d.playerId === auth.user.id && d.month === currentMonth).reduce((sum, d) => sum + Number(d.amount), 0);
+  const shared = { user: { ...auth.user, nextMatchAttendance: auth.attendance[auth.user.id] || null, isFundPaid: paid, fundDebt: paid ? 0 : debt || auth.user.fundDebt, fundPaymentPending: auth.funds.pendingApprovals.some(p => p.playerId === auth.user.id && p.month === currentMonth) }, currentUserRole: auth.currentUserRole, onNavigate: navigate, demoSession: auth.demoSession };
   const tabs = [{id:'dashboard',label:'Trang chủ',Icon:Home},{id:'lineup',label:'Sa bàn',Icon:Shield},...(leader ? [{id:'fund',label:'Quỹ đội',Icon:Wallet}] : []),{id:'chat',label:'Chat',Icon:MessageSquare},{id:'profile',label:'Tài khoản',Icon:User}];
   return <div className="app-shell bg-slate-100 min-h-screen text-gray-900 flex justify-center antialiased">
     <div className="app-frame w-full max-w-md min-h-screen bg-slate-50 relative pb-safe-nav">

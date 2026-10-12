@@ -718,7 +718,7 @@ export default function PlayerDashboard({
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-800">Trạng thái đóng quỹ</p>
-                    <p className="text-xs text-gray-400">Tiền sân + Nước tháng 10</p>
+                    <p className="text-xs text-gray-400">Quỹ tháng {new Date().getMonth() + 1}</p>
                   </div>
                 </div>
 
@@ -729,7 +729,7 @@ export default function PlayerDashboard({
                     </span>
                   ) : (
                     <span className="text-sm font-bold text-rose-500 tabular-nums">
-                      -{formatCurrency(150000)}
+                      -{formatCurrency(user.fundDebt || 0)}
                     </span>
                   )}
                 </div>

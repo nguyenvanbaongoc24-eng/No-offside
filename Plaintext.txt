@@ -1,0 +1,28 @@
+no-offside/
+├── public/
+│   ├── pwa-192x192.png       # Icon cho Android/iOS khi Add to Home Screen
+│   ├── pwa-512x512.png
+│   └── manifest.json         # (Có thể để vite-plugin-pwa tự sinh)
+├── src/
+│   ├── assets/               # Hình ảnh, font chữ tĩnh
+│   ├── components/           # Các UI component dùng chung
+│   │   ├── ui/               # Nút bấm, Input, Modal, Avatar
+│   │   │   ├── GlassCard.jsx # Component nền kính mờ chủ đạo
+│   │   │   └── Button.jsx
+│   │   └── matches/          # Component đặc thù của chức năng điểm danh
+│   │       └── MatchCard.jsx 
+│   ├── pages/                # Các màn hình chính (Page)
+│   │   ├── Dashboard.jsx     # Trang chủ (Luồng code đầu tiên)
+│   │   ├── SignIn.jsx        # Đăng nhập
+│   │   └── LineupBuilder.jsx # Sa bàn chiến thuật (Làm sau)
+│   ├── lib/                  # Chứa file kết nối dịch vụ ngoài
+│   │   └── supabase.js       # File khởi tạo kết nối database
+│   ├── hooks/                # Custom React Hooks
+│   │   └── useAuth.js        # Xử lý logic đăng nhập/phiên người dùng
+│   ├── styles/               # CSS toàn cục
+│   │   └── index.css         # Import Tailwind vào đây
+│   ├── App.jsx               # Setup Routing (React Router)
+│   └── main.jsx              # Entry point
+├── tailwind.config.js        # Cấu hình Theme & Colors
+├── vite.config.js            # Cấu hình Vite & PWA
+└── package.json

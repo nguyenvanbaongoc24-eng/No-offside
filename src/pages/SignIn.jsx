@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Phone, Lock, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
-import GlassCard from '../components/ui/GlassCard';
-import Button from '../components/ui/Button';
+import { Phone, Lock, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function SignIn({ onLoginSuccess }) {
   const [phone, setPhone] = useState('0987654321');
@@ -13,77 +11,94 @@ export default function SignIn({ onLoginSuccess }) {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-center px-4 py-12 text-white">
-      {/* Liquid blur accents */}
-      <div className="fixed top-1/4 left-[-10%] w-[280px] h-[280px] rounded-full bg-emerald-500/25 blur-[90px] pointer-events-none"></div>
-      <div className="fixed bottom-1/4 right-[-10%] w-[280px] h-[280px] rounded-full bg-blue-600/25 blur-[90px] pointer-events-none"></div>
-
+    <div className="relative min-h-screen bg-slate-50 flex flex-col justify-center px-5 py-12 text-gray-900 font-['Be_Vietnam_Pro'] antialiased select-none">
       <div className="max-w-sm mx-auto w-full">
+        
         {/* App Logo & Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-400 to-cyan-500 shadow-[0_0_30px_rgba(0,255,102,0.5)] mb-3">
-            <span className="text-3xl">⚽</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-[28px] bg-white shadow-soft border border-gray-100 p-2 mb-3">
+            <img 
+              src="/apple-touch-icon.png" 
+              alt="No Offside Logo" 
+              className="w-full h-full object-contain rounded-2xl"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'block';
+              }}
+            />
+            <span style={{ display: 'none' }} className="text-3xl">⚽</span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white">NO OFFSIDE</h1>
-          <p className="text-xs text-slate-400 mt-1">Nền tảng quản lý đội bóng đá nội bộ Việt Nam</p>
+          <h1 className="text-2xl font-black tracking-tight text-gray-900">
+            NO OFFSIDE
+          </h1>
+          <p className="text-xs text-gray-500 mt-1 font-medium">
+            Nền tảng quản lý đội bóng đá nội bộ Việt Nam
+          </p>
         </div>
 
-        {/* Glass Card Login Form */}
-        <GlassCard className="p-6 border-white/15 shadow-2xl">
-          <h2 className="text-lg font-bold mb-1">Đăng Nhập</h2>
-          <p className="text-xs text-slate-400 mb-5">Nhập số điện thoại để điểm danh và xem quỹ đội</p>
+        {/* White Card Login Form */}
+        <div className="bg-white rounded-[32px] shadow-soft border border-gray-100 p-6 sm:p-7">
+          <h2 className="text-lg font-black text-gray-900 mb-1">
+            Đăng Nhập
+          </h2>
+          <p className="text-xs text-gray-400 mb-6 font-medium">
+            Nhập số điện thoại để điểm danh và quản lý quỹ đội
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Số điện thoại</label>
+              <label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Số điện thoại
+              </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Phone className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="09xx xxx xxx"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-full py-3 pl-11 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-green-600 focus:bg-white focus:ring-2 focus:ring-green-600/20 transition-all font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Mật khẩu hoặc Mã PIN</label>
+              <label className="text-xs font-bold text-gray-700 mb-1.5 block">
+                Mật khẩu hoặc Mã PIN
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mật khẩu"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-full py-3 pl-11 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-green-600 focus:bg-white focus:ring-2 focus:ring-green-600/20 transition-all font-medium"
                 />
               </div>
             </div>
 
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full text-slate-950 font-bold mt-2 shadow-[0_0_20px_rgba(0,255,102,0.4)]"
-              icon={<ArrowRight className="w-4 h-4" />}
+              className="w-full py-3.5 rounded-full bg-green-600 hover:bg-green-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/25 transition-all duration-200 mt-2 active:scale-[0.98]"
             >
-              Đăng Nhập
-            </Button>
+              <span>Đăng Nhập</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </form>
 
           {/* Quick Demo Access */}
-          <div className="mt-5 pt-4 border-t border-white/10 text-center">
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
             <button
               onClick={onLoginSuccess}
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center justify-center gap-1.5 mx-auto"
+              className="text-xs text-green-700 hover:text-green-800 font-extrabold flex items-center justify-center gap-1.5 mx-auto bg-green-50 px-4 py-2 rounded-full border border-green-200/60 transition-colors"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              Vào nhanh với tài khoản Demo (Số 9)
+              <Sparkles className="w-3.5 h-3.5 text-green-600" />
+              <span>Vào nhanh với tài khoản Cầu thủ Số 9</span>
             </button>
           </div>
-        </GlassCard>
+        </div>
+
       </div>
     </div>
   );

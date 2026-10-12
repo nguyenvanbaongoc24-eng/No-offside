@@ -26,8 +26,8 @@ import {
 
 export default function PlayerDashboard({ 
   user, 
-  currentUserRole = 'player',
-  onToggleRole,
+  currentUserRole = 'player', 
+  onToggleRole, 
   onAttendanceChange, 
   onMarkPaid, 
   onResetPaid, 
@@ -76,84 +76,74 @@ export default function PlayerDashboard({
   return (
     <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-['Be_Vietnam_Pro'] antialiased select-none">
       
-      {/* 1. CÔNG TẮC GIẢ LẬP QUYỀN (Role Switcher - Chỉ dùng cho Dev) */}
-      <div className="pt-2 px-6 flex items-center justify-between text-xs bg-green-700/10 py-1.5 border-b border-green-600/10">
-        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-amber-500" /> Dev RBAC Switcher
-        </span>
-        <button
-          onClick={onToggleRole}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition-all shadow-sm ${
-            currentUserRole === 'admin'
-              ? 'bg-amber-500 text-white shadow-amber-500/20'
-              : 'bg-green-600 text-white shadow-green-600/20'
-          }`}
-          title="Bấm để chuyển đổi giữa Cầu thủ và Đội trưởng (Admin)"
-        >
-          {currentUserRole === 'admin' ? (
-            <>
-              <Crown className="w-3.5 h-3.5" />
-              <span>Chế độ: Đội Trưởng (Admin)</span>
-            </>
-          ) : (
-            <>
-              <span>⚽</span>
-              <span>Chế độ: Cầu Thủ (Số 9)</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* 2. KHU VỰC HEADER (Hero Section) */}
-      <section className="bg-gradient-to-b from-green-600 to-emerald-600 text-white pt-6 pb-20 px-6 rounded-b-[44px] shadow-lg relative overflow-hidden">
-        {/* Họa tiết trang trí */}
-        <div className="absolute top-[-20%] right-[-10%] w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-40 h-40 rounded-full bg-emerald-400/20 blur-xl pointer-events-none"></div>
-
-        {/* Top bar Header */}
+      {/* 2. KHU VỰC HEADER (Hero Section)
+          Sử dụng pt-safe-hero để cách notch/Dynamic Island trên iPhone, loại bỏ các filter blur gây mờ chữ */}
+      <section className="bg-gradient-to-b from-green-600 to-emerald-600 text-white pt-safe-hero pb-20 px-6 rounded-b-[44px] shadow-lg relative overflow-hidden">
+        
+        {/* Top bar Header: [Avatar] + Info bên trái, Switcher & Bell bên phải */}
         <div className="flex items-center justify-between mb-5 relative z-10">
           <div className="flex items-center gap-3">
             <div className="relative">
               <img 
                 src={user.avatar} 
                 alt={user.name} 
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-white/60 shadow-md"
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-white/80 shadow-md"
               />
-              <span className="absolute -bottom-1 -right-1 bg-gray-900 text-emerald-400 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-white/50 shadow">
+              <span className="absolute -bottom-1 -right-1 bg-gray-900 text-emerald-400 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-white/60 shadow">
                 #{user.number}
               </span>
             </div>
             <div>
-              <span className="text-xs text-green-100 font-medium block">
+              <span className="text-xs text-white/95 font-bold block tracking-tight">
                 {user.teamName}
               </span>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[11px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full inline-block">
-                  {currentUserRole === 'admin' ? '👑 Đội Trưởng (Admin)' : user.role}
+                <span className="text-[11px] bg-black/25 text-white font-extrabold px-2.5 py-0.5 rounded-full border border-white/20 inline-block shadow-sm">
+                  {currentUserRole === 'admin' ? '👑 Đội Trưởng' : user.role}
                 </span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 relative">
-            {/* Nếu là Admin: Thêm nút Cài đặt đội bóng (Icon bánh răng) theo Phân Quyền Admin.md */}
+            {/* Dev Role Switcher thu gọn gàng gàng */}
+            <button
+              onClick={onToggleRole}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all shadow-sm flex items-center gap-1 ${
+                currentUserRole === 'admin'
+                  ? 'bg-amber-400 text-gray-950 border-amber-300'
+                  : 'bg-black/25 text-white border-white/30 hover:bg-black/40'
+              }`}
+              title="Đổi vai trò Cầu thủ / Admin"
+            >
+              {currentUserRole === 'admin' ? (
+                <>
+                  <Crown className="w-3 h-3" />
+                  <span>Admin</span>
+                </>
+              ) : (
+                <span>Số 9</span>
+              )}
+            </button>
+
+            {/* Nếu là Admin: Thêm nút Cài đặt đội bóng (Icon bánh răng) */}
             {currentUserRole === 'admin' && (
               <button 
                 onClick={() => setShowSettingsModal(true)}
-                className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md text-white transition-colors shadow-sm"
+                className="p-2 rounded-full bg-black/25 hover:bg-black/40 text-white transition-colors border border-white/20 shadow-sm"
                 title="Cài đặt đội bóng"
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="w-4 h-4" />
               </button>
             )}
 
             <button 
               onClick={() => setNotificationOpen(!notificationOpen)}
-              className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md text-white transition-colors relative shadow-sm"
+              className="p-2 rounded-full bg-black/25 hover:bg-black/40 text-white transition-colors relative border border-white/20 shadow-sm"
               title="Thông báo"
             >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-300"></span>
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-300"></span>
             </button>
 
             {/* Notification Dropdown */}
@@ -171,9 +161,9 @@ export default function PlayerDashboard({
           </div>
         </div>
 
-        {/* Lời chào */}
+        {/* Lời chào: Chữ trắng to đậm, sắc nét, không bị filter làm mờ */}
         <div className="relative z-10 mt-1">
-          <p className="text-sm font-medium text-green-100 tracking-wide">
+          <p className="text-sm font-semibold text-white/90 tracking-wide">
             {currentUserRole === 'admin' ? 'Bảng điều khiển quản trị,' : 'Chào mừng trở lại,'}
           </p>
           <h1 className="text-2xl font-black text-white tracking-tight mt-0.5">

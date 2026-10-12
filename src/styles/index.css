@@ -9,10 +9,24 @@
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
   }
+  html {
+    background-color: #16A34A; /* Matches header on iOS pull down */
+  }
   body {
     @apply bg-slate-50 text-gray-900 min-h-screen antialiased;
     font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* iOS Safe Area Utilities */
+.pt-safe-hero {
+  padding-top: max(env(safe-area-inset-top, 0px) + 16px, 56px);
+}
+
+.pb-safe-nav {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px) + 20px, 32px);
 }
 
 /* Custom Soft UI Utilities */

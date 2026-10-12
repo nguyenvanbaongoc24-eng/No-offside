@@ -37,6 +37,8 @@ export default function App() {
           ) : (
             <PlayerDashboard 
               user={user} 
+              currentUserRole={currentUserRole}
+              onToggleRole={toggleRole}
               onAttendanceChange={setAttendance}
               onMarkPaid={markFundPaid}
               onResetPaid={resetFund}

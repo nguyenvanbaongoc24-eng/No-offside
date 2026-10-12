@@ -6,25 +6,21 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Be Vietnam Pro"', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
-        background: '#0f172a', // Xanh đen navy đậm
-        surface: 'rgba(255, 255, 255, 0.05)', // Kính mờ
-        primary: '#00FF66', // Xanh cỏ Neon
-        primary_hover: '#00E65C',
-        danger: '#FF4C4C',
+        background: '#F8FAFC', // slate-50
+        surface: '#FFFFFF',
+        primary: '#16A34A', // Xanh cỏ tươi mướt
+        primary_hover: '#15803D',
+        primary_light: '#DCFCE7', // green-100
+        danger: '#EF4444',
       },
-      backgroundImage: {
-        'liquid-gradient': 'radial-gradient(circle at top left, rgba(0, 255, 102, 0.15), transparent 40%), radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.15), transparent 40%)',
-      },
-      animation: {
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'float': 'float 6s ease-in-out infinite',
-      },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-8px)' },
-        }
+      boxShadow: {
+        'soft': '0 8px 30px rgb(0 0 0 / 0.04)',
+        'soft-lg': '0 12px 40px rgb(0 0 0 / 0.07)',
+        'floating': '0 20px 45px -10px rgba(17, 24, 39, 0.35)',
       }
     },
   },

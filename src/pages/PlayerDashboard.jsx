@@ -10,18 +10,16 @@ import {
   Bell, 
   ChevronRight, 
   Copy, 
-  CheckCircle2, 
-  Crown,
-  Trophy,
-  Shield,
+  CreditCard, 
+  Wallet, 
+  Trophy, 
+  Shield, 
   Sparkles,
   Users2
 } from 'lucide-react';
 
 export default function PlayerDashboard({ 
   user, 
-  currentUserRole = 'player', 
-  onToggleRole, 
   onAttendanceChange, 
   onMarkPaid, 
   onResetPaid, 
@@ -31,7 +29,7 @@ export default function PlayerDashboard({
   const [copiedField, setCopiedField] = useState('');
   const [notificationOpen, setNotificationOpen] = useState(false);
 
-  // 3 Teammate avatars for attendance strip
+  // 3 Teammate avatars
   const teammates = [
     { name: 'Quang Hải', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=60' },
     { name: 'Hoàng Đức', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=60' },
@@ -54,413 +52,398 @@ export default function PlayerDashboard({
   };
 
   return (
-    <div className="relative min-h-screen text-white pt-2 pb-24 px-1">
-      {/* Subtle Liquid Gradient Blobs background effects */}
-      <div className="fixed top-[-10%] left-[-15%] w-[320px] h-[320px] rounded-full bg-emerald-500/15 blur-[100px] pointer-events-none"></div>
-      <div className="fixed top-[35%] right-[-20%] w-[360px] h-[360px] rounded-full bg-blue-600/15 blur-[110px] pointer-events-none"></div>
+    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-['Be_Vietnam_Pro'] antialiased select-none">
+      
+      {/* 2. KHU VỰC HEADER (Hero Section)
+          Nền Xanh lá mướt, kéo dài từ trên xuống và bo góc viền dưới thật to (giống app Foodie) */}
+      <section className="bg-gradient-to-b from-green-600 to-emerald-600 text-white pt-7 pb-20 px-6 rounded-b-[44px] shadow-lg relative overflow-hidden">
+        {/* Họa tiết trang trí mờ nhẹ */}
+        <div className="absolute top-[-20%] right-[-10%] w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-40 h-40 rounded-full bg-emerald-400/20 blur-xl pointer-events-none"></div>
 
-      {/* Dev Role Switcher - Gọn nhẹ, tinh tế */}
-      <div className="mb-3 px-1 flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-amber-400" /> Dev Mode
-        </span>
-        <button
-          onClick={onToggleRole}
-          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all border ${
-            currentUserRole === 'admin'
-              ? 'bg-amber-500/15 border-amber-400/30 text-amber-300'
-              : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
-          }`}
-          title="Đổi quyền kiểm thử"
-        >
-          {currentUserRole === 'admin' ? (
-            <>
-              <Crown className="w-3 h-3 text-amber-400" />
-              <span>Đội Trưởng (Admin)</span>
-            </>
-          ) : (
-            <span>Cầu Thủ (Số 9)</span>
-          )}
-        </button>
-      </div>
-
-      {/* 1. HEADER (Gọn gàng hơn) */}
-      <header className="flex items-center justify-between mb-4 px-1">
-        {/* Nằm ngang: [Avatar] + Cột dọc chữ */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
-              className="w-12 h-12 rounded-full object-cover ring-2 ring-white/15"
-            />
-            <span className="absolute -bottom-1 -right-1 bg-slate-900 text-primary text-[10px] font-black px-1.5 py-0.2 rounded-full border border-primary/40">
-              #{user.number}
-            </span>
-          </div>
-
-          <div>
-            <h1 className="text-lg font-bold text-white tracking-tight leading-tight">
-              Hi, Cầu thủ Số {user.number}
-            </h1>
-            <p className="text-xs text-slate-400 font-medium">
-              {user.teamName} • {user.role}
-            </p>
-          </div>
-        </div>
-
-        {/* Góc phải: Nút chuông thông báo (Icon kính mờ) */}
-        <div className="relative">
-          <button 
-            onClick={() => setNotificationOpen(!notificationOpen)}
-            className="p-2.5 rounded-2xl backdrop-blur-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white transition-colors relative"
-            title="Thông báo"
-          >
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          </button>
-
-          {/* Popup thông báo nhẹ */}
-          {notificationOpen && (
-            <div className="absolute right-0 mt-2 w-64 p-3 rounded-2xl backdrop-blur-xl bg-slate-900/90 border border-white/15 shadow-2xl z-30 animate-in fade-in duration-200 text-xs">
-              <div className="flex items-center justify-between font-bold text-white mb-1">
-                <span>🔔 Thông báo đội</span>
-                <button onClick={() => setNotificationOpen(false)} className="text-slate-400 hover:text-white">✕</button>
-              </div>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                Thứ 6 mang áo xanh neon và có mặt trước 15p khởi động nhé anh em!
-              </p>
+        {/* Top bar Header */}
+        <div className="flex items-center justify-between mb-5 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <img 
+                src={user.avatar} 
+                alt={user.name} 
+                className="w-12 h-12 rounded-full object-cover ring-2 ring-white/60 shadow-md"
+              />
+              <span className="absolute -bottom-1 -right-1 bg-gray-900 text-emerald-400 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-white/50 shadow">
+                #{user.number}
+              </span>
             </div>
-          )}
-        </div>
-      </header>
+            <div>
+              <span className="text-xs text-green-100 font-medium block">
+                {user.teamName}
+              </span>
+              <span className="text-[11px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full inline-block mt-0.5">
+                {user.role}
+              </span>
+            </div>
+          </div>
 
-      {/* 2. HERO CARD: TRẬN ĐẤU TIẾP THEO (Gộp thông tin & bo góc rounded-3xl) */}
-      <section className="rounded-3xl backdrop-blur-lg bg-white/5 border border-white/10 p-5 relative overflow-hidden transition-all duration-300 shadow-xl">
-        
-        {/* Top bar của thẻ: "Kèo Sân 7" (Badge) | Đếm ngược: "2 ngày 14:30" (Chữ xanh neon) */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-slate-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
+          <div className="relative">
+            <button 
+              onClick={() => setNotificationOpen(!notificationOpen)}
+              className="p-2.5 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md text-white transition-colors relative shadow-sm"
+              title="Thông báo"
+            >
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-300"></span>
+            </button>
+
+            {/* Notification Dropdown */}
+            {notificationOpen && (
+              <div className="absolute right-0 mt-2 w-64 p-3.5 rounded-2xl bg-white text-gray-800 shadow-xl border border-gray-100 z-30 animate-in fade-in duration-200 text-xs">
+                <div className="flex items-center justify-between font-bold text-gray-900 mb-1">
+                  <span>🔔 Thông báo đội</span>
+                  <button onClick={() => setNotificationOpen(false)} className="text-gray-400 hover:text-gray-700">✕</button>
+                </div>
+                <p className="text-gray-600 text-[11px] leading-relaxed">
+                  Thứ 6 mang áo xanh lá và có mặt trước 15p khởi động nhé cả đội!
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Lời chào: "Chào mừng trở lại," + "Cầu thủ Số 9" */}
+        <div className="relative z-10 mt-1">
+          <p className="text-sm font-medium text-green-100 tracking-wide">
+            Chào mừng trở lại,
+          </p>
+          <h1 className="text-2xl font-black text-white tracking-tight mt-0.5">
+            Cầu thủ Số {user.number}
+          </h1>
+        </div>
+      </section>
+
+      {/* 3. CARD 1: TRẬN ĐẤU TIẾP THEO (Nằm đè lên viền của Header)
+          Thẻ nền trắng, bo góc cực sâu rounded-[32px], bóng đổ mềm */}
+      <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 -mt-12 relative z-10 mx-4 border border-gray-100/80 transition-all">
+        {/* Top Header Card */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200/60">
             Kèo Sân 7
           </span>
-          <span className="text-xs font-bold text-primary font-mono tracking-wide flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
+          <span className="text-xs font-bold text-gray-500 font-mono flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-green-600" />
             2 ngày 14:30
           </span>
         </div>
 
-        {/* Main info: Tên đối thủ cực to và nổi bật, các tag nhỏ nhắn */}
-        <div className="mt-2 mb-3">
-          <h2 className="text-2xl font-black text-white tracking-tight leading-snug">
-            FC Hàng Xóm
-          </h2>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs px-2.5 py-0.5 rounded-full text-slate-300 bg-white/10 border border-white/5 font-medium">
-              Đá Căng
-            </span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full text-slate-300 bg-white/10 border border-white/5 font-medium">
-              Cưa 50/50
-            </span>
+        {/* Tiêu đề: "Kèo Sân 7 - FC Hàng Xóm" (Chữ đen đậm) */}
+        <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
+          Kèo Sân 7 — FC Hàng Xóm
+        </h2>
+
+        {/* Chi tiết: Giờ, Ngày, Tên sân (chữ xám nhạt) */}
+        <div className="mt-3.5 space-y-2 text-xs text-gray-500 font-medium">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+            <span>18:30 • Thứ 6, 24/10</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+            <span>Sân Chuyên Việt (Sân 3) - 18D Cộng Hòa</span>
           </div>
         </div>
 
-        {/* Details: Icon Lịch + Thời gian | Icon Map + Sân (Text xám sáng dịu mắt) */}
-        <div className="pt-3.5 border-t border-white/10 space-y-2 text-xs text-slate-300">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="font-medium text-slate-200">18:30 • Thứ 6, 24/10</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-            <span className="font-medium text-slate-200">Sân Chuyên Việt (Sân 3)</span>
-          </div>
-        </div>
-
-        {/* 3. ATTENDANCE ACTION (Khu vực Vote thanh thoát) */}
-        <div className="mt-5 pt-4 border-t border-white/10">
-          <div className="grid grid-cols-3 gap-2.5">
-            {/* 1. Nút Có mặt */}
+        {/* 3 Nút Vote dạng viên thuốc (rounded-full) */}
+        <div className="mt-5 pt-4 border-t border-gray-100">
+          <div className="grid grid-cols-3 gap-2">
+            {/* Nút Có mặt: Màu Xanh lá bo tròn viên thuốc */}
             <button
               onClick={() => onAttendanceChange('attending')}
-              className={`py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 text-xs transition-all duration-200 ${
+              className={`rounded-full py-3 px-2 flex items-center justify-center gap-1.5 text-xs font-bold transition-all duration-200 ${
                 user.nextMatchAttendance === 'attending'
-                  ? 'border-2 border-primary text-primary shadow-[0_0_15px_rgba(0,255,102,0.3)] bg-primary/10 font-bold'
-                  : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                  ? 'bg-green-600 text-white shadow-md shadow-green-600/30 ring-2 ring-green-600/20'
+                  : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200/60'
               }`}
             >
-              <div className="flex items-center gap-1">
-                <span>⚽</span>
-                {user.nextMatchAttendance === 'attending' && (
-                  <Check className="w-3.5 h-3.5 text-primary stroke-[3]" />
-                )}
-              </div>
-              <span className="font-bold">Có mặt</span>
+              <span>⚽</span>
+              <span>Có mặt</span>
+              {user.nextMatchAttendance === 'attending' && (
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              )}
             </button>
 
-            {/* 2. Nút 50/50 */}
+            {/* Nút 50/50: Nền xám nhạt bg-gray-100, chữ xám bo tròn viên thuốc */}
             <button
               onClick={() => onAttendanceChange('maybe')}
-              className={`py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 text-xs transition-all duration-200 ${
+              className={`rounded-full py-3 px-2 flex items-center justify-center gap-1.5 text-xs font-bold transition-all duration-200 ${
                 user.nextMatchAttendance === 'maybe'
-                  ? 'border-2 border-amber-400 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.3)] bg-amber-400/10 font-bold'
-                  : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200/80'
               }`}
             >
-              <div className="flex items-center gap-1">
-                <span>🤔</span>
-                {user.nextMatchAttendance === 'maybe' && (
-                  <HelpCircle className="w-3.5 h-3.5 text-amber-400 stroke-[3]" />
-                )}
-              </div>
-              <span className="font-bold">50 / 50</span>
+              <span>🤔</span>
+              <span>50 / 50</span>
             </button>
 
-            {/* 3. Nút Báo vắng */}
+            {/* Nút Báo vắng: Nền xám nhạt bg-gray-100, chữ xám bo tròn viên thuốc */}
             <button
               onClick={() => onAttendanceChange('absent')}
-              className={`py-3 px-2 rounded-2xl flex flex-col items-center justify-center gap-1 text-xs transition-all duration-200 ${
+              className={`rounded-full py-3 px-2 flex items-center justify-center gap-1.5 text-xs font-bold transition-all duration-200 ${
                 user.nextMatchAttendance === 'absent'
-                  ? 'border-2 border-rose-400 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.3)] bg-rose-500/10 font-bold'
-                  : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200/80'
               }`}
             >
-              <div className="flex items-center gap-1">
-                <span>❌</span>
-                {user.nextMatchAttendance === 'absent' && (
-                  <X className="w-3.5 h-3.5 text-rose-400 stroke-[3]" />
-                )}
-              </div>
-              <span className="font-bold">Báo vắng</span>
+              <span>❌</span>
+              <span>Báo vắng</span>
             </button>
           </div>
 
-          {/* Dải nhỏ góc dưới: 3 avatar đồng đội xếp chồng + text */}
-          <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
+          {/* Dải nhỏ đồng đội đã chốt */}
+          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
                 {teammates.map((tm, idx) => (
                   <img
                     key={idx}
-                    className="w-6 h-6 rounded-full ring-2 ring-slate-900 object-cover"
+                    className="w-6 h-6 rounded-full ring-2 ring-white object-cover"
                     src={tm.avatar}
                     alt={tm.name}
                   />
                 ))}
               </div>
-              <span className="text-slate-400 text-xs font-medium">
+              <span className="text-gray-500 font-medium">
                 14 người đã chốt có mặt
               </span>
             </div>
-
-            <span className="text-[11px] font-semibold text-primary/80">
-              Đủ 2 đội ⚽
+            <span className="text-[11px] font-bold text-green-600">
+              Đủ quân số ⚽
             </span>
           </div>
         </div>
       </section>
 
-      {/* 4. FINANCE CARD (Quỹ Đội) */}
-      <section className="rounded-3xl backdrop-blur-lg bg-white/5 border border-white/10 p-5 mt-4 transition-all duration-300 shadow-xl">
-        {/* Tiêu đề nhỏ: "QUỸ ĐỘI THÁNG 10" - Label đỏ: "Chưa đóng" (hoặc xanh: "Đã đóng đủ") */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
-            QUỸ ĐỘI THÁNG 10
+      {/* 4. CARD 2: TÀI CHÍNH & QUỸ ĐỘI (Dạng List Group giống màn hình Settings)
+          Nền trắng bo tròn rounded-[32px], bóng đổ mềm */}
+      <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 mx-4 mt-4 border border-gray-100/80">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+            TÀI CHÍNH & QUỸ ĐỘI
           </span>
-          {user.isFundPaid ? (
-            <span className="text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-              <Check className="w-3 h-3 stroke-[3]" /> Đã đóng đủ
-            </span>
-          ) : (
-            <span className="text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full">
-              Chưa đóng
-            </span>
-          )}
+          <span className="text-[11px] font-semibold text-gray-400">
+            Tháng 10/2026
+          </span>
         </div>
 
-        {/* Trung tâm: Số tiền "-150.000 đ" thật to, màu đỏ; Chi tiết nhỏ bên dưới "(Tiền sân + Nước)" */}
-        <div className="mt-3.5 mb-4">
-          {user.isFundPaid ? (
-            <div className="text-3xl font-black text-primary font-mono tracking-tight">
-              0 đ
+        {/* List Group Container */}
+        <div className="divide-y divide-gray-100">
+          
+          {/* Hàng 1: Trạng thái quỹ (Nợ: -150.000đ màu đỏ) */}
+          <div className="py-3.5 px-1 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-800">Trạng thái đóng quỹ</p>
+                <p className="text-xs text-gray-400">(Tiền sân + Nước tháng này)</p>
+              </div>
             </div>
-          ) : (
-            <div className="text-3xl font-black text-red-400 font-mono tracking-tight">
-              -150.000 đ
-            </div>
-          )}
-          <p className="text-xs text-slate-400 mt-1 font-medium">
-            (Tiền sân + Nước)
-          </p>
-        </div>
 
-        {/* Nút "Quét QR đóng quỹ": Ghost Button (Viền Xanh Neon, chữ Xanh Neon, nền trong suốt) */}
-        {user.isFundPaid ? (
+            <div className="text-right">
+              {user.isFundPaid ? (
+                <span className="text-sm font-black text-green-600 font-mono">
+                  Đã đóng đủ
+                </span>
+              ) : (
+                <span className="text-base font-black text-red-500 font-mono">
+                  -150.000 đ
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Hàng 2: Nút "Thanh toán QR" (Icon + Text) có mũi tên chevron > ở cuối bên phải */}
           <button
-            onClick={onResetPaid}
-            className="w-full py-3 rounded-2xl border border-white/15 text-slate-400 hover:text-white hover:bg-white/5 font-semibold text-xs transition-all flex items-center justify-center gap-2"
+            onClick={() => {
+              if (user.isFundPaid) {
+                onResetPaid();
+              } else {
+                setShowQrModal(true);
+              }
+            }}
+            className="w-full py-3.5 px-1 flex items-center justify-between hover:bg-gray-50/80 rounded-2xl transition-colors text-left group"
           >
-            Reset lại trạng thái nợ để thử nghiệm
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <QrCode className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-800">
+                  {user.isFundPaid ? 'Reset lại nợ để thử nghiệm' : 'Thanh toán QR (VietQR)'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {user.isFundPaid ? 'Click để đưa về trạng thái nợ' : 'Quét mã tự động điền STK & nội dung'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-gray-400 group-hover:text-gray-700 transition-colors">
+              <span className="text-xs font-semibold text-green-600 hidden sm:inline">Quét ngay</span>
+              <ChevronRight className="w-5 h-5" />
+            </div>
           </button>
-        ) : (
-          <button
-            onClick={() => setShowQrModal(true)}
-            className="w-full py-3 rounded-2xl border border-primary text-primary hover:bg-primary/10 font-bold text-xs tracking-wide transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,102,0.15)] active:scale-[0.98]"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Quét QR đóng quỹ</span>
-          </button>
-        )}
+
+        </div>
       </section>
 
-      {/* 5. THỐNG KÊ CÁ NHÂN MÙA NÀY (Thanh thoát, bo tròn rounded-3xl) */}
-      <section className="rounded-3xl backdrop-blur-lg bg-white/5 border border-white/10 p-5 mt-4 transition-all duration-300 shadow-xl">
-        <div className="flex items-center justify-between mb-3.5">
+      {/* 5. THỐNG KÊ CÁ NHÂN MÙA NÀY */}
+      <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 mx-4 mt-4 border border-gray-100/80">
+        <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-bold text-white">Thống Kê Cá Nhân Mùa Này</h3>
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <h3 className="text-sm font-bold text-gray-800">Thống Kê Cá Nhân Mùa Này</h3>
           </div>
-          <span className="text-[11px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
-            Mùa Giải 2026
-          </span>
+          <span className="text-[11px] text-gray-400 font-semibold">Mùa Giải 2026</span>
         </div>
 
         <div className="grid grid-cols-3 gap-2.5 text-center">
-          <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/5">
-            <p className="text-xs text-slate-400 font-medium">Số trận</p>
-            <p className="text-2xl font-black text-white mt-1 font-mono">{user.stats.matches}</p>
-            <span className="text-[10px] text-slate-400">Đá chính 100%</span>
+          <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
+            <p className="text-xs text-gray-400 font-medium">Số trận</p>
+            <p className="text-2xl font-black text-gray-900 mt-1 font-mono">{user.stats.matches}</p>
+            <span className="text-[10px] text-gray-400">Đá chính 100%</span>
           </div>
 
-          <div className="bg-primary/5 p-3 rounded-2xl border border-primary/20">
-            <p className="text-xs text-primary font-medium">Bàn thắng</p>
-            <p className="text-2xl font-black text-primary mt-1 font-mono">{user.stats.goals}</p>
-            <span className="text-[10px] text-primary/80 font-bold">2.4 bàn/trận</span>
+          <div className="bg-green-50 p-3.5 rounded-2xl border border-green-100">
+            <p className="text-xs text-green-700 font-medium">Bàn thắng</p>
+            <p className="text-2xl font-black text-green-600 mt-1 font-mono">{user.stats.goals}</p>
+            <span className="text-[10px] text-green-600/80 font-bold">2.4 bàn/trận</span>
           </div>
 
-          <div className="bg-white/[0.04] p-3 rounded-2xl border border-white/5">
-            <p className="text-xs text-slate-400 font-medium">Kiến tạo</p>
-            <p className="text-2xl font-black text-amber-300 mt-1 font-mono">{user.stats.assists}</p>
-            <span className="text-[10px] text-slate-400">Top 2 của đội</span>
+          <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-100">
+            <p className="text-xs text-gray-400 font-medium">Kiến tạo</p>
+            <p className="text-2xl font-black text-amber-600 mt-1 font-mono">{user.stats.assists}</p>
+            <span className="text-[10px] text-gray-400">Top 2 của đội</span>
           </div>
         </div>
       </section>
 
-      {/* 6. SA BÀN CHIẾN THUẬT TEASER */}
+      {/* 6. TEASER SA BÀN CHIẾN THUẬT */}
       <section 
         onClick={() => onNavigate && onNavigate('lineup')}
-        className="rounded-3xl backdrop-blur-lg bg-white/5 border border-white/10 p-4 mt-4 cursor-pointer hover:border-primary/40 transition-all duration-300 group flex items-center justify-between shadow-xl"
+        className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 mx-4 mt-4 border border-gray-100/80 cursor-pointer hover:shadow-md transition-all flex items-center justify-between group"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 text-base">
+          <div className="w-11 h-11 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center font-bold text-lg">
             ⚽
           </div>
           <div>
-            <h4 className="text-sm font-bold text-white group-hover:text-primary transition-colors">
+            <h4 className="text-sm font-bold text-gray-900 group-hover:text-green-600 transition-colors">
               Sa Bàn Chiến Thuật Sân 7
             </h4>
-            <p className="text-xs text-slate-400">Sơ đồ 2-3-1 • Đã xếp 7/7 vị trí</p>
+            <p className="text-xs text-gray-400">Sơ đồ 2-3-1 • 7/7 vị trí đã sẵn sàng</p>
           </div>
         </div>
-        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
+          <ChevronRight className="w-4 h-4" />
+        </div>
       </section>
 
-      {/* MODAL QUÉT QR ĐÓNG QUỸ (Kính mờ thanh thoát) */}
+      {/* MODAL QUÉT QR THANH TOÁN (Clean Soft Light Style) */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-sm rounded-3xl backdrop-blur-2xl bg-slate-900/90 p-5 border border-white/20 text-white shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-xl bg-primary/10 text-primary">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100 text-gray-900">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-full bg-green-50 text-green-600">
                   <QrCode className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base leading-tight">VietQR Đóng Quỹ Đội</h3>
-                  <p className="text-[11px] text-slate-400">Quét qua bất kỳ app ngân hàng / MoMo nào</p>
+                  <h3 className="font-extrabold text-base text-gray-900">VietQR Quỹ Đội</h3>
+                  <p className="text-[11px] text-gray-400">Quét qua MoMo hoặc Ngân hàng</p>
                 </div>
               </div>
               <button 
                 onClick={() => setShowQrModal(false)}
-                className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white"
+                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* QR Code Container */}
-            <div className="mt-4 p-3 bg-white rounded-2xl flex flex-col items-center justify-center shadow-inner">
+            <div className="mt-4 p-4 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100">
               <img 
                 src={bankInfo.qrUrl} 
                 alt="VietQR Code" 
-                className="w-44 h-44 object-contain"
+                className="w-44 h-44 object-contain rounded-xl"
                 onError={(e) => {
                   e.target.style.display = 'none';
                   e.target.nextSibling.style.display = 'flex';
                 }}
               />
-              <div style={{ display: 'none' }} className="w-44 h-44 bg-slate-900 rounded-xl items-center justify-center flex-col text-center p-3">
-                <QrCode className="w-14 h-14 text-primary mb-2" />
-                <span className="text-xs font-mono text-primary">MB BANK: {bankInfo.accountNumber}</span>
+              <div style={{ display: 'none' }} className="w-44 h-44 bg-white rounded-xl items-center justify-center flex-col text-center p-3">
+                <QrCode className="w-14 h-14 text-green-600 mb-2" />
+                <span className="text-xs font-mono font-bold text-gray-800">MB: {bankInfo.accountNumber}</span>
               </div>
-              <p className="text-[11px] text-slate-600 font-bold mt-1 text-center">
-                Quét tự động điền STK & Nội dung
+              <p className="text-[11px] text-gray-500 font-semibold mt-2 text-center">
+                Mã QR tự động nhập 150.000 đ & Nội dung
               </p>
             </div>
 
-            {/* Bank details with copy buttons */}
+            {/* Bank details with copy */}
             <div className="mt-4 space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50">
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Ngân hàng</span>
-                  <span className="font-bold text-white">{bankInfo.bankName}</span>
+                  <span className="text-[10px] text-gray-400 block font-medium">Ngân hàng</span>
+                  <span className="font-bold text-gray-800">{bankInfo.bankName}</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50">
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Số tài khoản</span>
-                  <span className="font-bold font-mono text-primary text-sm">{bankInfo.accountNumber}</span>
+                  <span className="text-[10px] text-gray-400 block font-medium">Số tài khoản</span>
+                  <span className="font-bold font-mono text-green-600 text-sm">{bankInfo.accountNumber}</span>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(bankInfo.accountNumber, 'acc')}
-                  className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 flex items-center gap-1 text-[11px] font-medium"
+                  className="px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center gap-1 text-[11px] font-bold text-gray-700"
                 >
-                  {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedField === 'acc' ? 'Đã chép' : 'Sao chép'}
+                  {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedField === 'acc' ? 'Đã sao chép' : 'Sao chép'}
                 </button>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50">
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Số tiền & Nội dung chuyển</span>
-                  <span className="font-bold text-rose-400">{bankInfo.amount}</span>
-                  <p className="text-[10px] font-mono text-slate-300">{bankInfo.content}</p>
+                  <span className="text-[10px] text-gray-400 block font-medium">Số tiền & Nội dung</span>
+                  <span className="font-bold text-red-500">{bankInfo.amount}</span>
+                  <p className="text-[10px] font-mono text-gray-600">{bankInfo.content}</p>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(bankInfo.content, 'content')}
-                  className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 flex items-center gap-1 text-[11px] font-medium"
+                  className="px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center gap-1 text-[11px] font-bold text-gray-700"
                 >
-                  {copiedField === 'content' ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedField === 'content' ? 'Đã chép' : 'Sao chép'}
+                  {copiedField === 'content' ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedField === 'content' ? 'Đã sao chép' : 'Sao chép'}
                 </button>
               </div>
             </div>
 
-            {/* Action Submit */}
-            <div className="mt-4 pt-3 border-t border-white/10">
+            {/* Confirm button */}
+            <div className="mt-5 pt-2">
               <button
                 onClick={() => {
                   onMarkPaid();
                   setShowQrModal(false);
                 }}
-                className="w-full py-3 rounded-2xl border border-primary text-primary hover:bg-primary/10 font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,102,0.2)] transition-all"
+                className="w-full py-3.5 rounded-full bg-green-600 hover:bg-green-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-600/30 transition-all active:scale-[0.98]"
               >
-                <CheckCircle2 className="w-4 h-4" />
                 <span>Tôi Đã Chuyển Khoản Xong</span>
               </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }

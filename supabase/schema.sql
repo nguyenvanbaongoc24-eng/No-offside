@@ -77,11 +77,14 @@ alter table public.match_attendances enable row level security;
 alter table public.team_funds enable row level security;
 alter table public.player_stats enable row level security;
 
--- Policy cho phép đọc công khai (hoặc qua anon key)
-create policy "Cho phép xem công khai teams" on public.teams for select using (true);
-create policy "Cho phép xem công khai players" on public.players for select using (true);
-create policy "Cho phép xem công khai matches" on public.matches for select using (true);
-create policy "Cho phép xem công khai match_attendances" on public.match_attendances for select using (true);
-create policy "Cho phép cập nhật điểm danh" on public.match_attendances for all using (true);
-create policy "Cho phép xem công khai team_funds" on public.team_funds for select using (true);
-create policy "Cho phép xem công khai player_stats" on public.player_stats for select using (true);
+-- Fail closed until authenticated team membership and server-side role policies
+-- have been provisioned. The current client stores team data locally and does
+-- not write these tables. Never enable anonymous ALL/SELECT policies here.
+-- Run this section on an existing database to remove the old demo policies.
+drop policy if exists "Cho phép xem công khai teams" on public.teams;
+drop policy if exists "Cho phép xem công khai players" on public.players;
+drop policy if exists "Cho phép xem công khai matches" on public.matches;
+drop policy if exists "Cho phép xem công khai match_attendances" on public.match_attendances;
+drop policy if exists "Cho phép cập nhật điểm danh" on public.match_attendances;
+drop policy if exists "Cho phép xem công khai team_funds" on public.team_funds;
+drop policy if exists "Cho phép xem công khai player_stats" on public.player_stats;

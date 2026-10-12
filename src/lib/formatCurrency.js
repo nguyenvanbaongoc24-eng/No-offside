@@ -12,9 +12,9 @@ export function formatCurrency(amount) {
   const num = Number(amount);
   const isNegative = num < 0;
   const absNum = Math.abs(num);
-  
+
   // Định dạng với dấu chấm ngăn cách hàng nghìn theo chuẩn Việt Nam
-  const formatted = absNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const formatted = Math.round(absNum).toLocaleString('vi-VN');
   return `${isNegative ? '-' : ''}${formatted} đ`;
 }
 

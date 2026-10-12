@@ -1,13 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('⚠️ Supabase URL hoặc Anon Key chưa được thiết lập đầy đủ trong file .env');
-}
-
-export const supabase = createClient(
-  supabaseUrl || 'https://xofcoycdndyuuuxtwcwl.supabase.co', 
-  supabaseKey || 'placeholder'
-)
+import { createClient } from '@supabase/supabase-js';
+const url = import.meta.env.VITE_SUPABASE_URL;
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabase = url && key && !key.includes('your-') ? createClient(url, key) : null;

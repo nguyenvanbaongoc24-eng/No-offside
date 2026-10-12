@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Be Vietnam Pro"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['var(--font-ui)', 'sans-serif'],
       },
       colors: {
         background: '#F8FAFC', // slate-50

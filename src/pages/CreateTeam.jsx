@@ -1,12 +1,13 @@
+import { imageDataUrl } from '../lib/images';
 import React, { useState } from 'react';
-import { 
-  Camera, 
-  Shield, 
-  ArrowRight, 
-  ChevronLeft, 
-  Sparkles, 
-  MapPin, 
-  Users, 
+import {
+  Camera,
+  Shield,
+  ArrowRight,
+  ChevronLeft,
+  Sparkles,
+  MapPin,
+  Users,
   Check,
   Trophy
 } from 'lucide-react';
@@ -26,13 +27,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
     'https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=160&auto=format&fit=crop&q=80',
   ];
 
-  const handleLogoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setLogoPreview(url);
-    }
-  };
+  const handleLogoUpload = async e => { try { setLogoPreview(await imageDataUrl(e.target.files?.[0])); } catch (err) { alert(err.message); } };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -56,13 +51,13 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-20 font-['Be_Vietnam_Pro'] antialiased select-none">
-      
+    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-20 font-sans antialiased">
+
       {/* Top Header */}
       <section className="bg-slate-900 text-white pt-safe-hero pb-8 px-5 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
         <div className="flex items-center justify-between mb-3 relative z-10">
           {onBack && (
-            <button 
+            <button
               onClick={onBack}
               className="flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 rounded-full bg-white/10 active:scale-95 transition-all cursor-pointer"
             >
@@ -70,13 +65,13 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
             </button>
           )}
 
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
             Dành Cho Đội Trưởng
           </span>
         </div>
 
         <div className="relative z-10">
-          <h1 className="text-2xl font-black text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-white tracking-tight">
             Tạo đội bóng của bạn
           </h1>
           <p className="text-xs text-gray-400 mt-1">
@@ -87,7 +82,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
 
       {/* Main Card Form */}
       <div className="max-w-md mx-auto px-4 -mt-4 relative z-10">
-        <form 
+        <form
           onSubmit={handleSubmit}
           className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 space-y-6"
         >
@@ -100,9 +95,9 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
             <div className="relative group">
               <div className="w-32 h-32 rounded-full bg-slate-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-emerald-500 group-hover:bg-slate-50 cursor-pointer shadow-inner">
                 {logoPreview ? (
-                  <img 
-                    src={logoPreview} 
-                    alt="Team Logo" 
+                  <img
+                    src={logoPreview}
+                    alt="Team Logo"
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
@@ -110,14 +105,14 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
                     <div className="w-12 h-12 rounded-full bg-white shadow-xs flex items-center justify-center mb-1 text-gray-500 group-hover:text-emerald-600">
                       <Camera className="w-6 h-6" />
                     </div>
-                    <span className="text-[10px] font-extrabold">Tải ảnh logo</span>
+                    <span className="text-xs font-semibold">Tải ảnh logo</span>
                   </div>
                 )}
 
                 {/* Hidden File Input */}
-                <input 
-                  type="file" 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  accept="image/*"
                   onChange={handleLogoUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   title="Chọn ảnh logo đội"
@@ -132,7 +127,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
 
             {/* Logo Presets Quick Select */}
             <div className="mt-3 flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 font-semibold">Hoặc chọn mẫu:</span>
+              <span className="text-xs text-gray-400 font-semibold">Hoặc chọn mẫu:</span>
               <div className="flex items-center gap-1.5">
                 {presetLogos.map((url, idx) => (
                   <img
@@ -153,7 +148,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
           <div>
             <label className="text-xs font-bold text-gray-700 mb-2 block flex items-center justify-between">
               <span>Tên đội bóng</span>
-              <span className="text-[10px] text-rose-500 font-bold">* Bắt buộc</span>
+              <span className="text-xs text-rose-500 font-bold">* Bắt buộc</span>
             </label>
             <div className="relative">
               <input
@@ -197,7 +192,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
                     type="button"
                     onClick={() => setTeamType(type)}
                     className={`h-12 rounded-2xl font-bold text-xs border transition-all duration-200 active:scale-95 cursor-pointer flex items-center justify-center gap-1 ${
-                      isActive 
+                      isActive
                         ? 'bg-[#22C55E] text-white border-emerald-600 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-500/20'
                         : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200/70'
                     }`}
@@ -214,12 +209,12 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full h-14 rounded-full bg-[#22C55E] hover:bg-emerald-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+              className="w-full h-14 rounded-full bg-[#22C55E] hover:bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <span>Tạo Đội Bóng & Vào Dashboard</span>
               <ArrowRight className="w-4 h-4 stroke-[3]" />
             </button>
-            <p className="text-[11px] text-center text-gray-400 mt-3 font-medium">
+            <p className="text-xs text-center text-gray-400 mt-3 font-medium">
               Bạn sẽ tự động được cấp quyền Đội Trưởng (Admin) để quản lý đội bóng.
             </p>
           </div>

@@ -12,8 +12,8 @@ export default defineConfig({
         name: 'No Offside',
         short_name: 'No Offside',
         description: 'Quản lý đội bóng nội bộ',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#f8fafc',
+        background_color: '#f8fafc',
         display: 'standalone',
         icons: [
           {
@@ -30,6 +30,7 @@ export default defineConfig({
       }
     })
   ],
+  build: { rollupOptions: { output: { manualChunks: { react: ['react','react-dom'], motion: ['framer-motion'], supabase: ['@supabase/supabase-js'] } } } },
   server: {
     port: 5173,
     host: true

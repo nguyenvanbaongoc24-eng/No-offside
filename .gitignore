@@ -30,3 +30,6 @@ dist-ssr
 .env.production
 .env.development
 !.env.example
+
+.vercel
+!.env.example

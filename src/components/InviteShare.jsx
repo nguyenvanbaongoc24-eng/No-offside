@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { 
-  X, 
-  Copy, 
-  Check, 
-  Share2, 
-  ExternalLink, 
-  Sparkles, 
-  Download, 
-  Shield, 
+import {
+  X,
+  Copy,
+  Check,
+  Share2,
+  ExternalLink,
+  Sparkles,
+  Download,
+  Shield,
   Users
 } from 'lucide-react';
 
-export default function InviteShare({ 
-  isOpen = true, 
-  onClose, 
+export default function InviteShare({
+  isOpen = true,
+  onClose,
   teamName = 'FC No Offside',
   teamCode = 'fc-no-offside-99',
   onPreviewLanding
@@ -26,13 +26,15 @@ export default function InviteShare({
   const baseUrl = window.location.origin || 'https://no-offside.app';
   const inviteUrl = `${baseUrl}/invite/${teamCode}`;
 
-  const handleCopyLink = () => {
-    navigator.clipboard?.writeText(inviteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyLink = async () => {
+    try {
+      if (!navigator.clipboard) throw new Error('Trình duyệt chưa hỗ trợ sao chép. Hãy chọn và sao chép liên kết.');
+      await navigator.clipboard.writeText(inviteUrl); setCopied(true);
+      setTimeout(() => setCopied(false), 2000); return true;
+    } catch (err) { alert(err.message || 'Không sao chép được liên kết.'); return false; }
   };
 
-  const handleShareZalo = () => {
+  const handleShareZalo = async () => {
     // Open Web Share API or mock Zalo share
     if (navigator.share) {
       navigator.share({
@@ -41,7 +43,7 @@ export default function InviteShare({
         url: inviteUrl,
       }).catch(() => {});
     } else {
-      handleCopyLink();
+      if (!await handleCopyLink()) return;
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 3000);
       window.open(`https://zalo.me/`, '_blank');
@@ -51,9 +53,9 @@ export default function InviteShare({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200 select-none font-['Be_Vietnam_Pro']">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans">
       <div className="w-full max-w-md bg-white rounded-t-[36px] sm:rounded-[36px] p-6 max-h-[92vh] overflow-y-auto shadow-2xl border border-gray-100 animate-in slide-in-from-bottom duration-300">
-        
+
         {/* Header Modal */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -61,13 +63,14 @@ export default function InviteShare({
               ⚽
             </div>
             <div>
-              <h3 className="font-black text-base text-gray-900">Mời Thành Viên Mới</h3>
-              <p className="text-[10px] text-gray-400">Gửi mã QR hoặc link cho cầu thủ</p>
+              <h3 className="font-bold text-base text-gray-900">Mời Thành Viên Mới</h3>
+              <p className="text-xs text-gray-400">Gửi mã QR hoặc link cho cầu thủ</p>
             </div>
           </div>
 
           {onClose && (
-            <button 
+            <button
+              aria-label="Đóng"
               onClick={onClose}
               className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all cursor-pointer"
             >
@@ -78,11 +81,11 @@ export default function InviteShare({
 
         {/* Text Tiêu đề */}
         <div className="text-center my-4">
-          <h2 className="text-lg font-black text-gray-900 tracking-tight">
+          <h2 className="text-lg font-bold text-gray-900 tracking-tight">
             Quét mã để gia nhập {teamName}
           </h2>
           <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
-            Đưa mã này cho anh em quét tại sân bóng hoặc gửi vào nhóm Zalo đội để tự động tham gia.
+            Link mời hiện chỉ có dữ liệu trên thiết bị đã lưu đội. Đồng bộ giữa các thiết bị chưa được kết nối.
           </p>
         </div>
 
@@ -99,31 +102,31 @@ export default function InviteShare({
             />
 
             {/* Team Logo Badge centered in QR card */}
-            <div className="mt-2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-black border border-emerald-200/80">
+            <div className="mt-2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200/80">
               <Shield className="w-3 h-3 text-emerald-600" />
               <span>{teamName}</span>
             </div>
           </div>
-          <p className="text-[10px] text-gray-400 mt-2 font-medium">
-            Mã định danh đội: <span className="font-mono font-bold text-gray-700">{teamCode}</span>
+          <p className="text-xs text-gray-400 mt-2 font-medium">
+            Mã định danh đội: <span className="tabular-nums font-bold text-gray-700">{teamCode}</span>
           </p>
         </div>
 
         {/* BOX HIỂN THỊ LINK MỜI */}
         <div className="mt-4">
-          <label className="text-[11px] font-bold text-gray-600 block mb-1.5 px-1">
+          <label className="text-xs font-bold text-gray-600 block mb-1.5 px-1">
             Đường dẫn tham gia trực tiếp
           </label>
 
           <div className="h-14 bg-gray-100 border border-gray-200/80 rounded-full px-4 flex items-center justify-between gap-2">
-            <span className="text-xs font-mono font-bold text-gray-800 truncate select-all flex-1">
+            <span className="text-xs tabular-nums font-bold text-gray-800 truncate select-all flex-1">
               {inviteUrl}
             </span>
 
             <button
               onClick={handleCopyLink}
               className={`h-10 px-3.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer shrink-0 ${
-                copied 
+                copied
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 shadow-xs'
               }`}
@@ -138,7 +141,7 @@ export default function InviteShare({
         <div className="mt-5 space-y-2.5">
           <button
             onClick={handleShareZalo}
-            className="w-full h-14 rounded-full bg-[#0068FF] hover:bg-blue-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+            className="w-full h-14 rounded-full bg-[#0068FF] hover:bg-blue-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
           >
             <Share2 className="w-4 h-4" />
             <span>Chia sẻ Link qua Zalo</span>

@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Calendar, 
-  MapPin, 
-  Clock, 
-  Check, 
-  HelpCircle, 
-  X, 
-  QrCode, 
-  Bell, 
-  ChevronRight, 
-  Copy, 
-  CreditCard, 
-  Wallet, 
-  Trophy, 
-  Shield, 
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Check,
+  HelpCircle,
+  X,
+  QrCode,
+  Bell,
+  ChevronRight,
+  Copy,
+  CreditCard,
+  Wallet,
+  Trophy,
+  Shield,
   Sparkles,
   Users2,
   Settings,
@@ -31,22 +31,24 @@ import {
 import { formatCurrency, formatCompactCurrency } from '../lib/formatCurrency';
 import TeamManager from './TeamManager';
 import InviteShare from '../components/InviteShare';
+import { rosterFor, qrUrl, monthKey } from '../lib/teamModel';
 import WelcomeAnnouncementModal from '../components/WelcomeAnnouncementModal';
 
-export default function PlayerDashboard({ 
-  user, 
-  currentUserRole = 'player', 
-  onToggleRole, 
-  onAttendanceChange, 
-  onMarkPaid, 
-  onResetPaid, 
+export default function PlayerDashboard({
+  user,
+  currentUserRole = 'player',
+  onToggleRole,
+  onAttendanceChange,
+  onMarkPaid,
+  onResetPaid,
   onNavigate,
   onOpenNotifications,
   treasurerQr,
   onUpdateMatchStats,
   members = [],
   onRemoveMember,
-  onAddMember
+  onAddMember,
+  funds, onApprove, balance, activeMatch, matches, attendance, reports, onSaveMatch, onSetMatchStatus, onSelectMatch, onAddNotice, teamSettings, demoSession
 }) {
   // Modal states
   const [showQrModal, setShowQrModal] = useState(false);
@@ -60,24 +62,19 @@ export default function PlayerDashboard({
   const [copiedField, setCopiedField] = useState('');
 
   // Weekly matches count (Requirement: Max 4 matches per week)
-  const [weeklyMatchesCount, setWeeklyMatchesCount] = useState(2);
+  const weeklyMatchesCount = matches.filter(m => { const a = new Date(m.datetime), b = new Date(activeMatch.datetime); const start = new Date(b); start.setDate(b.getDate() - (b.getDay()+6)%7); start.setHours(0,0,0,0); const end = new Date(start); end.setDate(end.getDate()+7); return a >= start && a < end; }).length;
+  const [editingMatchId, setEditingMatchId] = useState(null);
   const MAX_WEEKLY_MATCHES = 4;
 
   // Match details state
-  const [matchInfo, setMatchInfo] = useState({
-    title: 'Kèo Sân 7 — FC Hàng Xóm',
-    category: 'Kèo Sân 7',
-    dateText: '18:30 • Thứ 6, 24/10',
-    venue: 'Sân Chuyên Việt (Sân 3) - 18D Cộng Hòa',
-    deadlineHoursLeft: 2,
-    penaltyEnabled: true,
-    penaltyAmount: '50.000 đ'
-  });
+  const matchInfo = { ...activeMatch, dateText: new Date(activeMatch.datetime).toLocaleString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: teamSettings.appearance.timeFormat === '12h' }) };
 
   // Match Status: 'upcoming' | 'completed' (Cho phép tự báo cáo thành tích sau trận)
-  const [matchStatus, setMatchStatus] = useState('upcoming');
-  const [goalsReported, setGoalsReported] = useState(2);
-  const [assistsReported, setAssistsReported] = useState(1);
+  const matchStatus = activeMatch.status;
+  const setMatchStatus = onSetMatchStatus;
+  const [goalsReported, setGoalsReported] = useState(reports[activeMatch.id]?.goals || 0);
+  const [assistsReported, setAssistsReported] = useState(reports[activeMatch.id]?.assists || 0);
+  useEffect(() => { setGoalsReported(reports[activeMatch.id]?.goals || 0); setAssistsReported(reports[activeMatch.id]?.assists || 0); setStatsSaved(false); }, [activeMatch.id]);
   const [statsSaved, setStatsSaved] = useState(false);
 
   const handleSaveMatchReport = () => {
@@ -89,60 +86,16 @@ export default function PlayerDashboard({
   };
 
   // Real-time countdown state (Requirement: Real-time countdown like "Còn 02:15:30 để chốt danh sách")
-  const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 15, seconds: 30 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        }
-        return prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   const formatCountdown = () => {
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`;
+    const seconds = Math.max(0, Math.floor((new Date(activeMatch.deadline).getTime() - now)/1000));
+    const pad = n => String(n).padStart(2,'0');
+    return (seconds >= 86400 ? Math.floor(seconds/86400) + ' ngày ' : '') + pad(Math.floor(seconds/3600)%24) + ':' + pad(Math.floor(seconds/60)%60) + ':' + pad(seconds%60);
   };
-
   // Mock Attendance Roster with 4 tabs: [Có mặt] - [50/50] - [Báo vắng] - [Chưa điểm danh (Mới)]
-  const [roster, setRoster] = useState({
-    attending: [
-      { id: 1, name: 'Tuấn Hưng (Bạn)', number: 9, role: 'ST', avatar: user.avatar },
-      { id: 2, name: 'Quế Ngọc Hải', number: 3, role: 'CB', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=80&auto=format&fit=crop&q=60' },
-      { id: 3, name: 'Nguyễn Quang Hải', number: 19, role: 'RM', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=60' },
-      { id: 4, name: 'Nguyễn Hoàng Đức', number: 14, role: 'CM', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=60' },
-      { id: 5, name: 'Đoàn Văn Hậu', number: 5, role: 'LB', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=80&auto=format&fit=crop&q=60' },
-      { id: 6, name: 'Đỗ Duy Mạnh', number: 28, role: 'CB', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&auto=format&fit=crop&q=60' },
-      { id: 7, name: 'Vũ Văn Thanh', number: 17, role: 'LM', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&auto=format&fit=crop&q=60' },
-      { id: 8, name: 'Đặng Văn Lâm', number: 1, role: 'GK', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&auto=format&fit=crop&q=60' },
-      { id: 9, name: 'Trọng Hoàng', number: 8, role: 'RB', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=60' },
-      { id: 10, name: 'Tiến Linh', number: 22, role: 'ST', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=60' },
-      { id: 11, name: 'Bùi Tiến Dũng', number: 4, role: 'CB', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=80&auto=format&fit=crop&q=60' },
-      { id: 12, name: 'Phan Văn Đức', number: 20, role: 'LW', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=80&auto=format&fit=crop&q=60' },
-      { id: 13, name: 'Lương Xuân Trường', number: 6, role: 'CM', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=80&auto=format&fit=crop&q=60' },
-      { id: 14, name: 'Bùi Tấn Trường', number: 23, role: 'GK', avatar: 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=80&auto=format&fit=crop&q=60' },
-    ],
-    maybe: [
-      { id: 15, name: 'Hà Đức Chinh', number: 18, role: 'ST', note: 'Bận họp công ty, cố gắng ra hiệp 2' },
-      { id: 16, name: 'Nguyễn Phong Hồng Duy', number: 7, role: 'LWB', note: 'Chờ kết quả hồi phục mắt cá' },
-    ],
-    absent: [
-      { id: 17, name: 'Đỗ Hùng Dũng', number: 88, role: 'CM', note: 'Về quê đám cưới' },
-      { id: 18, name: 'Trần Đình Trọng', number: 21, role: 'CB', note: 'Trị liệu chấn thương dây chằng' },
-    ],
-    unvoted: [
-      { id: 19, name: 'Nguyễn Tuấn Anh', number: 11, role: 'CM', phone: '0901234567' },
-      { id: 20, name: 'Hồ Tấn Tài', number: 13, role: 'RB', phone: '0907654321' },
-    ]
-  });
+  const roster = rosterFor(members, attendance, user);
+  const rosterCount = members.length;
 
   // Create match form fields
   const [newMatchData, setNewMatchData] = useState({
@@ -155,11 +108,7 @@ export default function PlayerDashboard({
   });
 
   // Mock pending payments for Admin approval
-  const [pendingApprovals, setPendingApprovals] = useState([
-    { id: 1, name: 'Nguyễn Quang Hải (#19)', amount: '150.000 đ', time: '10 phút trước', bank: 'Vietcombank' },
-    { id: 2, name: 'Đoàn Văn Hậu (#5)', amount: '150.000 đ', time: '35 phút trước', bank: 'MB Bank' },
-    { id: 3, name: 'Bùi Tiến Dũng (#4)', amount: '150.000 đ', time: '1 giờ trước', bank: 'Techcombank' }
-  ]);
+  const pendingApprovals = funds.pendingApprovals;
 
   const teammatesPreview = [
     { name: 'Quang Hải', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=60' },
@@ -171,56 +120,29 @@ export default function PlayerDashboard({
     bankName: treasurerQr?.bankName || 'MB Bank (Quân Đội)',
     accountNumber: treasurerQr?.accountNumber || '998877665544',
     accountHolder: treasurerQr?.accountHolder || 'NGUYEN HOANG HAI (THỦ QUỸ)',
-    amount: '150.000 đ',
-    content: `NO OFFSIDE SO ${user.number} DONG QUY T10`,
-    qrUrl: treasurerQr?.qrImageUrl || `https://api.vietqr.io/image/970422-998877665544-compact2.png?amount=150000&addInfo=NO%20OFFSIDE%20SO%20${user.number}%20DONG%20QUY%20T10&accountName=NGUYEN%20HOANG%20HAI`
+    amount: formatCurrency(user.fundDebt || 150000),
+    content: 'NO OFFSIDE SO ' + user.number + ' DONG QUY ' + monthKey(),
+    qrUrl: qrUrl({ ...treasurerQr, bankCode: treasurerQr?.bankCode || '970422' }, user.fundDebt || 150000, 'NO OFFSIDE SO ' + user.number + ' DONG QUY ' + monthKey())
   };
 
-  const copyToClipboard = (text, field) => {
-    navigator.clipboard?.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(''), 2000);
-  };
+  const copyToClipboard = async (text, field) => { try { await navigator.clipboard.writeText(text); setCopiedField(field); setTimeout(()=>setCopiedField(''),2000); } catch { alert('Không sao chép được. Vui lòng chọn nội dung để sao chép thủ công.'); } };
 
-  const approvePayment = (id) => {
-    setPendingApprovals(prev => prev.filter(item => item.id !== id));
-  };
+  const approvePayment = onApprove;
 
-  const handleCreateMatchSubmit = (e) => {
-    e.preventDefault();
-    if (weeklyMatchesCount >= MAX_WEEKLY_MATCHES) {
-      alert('Đã đạt giới hạn tối đa 4 trận trong tuần này! Không thể tạo thêm.');
-      return;
-    }
-    setWeeklyMatchesCount(prev => prev + 1);
-    setMatchInfo({
-      title: `Kèo Sân 7 — ${newMatchData.opponent || 'FC Đối Thủ Mới'}`,
-      category: 'Kèo Sân 7',
-      dateText: newMatchData.datetime.replace('T', ' • '),
-      venue: newMatchData.venue,
-      deadlineHoursLeft: 4,
-      penaltyEnabled: newMatchData.penaltyEnabled,
-      penaltyAmount: `${parseInt(newMatchData.penaltyFine || 50000).toLocaleString('vi-VN')} đ`
-    });
-    setShowCreateMatchModal(false);
-    alert('✅ Trận đấu mới đã được tạo và gửi thông báo chốt điểm danh tới cả đội!');
-  };
+  const handleCreateMatchSubmit = e => { e.preventDefault(); try { onSaveMatch(newMatchData, editingMatchId); setShowCreateMatchModal(false); onAddNotice(editingMatchId ? 'Trận đấu đã cập nhật' : 'Lịch thi đấu mới', newMatchData.opponent + ' • ' + newMatchData.datetime); } catch(err) { alert(err.message); } };
+  const openMatchEditor = edit => { setEditingMatchId(edit ? activeMatch.id : null); setNewMatchData(edit ? { opponent: activeMatch.title.split(' — ').at(-1), datetime: activeMatch.datetime, venue: activeMatch.venue, timeoutDatetime: activeMatch.deadline, penaltyEnabled: activeMatch.penaltyEnabled, penaltyFine: activeMatch.penaltyAmount.replace(/\D/g,'') } : { ...newMatchData, opponent: '' }); setShowCreateMatchModal(true); };
 
-  const handleRemindUnvoted = (playerName) => {
-    alert(`📢 Đã gửi thông báo nhắc điểm danh trận đấu tới ${playerName}!`);
-  };
+  const handleRemindUnvoted = playerName => { onAddNotice('Nhắc điểm danh', 'Vui lòng điểm danh: ' + playerName); alert('Đã ghi thông báo trong đội trên thiết bị này.'); };
 
-  const handleFineUnvoted = (playerName) => {
-    alert(`⚠️ Đã ghi nhận phạt quỹ 50.000đ cho ${playerName} vì không điểm danh đúng hạn!`);
-  };
+  const handleFineUnvoted = playerName => alert('Chưa tự ghi khoản phạt. Vào Quỹ đội để thêm giao dịch sau khi kiểm tra: ' + playerName);
 
   const isOwner = currentUserRole === 'owner';
   const isAdmin = currentUserRole === 'admin';
   const isLeader = isOwner || isAdmin;
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-['Be_Vietnam_Pro'] antialiased select-none">
-      
+    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-sans antialiased">
+
       {/* =========================================================
           YÊU CẦU 1: BẢNG TIN CHÀO MỪNG (WELCOME POPUP / ANNOUNCEMENT)
           - Hiển thị ngay sau khi vào Dashboard
@@ -228,14 +150,15 @@ export default function PlayerDashboard({
           - Checkbox lưu sessionStorage 'Không nhắc lại trong phiên đăng nhập này'
           ========================================================= */}
       <WelcomeAnnouncementModal />
+      {matches.length > 1 && <label className="block mx-4 my-3 text-sm font-medium">Chọn trận đấu<select className="w-full mt-2 p-3 rounded-xl border border-slate-200" value={activeMatch.id} onChange={e=>onSelectMatch(e.target.value)}>{matches.map(m=><option key={m.id} value={m.id}>{m.title} • {m.datetime.replace("T"," ")}</option>)}</select></label>}
 
       {/* =========================================================
           1. HEADER DARK STYLE VỚI PATTERN MỜ (SLATE-900)
           ========================================================= */}
       <section className="bg-slate-900 text-white pt-safe-hero pb-12 px-5 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
-        
+
         {/* Top bar: Avatar + Team info bên trái, Role Switcher & Bell bên phải */}
-        <div className="flex items-center justify-between mb-4 relative z-10">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 relative z-10">
           <div className="flex items-center gap-3">
             {/* YÊU CẦU 2: CHUYỂN HƯỚNG BẰNG AVATAR (AVATAR NAVIGATION) */}
             <button
@@ -244,16 +167,16 @@ export default function PlayerDashboard({
               className="relative hover:scale-105 active:scale-95 transition-transform cursor-pointer group text-left"
               title="Xem trang cá nhân của bạn"
             >
-              <img 
-                src={user.avatar} 
-                alt={user.name} 
+              <img
+                src={user.avatar}
+                alt={user.name}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-400/80 shadow-md group-hover:ring-emerald-300 transition-all"
               />
-              <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-slate-900 shadow">
+              <span className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 text-xs font-bold px-1.5 py-0.2 rounded-full border border-slate-900 shadow">
                 #{user.number}
               </span>
             </button>
-            <div 
+            <div
               onClick={() => onNavigate && onNavigate('profile')}
               className="cursor-pointer hover:opacity-90 transition-opacity"
               title="Xem trang cá nhân của bạn"
@@ -262,7 +185,7 @@ export default function PlayerDashboard({
                 {user.teamName}
               </span>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] bg-white/10 text-emerald-400 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/30 inline-flex items-center gap-1 whitespace-nowrap">
+                <span className="text-xs bg-white/10 text-emerald-400 font-semibold px-2.5 py-0.5 rounded-full border border-emerald-500/30 inline-flex items-center gap-1 whitespace-nowrap">
                   {isOwner ? (
                     <>
                       <Crown className="w-3 h-3 text-amber-400" />
@@ -284,8 +207,8 @@ export default function PlayerDashboard({
           <div className="flex items-center gap-2 relative">
             {/* Dev Role Switcher */}
             <button
-              onClick={onToggleRole}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0 ${
+              onClick={onToggleRole} disabled={!demoSession}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap flex-shrink-0 ${
                 isOwner
                   ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-amber-400/20'
                   : isAdmin
@@ -311,7 +234,7 @@ export default function PlayerDashboard({
 
             {/* Owner/Admin Settings Button */}
             {isOwner && (
-              <button 
+              <button
                 onClick={() => onNavigate && onNavigate('team-settings')}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-amber-300 transition-all duration-200 active:scale-95 border border-white/10 cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center justify-center"
                 title="Cài đặt đội bóng (Dành riêng cho Owner)"
@@ -321,7 +244,7 @@ export default function PlayerDashboard({
             )}
 
             {/* Bell Notifications Button */}
-            <button 
+            <button
               onClick={onOpenNotifications}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 transition-all duration-200 active:scale-95 relative border border-white/10 cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center justify-center"
               title="Thông báo đội"
@@ -335,12 +258,12 @@ export default function PlayerDashboard({
         {/* Greeting Banner */}
         <div className="relative z-10 mt-1">
           <p className="text-xs font-semibold text-gray-400 tracking-wide uppercase">
-            {isOwner ? 'Bảng Quản Trị Đội Trưởng' : isAdmin ? 'Bảng Quản Trị Admin Phụ' : 'Chào Mừng Trở Lại'}
+            {isOwner ? 'Quản lý đội bóng' : isAdmin ? 'Quản lý đội bóng' : 'Chào Mừng Trở Lại'}
           </p>
-          <h1 className="text-xl font-black text-white tracking-tight mt-0.5 flex items-center gap-2">
-            <span>{isOwner ? 'Đội Trưởng Tuấn Hưng' : isAdmin ? 'Admin Tuấn Hưng' : `Cầu thủ Số ${user.number}`}</span>
+          <h1 className="text-xl font-bold text-white tracking-tight mt-0.5 flex items-center gap-2">
+            <span>{isOwner ? 'Đội trưởng ' + user.name : isAdmin ? 'Admin ' + user.name : `Cầu thủ Số ${user.number}`}</span>
             {isLeader && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
                 Tuần này: {weeklyMatchesCount}/4 trận
               </span>
             )}
@@ -353,7 +276,7 @@ export default function PlayerDashboard({
           ========================================================= */}
       <div className="px-3.5 space-y-3 -mt-6 relative z-10">
 
-        {/* YÊU CẦU 2: CARD/BUTTON LỚN NẰM NGANG [👥 Quản lý Nhân sự & Đội hình] (DÀNH CHO OWNER & ADMIN) */}
+        {/* YÊU CẦU 2: CARD/BUTTON LỚN NẰM NGANG [👥 Thành viên đội] (DÀNH CHO OWNER & ADMIN) */}
         {isLeader && (
           <motion.button
             whileHover={{ scale: 1.01 }}
@@ -368,15 +291,15 @@ export default function PlayerDashboard({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black text-gray-900 tracking-tight">
-                    Quản lý Nhân sự & Đội hình
+                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+                    Thành viên đội
                   </h3>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {members?.length || 16} người
+                  <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {members.length} người
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                  Danh sách thành viên, thêm/xóa cầu thủ & sinh nhật 🎂
+                <p className="text-xs text-gray-500 font-medium mt-0.5">
+                  Danh sách, phân quyền và sinh nhật
                 </p>
               </div>
             </div>
@@ -390,15 +313,15 @@ export default function PlayerDashboard({
 
         {/* CARD 1: TRẬN ĐẤU TIẾP THEO & BỘ ĐẾM NGƯỢC REAL-TIME */}
         <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
-          
+
           {/* Top Bar Card 1 */}
-          <div className="flex items-center justify-between mb-2.5">
+          <div className="match-toolbar flex flex-col gap-3 mb-4">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/80">
                 {matchInfo.category}
               </span>
               {matchInfo.penaltyEnabled && (
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-full border border-amber-200/70 flex items-center gap-1">
+                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-full border border-amber-200/70 flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3 text-amber-600" />
                   <span>Phạt {matchInfo.penaltyAmount}</span>
                 </span>
@@ -406,52 +329,52 @@ export default function PlayerDashboard({
             </div>
 
             {/* Match Status Switcher & Controls */}
-            <div className="flex items-center gap-1.5">
+            <div className="match-controls flex flex-wrap items-center justify-between gap-3">
               {/* Quick Status Pill */}
-              <div className="flex items-center bg-gray-100 p-0.5 rounded-full border border-gray-200 text-[10px] font-bold">
+              <div className="flex items-center bg-gray-100 p-0.5 rounded-full border border-gray-200 text-xs font-bold">
                 <button
                   type="button"
-                  onClick={() => setMatchStatus('upcoming')}
+                  disabled={!isLeader} aria-pressed={matchStatus === 'upcoming'} onClick={() => setMatchStatus('upcoming')}
                   className={`px-2 py-0.5 rounded-full transition-all duration-150 cursor-pointer ${
                     matchStatus === 'upcoming'
-                      ? 'bg-white text-emerald-700 shadow-xs font-black'
+                      ? 'bg-white text-emerald-700 shadow-xs font-bold'
                       : 'text-gray-500 hover:text-gray-800'
                   }`}
                   title="Chuyển trạng thái: Trận sắp đá"
                 >
-                  ⏳ Sắp đá
+                  Sắp đá
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMatchStatus('completed')}
+                  disabled={!isLeader} aria-pressed={matchStatus === 'completed'} onClick={() => setMatchStatus('completed')}
                   className={`px-2 py-0.5 rounded-full transition-all duration-150 cursor-pointer ${
                     matchStatus === 'completed'
-                      ? 'bg-emerald-600 text-white shadow-xs font-black'
+                      ? 'bg-emerald-600 text-white shadow-xs font-bold'
                       : 'text-gray-500 hover:text-gray-800'
                   }`}
                   title="Chuyển trạng thái: Trận đã xong (Mở tự báo cáo bàn thắng/kiến tạo)"
                 >
-                  🏆 Đã xong
+                  Đã xong
                 </button>
               </div>
 
-              {currentUserRole === 'admin' ? (
+              {isLeader ? (
                 <div className="flex items-center gap-1">
                   <button
-                    disabled={weeklyMatchesCount >= MAX_WEEKLY_MATCHES}
-                    onClick={() => setShowCreateMatchModal(true)}
-                    className={`px-2.5 py-1 rounded-full font-bold text-[10px] flex items-center gap-1 transition-all duration-200 shadow-sm ${
-                      weeklyMatchesCount >= MAX_WEEKLY_MATCHES
+                    disabled={false}
+                    onClick={() => openMatchEditor(false)}
+                    className={`px-2.5 py-1 rounded-full font-bold text-xs flex items-center gap-1 transition-all duration-200 shadow-sm ${
+                      false
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                         : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer shadow-emerald-600/20'
                     }`}
-                    title={weeklyMatchesCount >= MAX_WEEKLY_MATCHES ? 'Đã đạt giới hạn 4 trận/tuần' : 'Tạo kèo trận mới'}
+                    title={false ? 'Đã đạt giới hạn 4 trận/tuần' : 'Tạo kèo trận mới'}
                   >
                     <PlusCircle className="w-3 h-3" />
-                    <span>+ Kèo</span>
+                    <span>Tạo trận</span>
                   </button>
                   <button
-                    onClick={() => setShowCreateMatchModal(true)}
+                    onClick={() => openMatchEditor(true)}
                     className="p-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95 transition-all duration-200 cursor-pointer"
                     title="Sửa trận"
                   >
@@ -460,7 +383,7 @@ export default function PlayerDashboard({
                 </div>
               ) : (
                 matchStatus === 'upcoming' && (
-                  <div className="hidden sm:flex items-center gap-1 bg-rose-50 border border-rose-200/80 text-rose-700 px-2 py-0.5 rounded-full font-mono font-black text-[10px]">
+                  <div className="hidden sm:flex items-center gap-1 bg-rose-50 border border-rose-200/80 text-rose-700 px-2 py-0.5 rounded-full tabular-nums font-bold text-xs">
                     <Clock className="w-3 h-3 text-rose-600 animate-pulse" />
                     <span>{formatCountdown()}</span>
                   </div>
@@ -470,7 +393,7 @@ export default function PlayerDashboard({
           </div>
 
           {/* Tiêu đề trận đấu */}
-          <h2 className="text-lg font-black text-gray-900 tracking-tight">
+          <h2 className="text-lg font-bold text-gray-900 tracking-tight">
             {matchInfo.title}
           </h2>
 
@@ -487,26 +410,26 @@ export default function PlayerDashboard({
           </div>
 
           {/* Dòng Real-time Countdown Banner to rõ cho cả Admin & Thành viên */}
-          <div className="mt-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-2.5 flex items-center justify-between">
+          <div className="match-deadline mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3 flex flex-wrap gap-3 items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
                 ⏳
               </div>
               <div>
-                <p className="text-[10px] font-bold text-amber-900 uppercase">Hạn Chốt Điểm Danh</p>
-                <p className="text-xs font-black text-amber-700 font-mono tracking-tight">
+                <p className="text-xs font-bold text-amber-900 uppercase">Hạn Chốt Điểm Danh</p>
+                <p className="text-xs font-bold text-amber-700 tabular-nums tracking-tight">
                   Còn {formatCountdown()} để chốt danh sách
                 </p>
               </div>
             </div>
 
-            <span className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
               {matchInfo.penaltyEnabled ? 'Có phạt quỹ' : 'Tự do'}
             </span>
           </div>
 
           {/* Body Card 1 theo vai trò */}
-          {currentUserRole === 'admin' ? (
+          {isLeader ? (
             /* ADMIN VIEW: Tiến độ & nút mở danh sách 4 Tab */
             <div className="mt-3.5 pt-3 border-t border-gray-100">
               <div className="bg-gray-50/90 p-3 rounded-2xl border border-gray-100 mb-2.5">
@@ -515,20 +438,20 @@ export default function PlayerDashboard({
                     <Users2 className="w-4 h-4 text-emerald-600" />
                     Điểm danh cả đội:
                   </span>
-                  <span className="text-xs font-black text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full font-mono">
-                    {roster.attending.length}/20 người
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full tabular-nums">
+                    {roster.attending.length}/{rosterCount} người
                   </span>
                 </div>
 
                 {/* Progress bar */}
                 <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden flex shadow-inner">
-                  <div className="bg-emerald-600 h-full transition-all" style={{ width: '70%' }} title="Có mặt (14)"></div>
-                  <div className="bg-amber-400 h-full transition-all" style={{ width: '10%' }} title="50/50 (2)"></div>
-                  <div className="bg-rose-400 h-full transition-all" style={{ width: '10%' }} title="Vắng (2)"></div>
-                  <div className="bg-gray-400 h-full transition-all" style={{ width: '10%' }} title="Chưa vote (2)"></div>
+                  <div className="bg-emerald-600 h-full transition-all" style={{ width: (roster.attending.length / Math.max(1,rosterCount)*100)+'%' }} title="Có mặt (14)"></div>
+                  <div className="bg-amber-400 h-full transition-all" style={{ width: (roster.maybe.length / Math.max(1,rosterCount)*100)+'%' }} title="50/50 (2)"></div>
+                  <div className="bg-rose-400 h-full transition-all" style={{ width: (roster.absent.length / Math.max(1,rosterCount)*100)+'%' }} title="Vắng (2)"></div>
+                  <div className="bg-gray-400 h-full transition-all" style={{ width: (roster.unvoted.length / Math.max(1,rosterCount)*100)+'%' }} title="Chưa vote (2)"></div>
                 </div>
 
-                <div className="flex justify-between text-[10px] font-bold text-gray-600">
+                <div className="flex justify-between text-xs font-bold text-gray-600">
                   <span className="text-emerald-700">⚽ Có mặt: {roster.attending.length}</span>
                   <span className="text-amber-600">🤔 50/50: {roster.maybe.length}</span>
                   <span className="text-rose-600">❌ Vắng: {roster.absent.length}</span>
@@ -542,7 +465,7 @@ export default function PlayerDashboard({
                 className="w-full py-2.5 rounded-full bg-gray-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all duration-200 cursor-pointer"
               >
                 <Users2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Xem danh sách 4 nhóm điểm danh (20 người)</span>
+                <span>Xem danh sách 4 nhóm điểm danh ({rosterCount} người)</span>
               </button>
             </div>
           ) : (
@@ -550,21 +473,21 @@ export default function PlayerDashboard({
             <div className="mt-3.5 pt-3 border-t border-gray-100">
               <div className="grid grid-cols-3 gap-2">
                 <button
-                  onClick={() => onAttendanceChange('attending')}
+                  aria-pressed={attendance[user.id] === 'attending'} onClick={() => onAttendanceChange('attending')}
                   className={`rounded-full py-2.5 px-2 flex items-center justify-center gap-1 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
-                    user.nextMatchAttendance === 'attending'
+                    attendance[user.id] === 'attending'
                       ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-600/20'
                       : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60'
                   }`}
                 >
                   <span>⚽ Có mặt</span>
-                  {user.nextMatchAttendance === 'attending' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  {attendance[user.id] === 'attending' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </button>
 
                 <button
-                  onClick={() => onAttendanceChange('maybe')}
+                  aria-pressed={attendance[user.id] === 'maybe'} onClick={() => onAttendanceChange('maybe')}
                   className={`rounded-full py-2.5 px-2 flex items-center justify-center gap-1 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
-                    user.nextMatchAttendance === 'maybe'
+                    attendance[user.id] === 'maybe'
                       ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 ring-2 ring-amber-500/20'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200/80 border border-gray-200'
                   }`}
@@ -573,9 +496,9 @@ export default function PlayerDashboard({
                 </button>
 
                 <button
-                  onClick={() => onAttendanceChange('absent')}
+                  aria-pressed={attendance[user.id] === 'absent'} onClick={() => onAttendanceChange('absent')}
                   className={`rounded-full py-2.5 px-2 flex items-center justify-center gap-1 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
-                    user.nextMatchAttendance === 'absent'
+                    attendance[user.id] === 'absent'
                       ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 ring-2 ring-rose-500/20'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200/80 border border-gray-200'
                   }`}
@@ -585,7 +508,7 @@ export default function PlayerDashboard({
               </div>
 
               {/* Roster trigger button */}
-              <div 
+              <div
                 onClick={() => setShowAttendanceModal(true)}
                 className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs cursor-pointer hover:bg-gray-50/80 p-1.5 rounded-xl transition-colors"
               >
@@ -604,7 +527,7 @@ export default function PlayerDashboard({
                     {roster.attending.length} người đã chốt có mặt
                   </span>
                 </div>
-                <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-0.5">
+                <span className="text-xs font-bold text-emerald-600 flex items-center gap-0.5">
                   Xem 4 tab <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>
@@ -619,7 +542,7 @@ export default function PlayerDashboard({
             với nút +/- bàn thắng, kiến tạo và "Lưu thành tích".
             ========================================================= */}
         {matchStatus === 'completed' && (
-          <motion.section 
+          <motion.section
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-emerald-100 relative overflow-hidden"
@@ -632,15 +555,15 @@ export default function PlayerDashboard({
                   <Flame className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider block">
+                  <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider block">
                     Trận đấu đã kết thúc
                   </span>
-                  <h3 className="text-sm font-black text-gray-900 tracking-tight">
+                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">
                     Cập nhật thành tích trận {matchInfo.title.replace('Kèo Sân 7 — ', '')}
                   </h3>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2.5 py-0.5 rounded-full border border-gray-100">
+              <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-0.5 rounded-full border border-gray-100">
                 Tự nguyện
               </span>
             </div>
@@ -652,7 +575,7 @@ export default function PlayerDashboard({
             <div className="grid grid-cols-2 gap-2.5 mb-3.5 relative z-10">
               {/* Goals Counter */}
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center">
-                <span className="text-[11px] font-bold text-gray-600 mb-2 flex items-center gap-1">
+                <span className="text-xs font-bold text-gray-600 mb-2 flex items-center gap-1">
                   ⚽ Bàn thắng (Goals)
                 </span>
                 <div className="flex items-center gap-3">
@@ -660,18 +583,18 @@ export default function PlayerDashboard({
                     whileTap={{ scale: 0.9 }}
                     type="button"
                     onClick={() => setGoalsReported(prev => Math.max(0, prev - 1))}
-                    className="w-8 h-8 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center font-black text-base text-gray-700 hover:bg-gray-100 active:scale-95 cursor-pointer"
+                    className="w-8 h-8 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center font-bold text-base text-gray-700 hover:bg-gray-100 active:scale-95 cursor-pointer"
                   >
                     -
                   </motion.button>
-                  <span className="text-2xl font-black text-emerald-600 font-mono w-6 text-center">
+                  <span className="text-2xl font-bold text-emerald-600 tabular-nums w-6 text-center">
                     {goalsReported}
                   </span>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     type="button"
                     onClick={() => setGoalsReported(prev => prev + 1)}
-                    className="w-8 h-8 rounded-full bg-emerald-600 shadow-xs text-white flex items-center justify-center font-black text-base hover:bg-emerald-700 active:scale-95 cursor-pointer"
+                    className="w-8 h-8 rounded-full bg-emerald-600 shadow-xs text-white flex items-center justify-center font-bold text-base hover:bg-emerald-700 active:scale-95 cursor-pointer"
                   >
                     +
                   </motion.button>
@@ -680,7 +603,7 @@ export default function PlayerDashboard({
 
               {/* Assists Counter */}
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center">
-                <span className="text-[11px] font-bold text-gray-600 mb-2 flex items-center gap-1">
+                <span className="text-xs font-bold text-gray-600 mb-2 flex items-center gap-1">
                   👟 Kiến tạo (Assists)
                 </span>
                 <div className="flex items-center gap-3">
@@ -688,18 +611,18 @@ export default function PlayerDashboard({
                     whileTap={{ scale: 0.9 }}
                     type="button"
                     onClick={() => setAssistsReported(prev => Math.max(0, prev - 1))}
-                    className="w-8 h-8 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center font-black text-base text-gray-700 hover:bg-gray-100 active:scale-95 cursor-pointer"
+                    className="w-8 h-8 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center font-bold text-base text-gray-700 hover:bg-gray-100 active:scale-95 cursor-pointer"
                   >
                     -
                   </motion.button>
-                  <span className="text-2xl font-black text-amber-600 font-mono w-6 text-center">
+                  <span className="text-2xl font-bold text-amber-600 tabular-nums w-6 text-center">
                     {assistsReported}
                   </span>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     type="button"
                     onClick={() => setAssistsReported(prev => prev + 1)}
-                    className="w-8 h-8 rounded-full bg-amber-500 shadow-xs text-white flex items-center justify-center font-black text-base hover:bg-amber-600 active:scale-95 cursor-pointer"
+                    className="w-8 h-8 rounded-full bg-amber-500 shadow-xs text-white flex items-center justify-center font-bold text-base hover:bg-amber-600 active:scale-95 cursor-pointer"
                   >
                     +
                   </motion.button>
@@ -711,8 +634,8 @@ export default function PlayerDashboard({
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleSaveMatchReport}
-              className={`w-full py-3 rounded-full text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
-                statsSaved 
+              className={`w-full py-3 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
+                statsSaved
                   ? 'bg-emerald-700 text-white shadow-emerald-700/20'
                   : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
               }`}
@@ -735,11 +658,11 @@ export default function PlayerDashboard({
         {/* CARD 2: TÀI CHÍNH & QUỸ ĐỘI PREVIEW */}
         <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
           <div className="flex items-center justify-between mb-2.5 px-1">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
               {isLeader ? 'TỔNG QUAN QUỸ TOÀN ĐỘI' : 'TÀI CHÍNH & QUỸ ĐỘI'}
             </span>
-            <span className="text-[11px] font-bold text-emerald-600">
-              Tháng 10/2026
+            <span className="text-xs font-bold text-emerald-600">
+              {new Date().toLocaleDateString('vi-VN',{month:'long',year:'numeric'})}
             </span>
           </div>
 
@@ -748,20 +671,20 @@ export default function PlayerDashboard({
             <div className="space-y-2.5">
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-100">
-                  <span className="text-[10px] font-bold text-emerald-800 block">Tổng Quỹ Hiện Tại</span>
-                  <span className="text-lg font-black text-emerald-700 font-mono mt-0.5 block truncate">
-                    +{formatCompactCurrency(5850000)}
+                  <span className="text-xs font-bold text-emerald-800 block">Tổng Quỹ Hiện Tại</span>
+                  <span className="text-lg font-bold text-emerald-700 tabular-nums mt-0.5 block truncate">
+                    +{formatCompactCurrency(balance)}
                   </span>
-                  <span className="text-[10px] text-emerald-600 font-medium block truncate" title={formatCurrency(5850000)}>
-                    {formatCurrency(5850000)}
+                  <span className="text-xs text-emerald-600 font-medium block truncate" title={formatCurrency(balance)}>
+                    {formatCurrency(balance)}
                   </span>
                 </div>
 
                 <div className="bg-rose-50/80 p-3 rounded-2xl border border-rose-100">
-                  <span className="text-[10px] font-bold text-rose-700 block">Chưa Nộp Quỹ</span>
-                  <span className="text-lg font-black text-rose-600 font-mono mt-0.5 block">6/20 Người</span>
-                  <span className="text-[10px] text-rose-500 font-medium block truncate" title={formatCurrency(900000)}>
-                    Tổng nợ: {formatCurrency(900000)}
+                  <span className="text-xs font-bold text-rose-700 block">Chưa Nộp Quỹ</span>
+                  <span className="text-lg font-bold text-rose-600 tabular-nums mt-0.5 block">{funds.debtors.length}/{members.length} Người</span>
+                  <span className="text-xs text-rose-500 font-medium block truncate" title={formatCurrency(funds.debtors.reduce((n,d)=>n+d.amount,0))}>
+                    Tổng nợ: {formatCurrency(funds.debtors.reduce((n,d)=>n+d.amount,0))}
                   </span>
                 </div>
               </div>
@@ -795,17 +718,17 @@ export default function PlayerDashboard({
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-800">Trạng thái đóng quỹ</p>
-                    <p className="text-[10px] text-gray-400">Tiền sân + Nước tháng 10</p>
+                    <p className="text-xs text-gray-400">Tiền sân + Nước tháng 10</p>
                   </div>
                 </div>
 
                 <div className="text-right">
                   {user.isFundPaid ? (
-                    <span className="text-xs font-black text-emerald-600 font-mono bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <span className="text-xs font-bold text-emerald-600 tabular-nums bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                       Đã đóng đủ ✓
                     </span>
                   ) : (
-                    <span className="text-sm font-black text-rose-500 font-mono">
+                    <span className="text-sm font-bold text-rose-500 tabular-nums">
                       -{formatCurrency(150000)}
                     </span>
                   )}
@@ -815,7 +738,7 @@ export default function PlayerDashboard({
               <button
                 onClick={() => {
                   if (user.isFundPaid) {
-                    onResetPaid();
+                    if (demoSession) onResetPaid();
                   } else {
                     setShowQrModal(true);
                   }
@@ -828,16 +751,16 @@ export default function PlayerDashboard({
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-800">
-                      {user.isFundPaid ? 'Reset lại nợ để kiểm thử' : 'Thanh toán QR (VietQR)'}
+                      {user.isFundPaid ? 'Đã đóng đủ' : user.fundPaymentPending ? 'Đang chờ duyệt' : 'Thanh toán QR (VietQR)'}
                     </p>
-                    <p className="text-[10px] text-gray-400">
-                      {user.isFundPaid ? 'Click để đưa về trạng thái nợ' : 'Quét mã tự động điền STK & nội dung'}
+                    <p className="text-xs text-gray-400">
+                      {user.isFundPaid ? 'Thủ quỹ đã xác nhận' : 'Quét QR và gửi yêu cầu xác nhận'}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1 text-gray-400 group-hover:text-gray-700 transition-colors">
-                  <span className="text-[11px] font-bold text-emerald-600">Quét ngay</span>
+                  <span className="text-xs font-bold text-emerald-600">Quét ngay</span>
                   <ChevronRight className="w-4 h-4" />
                 </div>
               </button>
@@ -851,44 +774,44 @@ export default function PlayerDashboard({
             <div className="flex items-center gap-1.5">
               <Trophy className="w-4 h-4 text-amber-500" />
               <h3 className="text-xs font-bold text-gray-800">
-                {currentUserRole === 'admin' ? 'Thống Kê Thành Tích Cả Đội' : 'Thống Kê Cá Nhân Mùa Này'}
+                Thống kê cá nhân mùa này
               </h3>
             </div>
-            <span className="text-[10px] text-gray-400 font-bold uppercase">Mùa 2026</span>
+            <span className="text-xs text-gray-400 font-bold uppercase">Mùa 2026</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="bg-gray-50/90 p-2.5 rounded-2xl border border-gray-100">
-              <p className="text-[10px] text-gray-400 font-medium">Số trận</p>
-              <p className="text-xl font-black text-gray-900 mt-0.5 font-mono">{user.stats.matches}</p>
-              <span className="text-[9px] text-gray-400">Đá chính 100%</span>
+              <p className="text-xs text-gray-400 font-medium">Số trận</p>
+              <p className="text-xl font-bold text-gray-900 mt-0.5 tabular-nums">{user.stats.matches}</p>
+              <span className="text-xs text-gray-400"></span>
             </div>
             <div className="bg-emerald-50/90 p-2.5 rounded-2xl border border-emerald-100">
-              <p className="text-[10px] text-emerald-700 font-medium">Bàn thắng</p>
-              <p className="text-xl font-black text-emerald-600 mt-0.5 font-mono">{user.stats.goals}</p>
-              <span className="text-[9px] text-emerald-600 font-bold">2.4 bàn/trận</span>
+              <p className="text-xs text-emerald-700 font-medium">Bàn thắng</p>
+              <p className="text-xl font-bold text-emerald-600 mt-0.5 tabular-nums">{user.stats.goals}</p>
+              <span className="text-xs text-emerald-600 font-bold"></span>
             </div>
             <div className="bg-gray-50/90 p-2.5 rounded-2xl border border-gray-100">
-              <p className="text-[10px] text-gray-400 font-medium">Kiến tạo</p>
-              <p className="text-xl font-black text-amber-600 mt-0.5 font-mono">{user.stats.assists}</p>
-              <span className="text-[9px] text-gray-400">Top 2 của đội</span>
+              <p className="text-xs text-gray-400 font-medium">Kiến tạo</p>
+              <p className="text-xl font-bold text-amber-600 mt-0.5 tabular-nums">{user.stats.assists}</p>
+
             </div>
           </div>
 
           {/* Quick link to Lineup builder */}
-          <div 
+          <div
             onClick={() => onNavigate && onNavigate('lineup')}
             className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50/80 p-2 rounded-2xl transition-all duration-200 active:scale-95 group"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-sm">
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
                 ⚽
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
                   Sa Bàn Chiến Thuật Sân 7
                 </p>
-                <p className="text-[10px] text-gray-400">Sơ đồ 2-3-1 • Bấm vào để xếp đội hình</p>
+                <p className="text-xs text-gray-400">Sơ đồ 2-3-1 • Bấm vào để xếp đội hình</p>
               </div>
             </div>
             <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-emerald-100 group-hover:text-emerald-700 flex items-center justify-center text-gray-400 transition-colors">
@@ -903,19 +826,19 @@ export default function PlayerDashboard({
           3. MODAL 4 TAB ĐIỂM DANH (YÊU CẦU 3: CÓ MẶT - 50/50 - VẮNG - CHƯA ĐIỂM DANH)
           ========================================================= */}
       {showAttendanceModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-5 max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 animate-in slide-in-from-bottom duration-300">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Users2 className="w-5 h-5 text-emerald-600" />
                 <div>
-                  <h3 className="font-black text-base text-gray-900">Danh Sách Điểm Danh</h3>
-                  <p className="text-[10px] text-gray-400">Trận thứ 6 • 20 thành viên toàn đội</p>
+                  <h3 className="font-bold text-base text-gray-900">Danh Sách Điểm Danh</h3>
+                  <p className="text-xs text-gray-400">Trận thứ 6 • 20 thành viên toàn đội</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAttendanceModal(false)}
                 className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all"
               >
@@ -928,8 +851,8 @@ export default function PlayerDashboard({
               <button
                 onClick={() => setAttendanceActiveTab('attending')}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
-                  attendanceActiveTab === 'attending' 
-                    ? 'bg-emerald-600 text-white shadow-sm' 
+                  attendanceActiveTab === 'attending'
+                    ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -939,8 +862,8 @@ export default function PlayerDashboard({
               <button
                 onClick={() => setAttendanceActiveTab('maybe')}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
-                  attendanceActiveTab === 'maybe' 
-                    ? 'bg-amber-500 text-white shadow-sm' 
+                  attendanceActiveTab === 'maybe'
+                    ? 'bg-amber-500 text-white shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -950,8 +873,8 @@ export default function PlayerDashboard({
               <button
                 onClick={() => setAttendanceActiveTab('absent')}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
-                  attendanceActiveTab === 'absent' 
-                    ? 'bg-rose-500 text-white shadow-sm' 
+                  attendanceActiveTab === 'absent'
+                    ? 'bg-rose-500 text-white shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -961,8 +884,8 @@ export default function PlayerDashboard({
               <button
                 onClick={() => setAttendanceActiveTab('unvoted')}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
-                  attendanceActiveTab === 'unvoted' 
-                    ? 'bg-gray-900 text-white shadow-sm' 
+                  attendanceActiveTab === 'unvoted'
+                    ? 'bg-gray-900 text-white shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -976,15 +899,15 @@ export default function PlayerDashboard({
                 roster.attending.map((p) => (
                   <div key={p.id} className="p-2.5 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">
                         #{p.number}
                       </div>
                       <div>
                         <p className="text-xs font-bold text-gray-900">{p.name}</p>
-                        <p className="text-[10px] text-gray-400">Vị trí: {p.role}</p>
+                        <p className="text-xs text-gray-400">Vị trí: {p.role}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
                       <Check className="w-3 h-3 stroke-[3]" /> Sẵn sàng
                     </span>
                   </div>
@@ -995,15 +918,15 @@ export default function PlayerDashboard({
                 roster.maybe.map((p) => (
                   <div key={p.id} className="p-2.5 rounded-2xl bg-amber-50/50 border border-amber-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">
                         #{p.number}
                       </div>
                       <div>
                         <p className="text-xs font-bold text-gray-900">{p.name}</p>
-                        <p className="text-[10px] text-amber-700 italic">{p.note}</p>
+                        <p className="text-xs text-amber-700 italic">{p.note}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
                       50 / 50
                     </span>
                   </div>
@@ -1014,15 +937,15 @@ export default function PlayerDashboard({
                 roster.absent.map((p) => (
                   <div key={p.id} className="p-2.5 rounded-2xl bg-rose-50/50 border border-rose-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-800 font-black text-xs flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-800 font-bold text-xs flex items-center justify-center">
                         #{p.number}
                       </div>
                       <div>
                         <p className="text-xs font-bold text-gray-900">{p.name}</p>
-                        <p className="text-[10px] text-rose-600 italic">{p.note}</p>
+                        <p className="text-xs text-rose-600 italic">{p.note}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
                       Báo vắng
                     </span>
                   </div>
@@ -1039,32 +962,32 @@ export default function PlayerDashboard({
                   roster.unvoted.map((p) => (
                     <div key={p.id} className="p-2.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 font-black text-xs flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 font-bold text-xs flex items-center justify-center">
                           #{p.number}
                         </div>
                         <div>
                           <p className="text-xs font-bold text-gray-900">{p.name}</p>
-                          <p className="text-[10px] text-gray-400">Vị trí: {p.role} • {p.phone}</p>
+                          <p className="text-xs text-gray-400">Vị trí: {p.role} • {p.phone}</p>
                         </div>
                       </div>
 
-                      {currentUserRole === 'admin' ? (
+                      {isLeader ? (
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleRemindUnvoted(p.name)}
-                            className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] active:scale-95 transition-all cursor-pointer"
+                            className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
                           >
                             🔔 Nhắc
                           </button>
                           <button
                             onClick={() => handleFineUnvoted(p.name)}
-                            className="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px] active:scale-95 transition-all cursor-pointer"
+                            className="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
                           >
                             ⚠️ Phạt quỹ
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[10px] font-bold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-bold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
                           Chưa vote
                         </span>
                       )}
@@ -1091,9 +1014,9 @@ export default function PlayerDashboard({
           (YÊU CẦU 3: TỐI ĐA 4 TRẬN/TUẦN, NATIVE DATETIME PICKER, COUNTDOWN TIMEOUT, PHẠT TIỀN QUỸ)
           ========================================================= */}
       {showCreateMatchModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-t-[32px] sm:rounded-[32px] bg-white p-5 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100 text-gray-900 animate-in slide-in-from-bottom duration-300">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
@@ -1101,14 +1024,14 @@ export default function PlayerDashboard({
                   <PlusCircle className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-gray-900">Tạo Kèo Trận Đấu Mới</h3>
-                  <p className="text-[10px] text-gray-400">
+                  <h3 className="font-bold text-base text-gray-900">Tạo Kèo Trận Đấu Mới</h3>
+                  <p className="text-xs text-gray-400">
                     Giới hạn: Đã tạo {weeklyMatchesCount}/4 trận trong tuần
                   </p>
                 </div>
               </div>
-              <button 
-                onClick={() => setShowCreateMatchModal(false)} 
+              <button
+                onClick={() => setShowCreateMatchModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-full text-gray-400 active:scale-95 transition-all"
               >
                 <X className="w-5 h-5" />
@@ -1116,7 +1039,7 @@ export default function PlayerDashboard({
             </div>
 
             {/* Warning if reached 4 matches limit */}
-            {weeklyMatchesCount >= MAX_WEEKLY_MATCHES && (
+            {false && (
               <div className="mt-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>Đã đạt giới hạn tối đa 4 trận/tuần của đội! Hãy xóa hoặc chờ sang tuần mới.</span>
@@ -1126,38 +1049,38 @@ export default function PlayerDashboard({
             <form onSubmit={handleCreateMatchSubmit} className="mt-3 space-y-3 text-xs">
               <div>
                 <label className="text-gray-700 block mb-1 font-bold">Tên Đối Thủ / Tên Trận</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
-                  placeholder="Ví dụ: FC Phủi Sài Gòn" 
+                  placeholder="Ví dụ: FC Phủi Sài Gòn"
                   value={newMatchData.opponent}
                   onChange={(e) => setNewMatchData({ ...newMatchData, opponent: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               {/* NATIVE DATETIME PICKER (ĐƯỢC STYLE LẠI CHO MOBILE) */}
               <div>
                 <label className="text-gray-700 block mb-1 font-bold">Ngày Giờ Thi Đấu</label>
-                <input 
-                  type="datetime-local" 
+                <input
+                  type="datetime-local"
                   required
                   value={newMatchData.datetime}
                   onChange={(e) => setNewMatchData({ ...newMatchData, datetime: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-gray-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-gray-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
-                <span className="text-[10px] text-gray-400 mt-1 block">Chọn ngày & giờ bóng lăn trực tiếp trên điện thoại</span>
+                <span className="text-xs text-gray-400 mt-1 block">Chọn ngày & giờ bóng lăn trực tiếp trên điện thoại</span>
               </div>
 
               <div>
                 <label className="text-gray-700 block mb-1 font-bold">Địa Điểm Sân Bóng</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
-                  placeholder="Sân bóng Chuyên Việt (Sân 3) - 18D Cộng Hòa" 
+                  placeholder="Sân bóng Chuyên Việt (Sân 3) - 18D Cộng Hòa"
                   value={newMatchData.venue}
                   onChange={(e) => setNewMatchData({ ...newMatchData, venue: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -1167,35 +1090,35 @@ export default function PlayerDashboard({
                   <Clock className="w-3.5 h-3.5 text-amber-700" />
                   <span>Hạn Chót Điểm Danh (Time-out Countdown)</span>
                 </label>
-                <input 
-                  type="datetime-local" 
+                <input
+                  type="datetime-local"
                   required
                   value={newMatchData.timeoutDatetime}
                   onChange={(e) => setNewMatchData({ ...newMatchData, timeoutDatetime: e.target.value })}
-                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-gray-900 font-bold focus:outline-none" 
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-gray-900 font-bold focus:outline-none"
                 />
-                <span className="text-[10px] text-amber-800 block">Sau thời điểm này, hệ thống sẽ tự động khóa vote và đếm danh sách.</span>
+                <span className="text-xs text-amber-800 block">Sau thời điểm này, hệ thống sẽ tự động khóa vote và đếm danh sách.</span>
 
                 {/* CHECKBOX: PHẠT TIỀN QUỸ NẾU KHÔNG VOTE KHI HẾT HẠN */}
                 <div className="pt-2 border-t border-amber-200/60">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input 
-                      type="checkbox" 
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
                       checked={newMatchData.penaltyEnabled}
                       onChange={(e) => setNewMatchData({ ...newMatchData, penaltyEnabled: e.target.checked })}
                       className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
                     />
-                    <span className="font-extrabold text-amber-950">Phạt tiền quỹ nếu không vote khi hết hạn</span>
+                    <span className="font-semibold text-amber-950">Phạt tiền quỹ nếu không vote khi hết hạn</span>
                   </label>
 
                   {newMatchData.penaltyEnabled && (
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[11px] text-amber-900 font-medium">Mức phạt:</span>
-                      <input 
-                        type="text" 
+                      <span className="text-xs text-amber-900 font-medium">Mức phạt:</span>
+                      <input
+                        type="text"
                         value={newMatchData.penaltyFine}
                         onChange={(e) => setNewMatchData({ ...newMatchData, penaltyFine: e.target.value })}
-                        className="w-28 bg-white border border-amber-300 rounded-lg px-2 py-1 font-mono font-bold text-rose-600 text-xs" 
+                        className="w-28 bg-white border border-amber-300 rounded-lg px-2 py-1 tabular-nums font-bold text-rose-600 text-xs"
                       />
                       <span className="text-xs font-bold text-gray-700">VNĐ / người</span>
                     </div>
@@ -1206,9 +1129,9 @@ export default function PlayerDashboard({
               <div className="mt-4 pt-2">
                 <button
                   type="submit"
-                  disabled={weeklyMatchesCount >= MAX_WEEKLY_MATCHES}
+                  disabled={false}
                   className={`w-full py-3.5 rounded-full font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-200 ${
-                    weeklyMatchesCount >= MAX_WEEKLY_MATCHES
+                    false
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/30 active:scale-95 cursor-pointer'
                   }`}
@@ -1226,7 +1149,7 @@ export default function PlayerDashboard({
           5. MODAL VIETQR THANH TOÁN (CHO THÀNH VIÊN)
           ========================================================= */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
@@ -1234,11 +1157,11 @@ export default function PlayerDashboard({
                   <QrCode className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-gray-900">VietQR Quỹ Đội</h3>
-                  <p className="text-[10px] text-gray-400">Quét qua MoMo hoặc App Ngân Hàng</p>
+                  <h3 className="font-semibold text-base text-gray-900">VietQR Quỹ Đội</h3>
+                  <p className="text-xs text-gray-400">Quét qua MoMo hoặc App Ngân Hàng</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowQrModal(false)}
                 className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 active:scale-95 transition-all"
               >
@@ -1247,9 +1170,9 @@ export default function PlayerDashboard({
             </div>
 
             <div className="mt-3.5 p-3.5 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100">
-              <img 
-                src={bankInfo.qrUrl} 
-                alt="VietQR Code" 
+              <img
+                src={bankInfo.qrUrl}
+                alt="VietQR Code"
                 className="w-40 h-40 object-contain rounded-xl"
                 onError={(e) => {
                   e.target.style.display = 'none';
@@ -1258,22 +1181,22 @@ export default function PlayerDashboard({
               />
               <div style={{ display: 'none' }} className="w-40 h-40 bg-white rounded-xl items-center justify-center flex-col text-center p-3">
                 <QrCode className="w-12 h-12 text-emerald-600 mb-1" />
-                <span className="text-xs font-mono font-bold text-gray-800">MB: {bankInfo.accountNumber}</span>
+                <span className="text-xs tabular-nums font-bold text-gray-800">MB: {bankInfo.accountNumber}</span>
               </div>
-              <p className="text-[10px] text-gray-500 font-semibold mt-2 text-center">
-                Mã QR tự động nhập 150.000 đ & Nội dung số áo #{user.number}
+              <p className="text-xs text-gray-500 font-semibold mt-2 text-center">
+                QR: {bankInfo.amount} • số áo #{user.number}
               </p>
             </div>
 
             <div className="mt-3 space-y-2 text-xs">
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50">
                 <div>
-                  <span className="text-[10px] text-gray-400 block font-medium">Số tài khoản</span>
-                  <span className="font-bold font-mono text-emerald-600 text-sm">{bankInfo.accountNumber}</span>
+                  <span className="text-xs text-gray-400 block font-medium">Số tài khoản</span>
+                  <span className="font-bold tabular-nums text-emerald-600 text-sm">{bankInfo.accountNumber}</span>
                 </div>
-                <button 
+                <button
                   onClick={() => copyToClipboard(bankInfo.accountNumber, 'acc')}
-                  className="px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-xs hover:bg-gray-50 flex items-center gap-1 text-[11px] font-bold text-gray-700 active:scale-95 transition-all"
+                  className="px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-xs hover:bg-gray-50 flex items-center gap-1 text-xs font-bold text-gray-700 active:scale-95 transition-all"
                 >
                   {copiedField === 'acc' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                   {copiedField === 'acc' ? 'Đã chép' : 'Sao chép'}
@@ -1282,12 +1205,12 @@ export default function PlayerDashboard({
 
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50">
                 <div>
-                  <span className="text-[10px] text-gray-400 block font-medium">Nội dung chuyển khoản</span>
-                  <p className="text-[10px] font-mono font-bold text-gray-800">{bankInfo.content}</p>
+                  <span className="text-xs text-gray-400 block font-medium">Nội dung chuyển khoản</span>
+                  <p className="text-xs tabular-nums font-bold text-gray-800">{bankInfo.content}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => copyToClipboard(bankInfo.content, 'content')}
-                  className="px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-xs hover:bg-gray-50 flex items-center gap-1 text-[11px] font-bold text-gray-700 active:scale-95 transition-all"
+                  className="px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-xs hover:bg-gray-50 flex items-center gap-1 text-xs font-bold text-gray-700 active:scale-95 transition-all"
                 >
                   {copiedField === 'content' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                   {copiedField === 'content' ? 'Đã chép' : 'Sao chép'}
@@ -1299,12 +1222,13 @@ export default function PlayerDashboard({
               <button
                 onClick={() => {
                   onMarkPaid();
+                  onAddNotice('Đóng quỹ chờ duyệt', 'Bạn đã báo chuyển khoản. Thủ quỹ cần kiểm tra trước khi xác nhận.');
                   setShowQrModal(false);
                 }}
-                className="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all duration-200 active:scale-95 cursor-pointer"
+                className="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Tôi Đã Chuyển Khoản Xong</span>
+                <span>{user.fundPaymentPending ? "Đang chờ thủ quỹ duyệt" : "Tôi đã chuyển — gửi chờ duyệt"}</span>
               </button>
             </div>
           </div>
@@ -1315,7 +1239,7 @@ export default function PlayerDashboard({
           6. MODAL DUYỆT TIỀN (CHO ADMIN)
           ========================================================= */}
       {showAdminApproveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
@@ -1323,11 +1247,11 @@ export default function PlayerDashboard({
                   <FileCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-gray-900">Duyệt Tiền Đóng Quỹ</h3>
-                  <p className="text-[10px] text-gray-400">Xác nhận nộp quỹ của thành viên</p>
+                  <h3 className="font-semibold text-base text-gray-900">Duyệt Tiền Đóng Quỹ</h3>
+                  <p className="text-xs text-gray-400">Xác nhận nộp quỹ của thành viên</p>
                 </div>
               </div>
-              <button onClick={() => setShowAdminApproveModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 active:scale-95 transition-all">
+              <button aria-label="Đóng" onClick={() => setShowAdminApproveModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 active:scale-95 transition-all">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1342,8 +1266,8 @@ export default function PlayerDashboard({
                   <div key={item.id} className="p-2.5 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-xs text-gray-900">{item.name}</p>
-                      <p className="text-[11px] text-emerald-600 font-bold">{item.amount} • {item.bank}</p>
-                      <span className="text-[9px] text-gray-400">{item.time}</span>
+                      <p className="text-xs text-emerald-600 font-bold">{formatCurrency(item.amount)} • {item.bank}</p>
+                      <span className="text-xs text-gray-400">{item.time}</span>
                     </div>
                     <button
                       onClick={() => approvePayment(item.id)}
@@ -1372,14 +1296,14 @@ export default function PlayerDashboard({
           7. MODAL CÀI ĐẶT ĐỘI BÓNG (CHO ADMIN)
           ========================================================= */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-extrabold text-base text-gray-900">Cài Đặt Đội Bóng</h3>
+                <h3 className="font-semibold text-base text-gray-900">Cài Đặt Đội Bóng</h3>
               </div>
-              <button onClick={() => setShowSettingsModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 active:scale-95 transition-all">
+              <button aria-label="Đóng" onClick={() => setShowSettingsModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 active:scale-95 transition-all">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1415,7 +1339,7 @@ export default function PlayerDashboard({
       )}
 
       {/* MODAL QUẢN LÝ THÀNH VIÊN NHANH (TEAM MANAGER) */}
-      <TeamManager 
+      <TeamManager
         isOpen={showTeamManagerModal}
         onClose={() => setShowTeamManagerModal(false)}
         members={members}
@@ -1428,7 +1352,7 @@ export default function PlayerDashboard({
       />
 
       {/* POPUP CHIA SẺ MÃ QR / LINK THAM GIA ĐỘI */}
-      <InviteShare 
+      <InviteShare
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         teamName={user?.teamName || 'FC No Offside'}

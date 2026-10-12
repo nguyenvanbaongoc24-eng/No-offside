@@ -1,14 +1,15 @@
 import React, { useState, useRef } from 'react';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Shield, 
-  Users, 
-  PlusCircle, 
-  Check, 
-  ChevronLeft, 
-  Share2, 
-  CheckCircle2, 
-  Edit3, 
+import {
+  Shield,
+  Users,
+  PlusCircle,
+  Check,
+  ChevronLeft,
+  Share2,
+  CheckCircle2,
+  Edit3,
   X,
   Sparkles,
   Save,
@@ -16,32 +17,20 @@ import {
   Move
 } from 'lucide-react';
 
-export default function LineupBuilder({ onBack }) {
+export default function LineupBuilder({ onBack, teamId, members = [], currentUserRole }) {
   const pitchRef = useRef(null);
-  const [selectedFormationId, setSelectedFormationId] = useState('2-3-1');
+  const [selectedFormationId, setSelectedFormationId] = usePersistentState('no_offside_lineup_selected_' + teamId, '2-3-1');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [showCreateFormationModal, setShowCreateFormationModal] = useState(false);
   const [newFormationName, setNewFormationName] = useState('');
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
 
   // Available players pool to swap
-  const teamRoster = [
-    { name: 'Tuấn Hưng (Bạn)', number: 9, role: 'ST' },
-    { name: 'Quang Hải', number: 19, role: 'RM' },
-    { name: 'Hoàng Đức', number: 14, role: 'CM' },
-    { name: 'Tuấn Anh', number: 11, role: 'LCM' },
-    { name: 'Văn Thanh', number: 17, role: 'LM' },
-    { name: 'Ngọc Hải', number: 3, role: 'CB' },
-    { name: 'Duy Mạnh', number: 28, role: 'CB' },
-    { name: 'Văn Hậu', number: 5, role: 'LB' },
-    { name: 'Trọng Hoàng', number: 8, role: 'RB' },
-    { name: 'Văn Lâm', number: 1, role: 'GK' },
-    { name: 'Bùi Tấn Trường', number: 23, role: 'GK' },
-    { name: 'Tiến Linh', number: 22, role: 'ST' },
-  ];
+  const canEdit = ['owner','admin'].includes(currentUserRole);
+  const teamRoster = members.map(m => ({...m, name: m.name, role: m.role }));
 
   // Formations state (Each player has top/left % and drag support)
-  const [formationsList, setFormationsList] = useState([
+  const [formationsList, setFormationsList] = usePersistentState('no_offside_lineups_' + teamId, [
     {
       id: '2-3-1',
       name: 'Sơ đồ 2-3-1 (Tấn công trung lộ)',
@@ -84,12 +73,13 @@ export default function LineupBuilder({ onBack }) {
         { id: 'st', role: 'ST', name: 'Tuấn Hưng (Bạn)', number: 9, top: '18%', left: '50%', isUser: true },
       ]
     }
-  ]);
+  ].map(f=>({...f,players:f.players.map((p,i)=>{const member=members.find(m=>m.number===p.number);return {...p,name:member?.name || 'Chưa xếp',number:member?.number || '—',memberId:member?.id};})})));
 
   const currentFormation = formationsList.find(f => f.id === selectedFormationId) || formationsList[0];
 
   const handleSwapPlayer = (newPlayer) => {
-    if (!selectedPlayer) return;
+    if (!canEdit || !selectedPlayer) return;
+    if (currentFormation.players.some(p => p.id !== selectedPlayer.id && p.number === newPlayer.number)) { alert('Cầu thủ này đã ở trong đội hình.'); return; }
     setFormationsList(prev => prev.map(f => {
       if (f.id !== selectedFormationId) return f;
       return {
@@ -99,7 +89,7 @@ export default function LineupBuilder({ onBack }) {
             return {
               ...p,
               name: newPlayer.name,
-              number: newPlayer.number,
+              number: newPlayer.number, memberId: newPlayer.id,
               isUser: newPlayer.name.includes('Bạn'),
             };
           }
@@ -112,7 +102,7 @@ export default function LineupBuilder({ onBack }) {
 
   // Tạo sơ đồ mới: Cầu thủ đặt ở mép sân (Touchline / Băng ghế) để Admin tự do kéo thả vào sân!
   const handleCreateNewFormation = () => {
-    if (!newFormationName.trim()) return;
+    if (!canEdit || !newFormationName.trim()) return;
     const newId = `custom-${Date.now()}`;
     const newForm = {
       id: newId,
@@ -128,6 +118,7 @@ export default function LineupBuilder({ onBack }) {
         { id: 'p7', role: 'ST', name: 'Tuấn Hưng (Bạn)', number: 9, top: '92%', left: '85%', isUser: true },
       ]
     };
+    newForm.players = newForm.players.map((p,i)=>({...p,name:teamRoster[i]?.name || 'Chưa xếp',number:teamRoster[i]?.number || '—',memberId:teamRoster[i]?.id}));
     setFormationsList(prev => [...prev, newForm]);
     setSelectedFormationId(newId);
     setNewFormationName('');
@@ -136,32 +127,33 @@ export default function LineupBuilder({ onBack }) {
 
   // Nút Lưu Đội Hình
   const handleSaveLineupCoordinates = () => {
+    if (!canEdit) return;
     setSaveSuccessNotice(true);
     setTimeout(() => setSaveSuccessNotice(false), 2500);
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-['Be_Vietnam_Pro'] antialiased select-none">
-      
+    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-sans antialiased">
+
       {/* 1. Header Dark Geometric Style */}
       <section className="bg-slate-900 text-white pt-safe-hero pb-4 px-5 rounded-b-[32px] shadow-lg bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
         <div className="flex items-center justify-between">
-          <motion.button 
+          <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={onBack}
             className="flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 rounded-full bg-white/10 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" /> Quay lại
           </motion.button>
-          
-          <h1 className="text-sm font-black text-white flex items-center gap-1.5">
+
+          <h1 className="text-sm font-bold text-white flex items-center gap-1.5">
             <Shield className="w-4 h-4 text-emerald-400" />
             <span>Sa Bàn Free Drag & Drop</span>
           </h1>
 
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => setShowCreateFormationModal(true)}
+            disabled={!canEdit} onClick={() => setShowCreateFormationModal(true)}
             className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-emerald-600/20 cursor-pointer"
           >
             <PlusCircle className="w-3.5 h-3.5" />
@@ -172,7 +164,7 @@ export default function LineupBuilder({ onBack }) {
 
       {/* Control Bar: Hướng dẫn kéo thả & Nút Lưu Đội Hình */}
       <div className="px-4 mt-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
           <Move className="w-3.5 h-3.5 text-emerald-600" />
           <span>Dùng tay kéo thả tự do cầu thủ</span>
         </div>
@@ -180,8 +172,8 @@ export default function LineupBuilder({ onBack }) {
         {/* NÚT LƯU ĐỘI HÌNH */}
         <motion.button
           whileTap={{ scale: 0.95 }}
-          onClick={handleSaveLineupCoordinates}
-          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer"
+          disabled={!canEdit} onClick={handleSaveLineupCoordinates}
+          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer"
         >
           <Save className="w-3.5 h-3.5 text-emerald-400" />
           <span>{saveSuccessNotice ? '✓ Đã Lưu!' : 'Lưu đội hình'}</span>
@@ -190,7 +182,7 @@ export default function LineupBuilder({ onBack }) {
 
       {/* 2. Tactical Football Pitch (Sân bóng tone xanh lục bảo sẫm với Free Drag & Drop) */}
       <div className="px-4 mt-2">
-        <div 
+        <div
           ref={pitchRef}
           className="relative w-full aspect-[9/13] rounded-[32px] overflow-hidden border-2 border-emerald-950/40 shadow-2xl bg-gradient-to-b from-[#064e3b] via-[#022c22] to-[#011c16]"
         >
@@ -202,34 +194,44 @@ export default function LineupBuilder({ onBack }) {
             <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
             <div className="absolute top-4 left-1/2 -translate-x-1/2 w-44 h-20 border-b-2 border-l-2 border-r-2 border-white/80 rounded-b-xl"></div>
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-44 h-20 border-t-2 border-l-2 border-r-2 border-white/80 rounded-t-xl"></div>
-            
+
             {/* Sideline Touchline indicator */}
             <div className="absolute bottom-1 left-2 right-2 h-7 border-t border-dashed border-emerald-300/40 flex items-center justify-center">
-              <span className="text-[8px] text-emerald-300/60 font-bold uppercase tracking-wider">Băng Ghế / Mép Sân Kéo Vào</span>
+              <span className="text-xs text-emerald-300/60 font-bold uppercase tracking-wider">Băng Ghế / Mép Sân Kéo Vào</span>
             </div>
           </div>
 
           {/* Player Pins with Framer Motion Free Drag */}
           {currentFormation.players.map((player) => (
             <motion.div
-              key={player.id}
-              drag
+              key={player.id + player.top + player.left}
+              role={canEdit ? 'button' : undefined}
+              tabIndex={canEdit ? 0 : undefined}
+              aria-label={`Đổi cầu thủ ${player.name}`}
+              onKeyDown={e => { if (canEdit && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelectedPlayer(player); } }}
+              drag={canEdit}
               dragConstraints={pitchRef}
               dragElastic={0.05}
               dragMomentum={false}
+              onDragEnd={(_event, info) => {
+                const rect = pitchRef.current.getBoundingClientRect();
+                const left = Math.max(5,Math.min(95,parseFloat(player.left) + info.offset.x/rect.width*100));
+                const top = Math.max(5,Math.min(95,parseFloat(player.top) + info.offset.y/rect.height*100));
+                setFormationsList(prev=>prev.map(f=>f.id===selectedFormationId?{...f,players:f.players.map(p=>p.id===player.id?{...p,left:left+'%',top:top+'%'}:p)}:f));
+              }}
               whileDrag={{ scale: 1.2, zIndex: 50 }}
               style={{ top: player.top, left: player.left }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing z-10 flex flex-col items-center select-none touch-none"
+              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing z-10 flex flex-col items-center touch-none"
             >
               {/* Number Circle */}
-              <div 
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedPlayer(player);
+                  if (canEdit) setSelectedPlayer(player);
                 }}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 shadow-2xl transition-all cursor-pointer ${
-                  player.isUser 
-                    ? 'bg-emerald-400 text-slate-950 border-white ring-4 ring-emerald-400/50 shadow-[0_0_20px_rgba(52,211,153,0.8)]' 
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 shadow-2xl transition-all cursor-pointer ${
+                  player.isUser
+                    ? 'bg-emerald-400 text-slate-950 border-white ring-4 ring-emerald-400/50 shadow-[0_0_20px_rgba(52,211,153,0.8)]'
                     : player.role === 'GK'
                     ? 'bg-amber-400 text-slate-950 border-amber-100 ring-2 ring-amber-400/50'
                     : 'bg-slate-900 text-white border-white/80 ring-2 ring-black/40'
@@ -240,14 +242,14 @@ export default function LineupBuilder({ onBack }) {
               </div>
 
               {/* High-Contrast White Name Badge */}
-              <div className="mt-1 px-2.5 py-0.5 rounded-full bg-slate-900/95 border border-white/25 shadow-lg text-[10px] font-black text-white whitespace-nowrap text-center drop-shadow-md">
+              <div className="mt-1 px-2.5 py-0.5 rounded-full bg-slate-900/95 border border-white/25 shadow-lg text-xs font-bold text-white whitespace-nowrap text-center drop-shadow-md">
                 {player.name}
               </div>
             </motion.div>
           ))}
 
           {/* Hint Overlay */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] text-emerald-200/90 font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-emerald-200/90 font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
             🖐️ Kéo thả vị trí tùy ý • Chạm để đổi người
           </div>
         </div>
@@ -256,10 +258,10 @@ export default function LineupBuilder({ onBack }) {
       {/* 3. Tactics List (Render thành một danh sách có Checkmark) */}
       <div className="px-4 mt-3">
         <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-black uppercase tracking-wider text-gray-500">
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
             DANH SÁCH CHIẾN THUẬT ({formationsList.length})
           </span>
-          <span className="text-[11px] font-bold text-emerald-600">
+          <span className="text-xs font-bold text-emerald-600">
             Chạm để kích hoạt
           </span>
         </div>
@@ -271,10 +273,10 @@ export default function LineupBuilder({ onBack }) {
               <motion.div
                 key={item.id}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedFormationId(item.id)}
+                role="button" tabIndex={0} aria-pressed={isActive} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelectedFormationId(item.id);}}} onClick={() => setSelectedFormationId(item.id)}
                 className={`p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between ${
-                  isActive 
-                    ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-md' 
+                  isActive
+                    ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
                     : 'bg-white/80 border-gray-200 hover:bg-white'
                 }`}
               >
@@ -285,15 +287,15 @@ export default function LineupBuilder({ onBack }) {
                     ⚽
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                       <span>{item.name}</span>
                       {isActive && (
-                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <span className="text-xs font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                           Đang đá
                         </span>
                       )}
                     </h4>
-                    <p className="text-[10px] text-gray-400 font-medium">{item.tag}</p>
+                    <p className="text-xs text-gray-400 font-medium">{item.tag}</p>
                   </div>
                 </div>
 
@@ -310,16 +312,16 @@ export default function LineupBuilder({ onBack }) {
 
       {/* MODAL ĐỔI CẦU THỦ KHI CHẠM VÀO PIN */}
       {selectedPlayer && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-5 max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-100 animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div>
-                <h3 className="font-black text-base text-gray-900">
+                <h3 className="font-bold text-base text-gray-900">
                   Đổi Cầu Thủ: {selectedPlayer.name} (#{selectedPlayer.number})
                 </h3>
-                <p className="text-[10px] text-gray-400">Chọn cầu thủ từ đội hình để thay thế vào vị trí này</p>
+                <p className="text-xs text-gray-400">Chọn cầu thủ từ đội hình để thay thế vào vị trí này</p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedPlayer(null)}
                 className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700"
               >
@@ -329,22 +331,22 @@ export default function LineupBuilder({ onBack }) {
 
             <div className="mt-3 space-y-2 max-h-60 overflow-y-auto pr-1">
               {teamRoster.map((rosterPlayer, idx) => (
-                <div 
+                <div
                   key={idx}
                   onClick={() => handleSwapPlayer(rosterPlayer)}
                   className="p-2.5 rounded-2xl bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 flex items-center justify-between cursor-pointer transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-black flex items-center justify-center">
+                    <span className="w-7 h-7 rounded-full bg-slate-900 text-white tabular-nums text-xs font-bold flex items-center justify-center">
                       #{rosterPlayer.number}
                     </span>
                     <div>
-                      <p className="text-xs font-black text-gray-900">{rosterPlayer.name}</p>
-                      <p className="text-[10px] text-gray-400">Vị trí: {rosterPlayer.role}</p>
+                      <p className="text-xs font-bold text-gray-900">{rosterPlayer.name}</p>
+                      <p className="text-xs text-gray-400">Vị trí: {rosterPlayer.role}</p>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-bold text-emerald-600 px-2 py-0.5 rounded-full bg-white border border-gray-200">
+                  <span className="text-xs font-bold text-emerald-600 px-2 py-0.5 rounded-full bg-white border border-gray-200">
                     Chọn
                   </span>
                 </div>
@@ -356,14 +358,14 @@ export default function LineupBuilder({ onBack }) {
 
       {/* MODAL TẠO SƠ ĐỒ MỚI */}
       {showCreateFormationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <PlusCircle className="w-4 h-4 text-emerald-600" />
-                <h3 className="font-black text-base text-gray-900">Tạo Sơ Đồ Tự Xếp Mới</h3>
+                <h3 className="font-bold text-base text-gray-900">Tạo Sơ Đồ Tự Xếp Mới</h3>
               </div>
-              <button onClick={() => setShowCreateFormationModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+              <button aria-label="Đóng" onClick={() => setShowCreateFormationModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -380,7 +382,7 @@ export default function LineupBuilder({ onBack }) {
                   className="w-full h-11 bg-gray-50 border border-gray-200 rounded-xl px-3 font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-              <p className="text-[10px] text-gray-400 leading-relaxed">
+              <p className="text-xs text-gray-400 leading-relaxed">
                 💡 Khi tạo xong, các cầu thủ sẽ xuất hiện ở mép sân. Bạn có thể dùng tay kéo thả họ tự do vào bất kỳ vị trí chiến thuật nào trên sân!
               </p>
 
@@ -389,7 +391,7 @@ export default function LineupBuilder({ onBack }) {
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={handleCreateNewFormation}
-                  className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/30 cursor-pointer"
+                  className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 cursor-pointer"
                 >
                   Tạo Sơ Đồ & Bắt Đầu Kéo Thả
                 </motion.button>

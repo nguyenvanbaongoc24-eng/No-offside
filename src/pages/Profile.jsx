@@ -18,14 +18,20 @@ import {
   AlertTriangle,
   X,
   CheckCircle2,
-  Sliders
+  Sliders,
+  QrCode,
+  PlusCircle,
+  Share2,
+  Users
 } from 'lucide-react';
+import InviteShare from '../components/InviteShare';
 
 export default function Profile({ 
   user, 
   currentUserRole = 'player', 
   onToggleRole, 
-  onLogout 
+  onLogout,
+  onNavigate
 }) {
   // Personal Info Form State
   const [avatar, setAvatar] = useState(user.avatar);
@@ -45,6 +51,9 @@ export default function Profile({
   // Admin Delegation Double Confirmation Modal
   const [selectedPromotee, setSelectedPromotee] = useState(null);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
+
+  // Invite QR & Link Modal
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const teamMembers = [
     { id: 1, name: 'Nguyễn Quang Hải', number: 19, role: 'Tiền Vệ' },
@@ -283,7 +292,44 @@ export default function Profile({
         </section>
       )}
 
-      {/* 4. CHUYỂN ĐỔI ROLE & ĐĂNG XUẤT */}
+      {/* 4. QUẢN LÝ ĐỘI BÓNG & MỜI THÀNH VIÊN (INVITE QR & LINK) */}
+      <section className="bg-white rounded-[32px] shadow-soft p-5 mx-4 mt-3 border border-gray-100">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-xs font-black uppercase tracking-wider text-gray-800">
+              Gia Nhập & Mời Thành Viên
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+            QR / Link
+          </span>
+        </div>
+
+        <div className="space-y-2.5">
+          {/* Nút Lấy mã mời QR & Link */}
+          <button
+            type="button"
+            onClick={() => setShowInviteModal(true)}
+            className="w-full h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all duration-200 cursor-pointer"
+          >
+            <QrCode className="w-4 h-4" />
+            <span>Mời Thành Viên Mới Qua QR & Link</span>
+          </button>
+
+          {/* Nút Tạo đội bóng mới */}
+          <button
+            type="button"
+            onClick={() => onNavigate && onNavigate('create-team')}
+            className="w-full h-12 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all duration-200 cursor-pointer border border-gray-200/80"
+          >
+            <PlusCircle className="w-4 h-4 text-emerald-600" />
+            <span>Tạo Thêm Đội Bóng Mới (Làm Đội Trưởng)</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 5. CHUYỂN ĐỔI ROLE & ĐĂNG XUẤT */}
       <section className="bg-white rounded-[32px] shadow-soft p-5 mx-4 mt-3 border border-gray-100">
         <div className="divide-y divide-gray-100 text-xs">
           {/* Quick role toggle */}
@@ -362,6 +408,18 @@ export default function Profile({
           </div>
         </div>
       )}
+
+      {/* MODAL MỜI THÀNH VIÊN QUA QR & LINK */}
+      <InviteShare 
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        teamName={user.teamName || 'FC No Offside'}
+        teamCode="fc-no-offside-888"
+        onPreviewLanding={() => {
+          setShowInviteModal(false);
+          if (onNavigate) onNavigate('invite-landing');
+        }}
+      />
 
     </div>
   );

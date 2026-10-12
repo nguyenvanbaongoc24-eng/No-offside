@@ -5,18 +5,26 @@ import LineupBuilder from './pages/LineupBuilder';
 import FundManagement from './pages/FundManagement';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
+import CreateTeam from './pages/CreateTeam';
+import InviteLanding from './pages/InviteLanding';
 import SignIn from './pages/SignIn';
 import NotificationToast, { NotificationHistoryModal } from './components/NotificationToast';
 import { useAuth } from './hooks/useAuth';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState('dashboard');
+  const [currentTab, setCurrentTab] = useState(() => {
+    if (typeof window !== 'undefined' && (window.location.pathname.includes('/invite') || window.location.search.includes('invite') || window.location.hash.includes('invite'))) {
+      return 'invite-landing';
+    }
+    return 'dashboard';
+  });
   const [showNotificationToast, setShowNotificationToast] = useState(true);
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
 
   const { 
     user, 
     currentUserRole,
+    setCurrentUserRole,
     toggleRole,
     isLoggedIn,
     setAttendance, 
@@ -67,7 +75,34 @@ export default function App() {
 
         {/* Dynamic Screen View */}
         <main className="flex-1">
-          {activeTab === 'lineup' ? (
+          {activeTab === 'create-team' ? (
+            <CreateTeam 
+              onTeamCreated={(teamData) => {
+                login(teamData);
+                setCurrentUserRole('admin');
+                setCurrentTab('dashboard');
+              }}
+              onBack={() => setCurrentTab('profile')}
+            />
+          ) : activeTab === 'invite-landing' ? (
+            <InviteLanding 
+              teamData={{
+                name: user.teamName || 'FC No Offside',
+                captain: 'Đội Trưởng Tuấn Hưng',
+                membersCount: 18,
+                category: user.teamCategory || 'Kèo Sân 7',
+                venue: 'Sân Chuyên Việt (18D Cộng Hòa, Tân Bình)',
+                matchSchedule: 'Thứ 6 hàng tuần • 18:30',
+                logo: user.teamLogo || user.avatar,
+              }}
+              onJoinSuccess={(memberData) => {
+                login(memberData);
+                setCurrentUserRole('member');
+                setCurrentTab('dashboard');
+              }}
+              onBackToApp={() => setCurrentTab('profile')}
+            />
+          ) : activeTab === 'lineup' ? (
             <LineupBuilder onBack={() => setCurrentTab('dashboard')} />
           ) : activeTab === 'fund' ? (
             <FundManagement onBack={() => setCurrentTab('dashboard')} />
@@ -82,6 +117,7 @@ export default function App() {
                 logout();
                 setCurrentTab('dashboard');
               }}
+              onNavigate={(tab) => setCurrentTab(tab)}
             />
           ) : (
             <PlayerDashboard 
@@ -99,10 +135,12 @@ export default function App() {
 
         {/* =========================================================
             FLOATING BOTTOM NAVIGATION (THANH MENU DƯỚI CÙNG)
+            - Ẩn khi đang ở màn hình tạo đội hoặc landing page mời
             - Nếu là admin: 5 nút: [Trang chủ] - [Sa bàn] - [Quỹ đội] - [Chat] - [Tài khoản]
             - Nếu là member: 4 nút: [Trang chủ] - [Sa bàn] - [Chat] - [Tài khoản] (BỎ nút Quỹ đội)
             - Có hiệu ứng active:scale-95, transition-all, duration-200 cho haptic visual feedback
             ========================================================= */}
+        {!['create-team', 'invite-landing'].includes(activeTab) && (
         <nav className="fixed bottom-5 left-3 right-3 max-w-md mx-auto z-40 pointer-events-auto">
           <div className="bg-slate-900/95 backdrop-blur-xl text-white rounded-full px-3 py-2 shadow-[0_20px_45px_-10px_rgba(15,23,42,0.6)] border border-slate-800 flex items-center justify-around">
             
@@ -176,6 +214,7 @@ export default function App() {
 
           </div>
         </nav>
+        )}
 
       </div>
     </div>

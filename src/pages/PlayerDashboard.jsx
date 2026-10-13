@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import MatchList from '../components/MatchList';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -48,7 +49,7 @@ export default function PlayerDashboard({
   members = [],
   onRemoveMember,
   onAddMember,
-  funds, onApprove, balance, activeMatch, matches, attendance, reports, onSaveMatch, onSetMatchStatus, onSelectMatch, onAddNotice, teamSettings, demoSession
+  funds, onApprove, balance, activeMatch, matches, attendance, reports, onSaveMatch, onSetMatchStatus, onSelectMatch, onDeleteMatch, onAddNotice, teamSettings, demoSession
 }) {
   // Modal states
   const [showQrModal, setShowQrModal] = useState(false);
@@ -150,7 +151,7 @@ export default function PlayerDashboard({
           - Checkbox lưu sessionStorage 'Không nhắc lại trong phiên đăng nhập này'
           ========================================================= */}
       <WelcomeAnnouncementModal />
-      {matches.length > 1 && <label className="block mx-4 my-3 text-sm font-medium">Chọn trận đấu<select className="w-full mt-2 p-3 rounded-xl border border-slate-200" value={activeMatch.id} onChange={e=>onSelectMatch(e.target.value)}>{matches.map(m=><option key={m.id} value={m.id}>{m.title} • {m.datetime.replace("T"," ")}</option>)}</select></label>}
+      <MatchList matches={matches} activeMatchId={activeMatch.id} canDelete={isLeader} onSelect={onSelectMatch} onDelete={onDeleteMatch}/>
 
       {/* =========================================================
           1. HEADER DARK STYLE VỚI PATTERN MỜ (SLATE-900)
@@ -809,7 +810,7 @@ export default function PlayerDashboard({
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
-                  Sa Bàn Chiến Thuật Sân 7
+                  Sơ đồ chiến thuật
                 </p>
                 <p className="text-xs text-gray-400">Sơ đồ 2-3-1 • Bấm vào để xếp đội hình</p>
               </div>

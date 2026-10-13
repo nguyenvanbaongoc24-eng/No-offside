@@ -1,6 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { approvePayment, fundBalance, upsertReport, reportTotals, rosterFor, qrUrl, promoteMember, transferOwner } from '../src/lib/teamModel.js';
+import { approvePayment, fundBalance, upsertReport, reportTotals, rosterFor, qrUrl, promoteMember, transferOwner, deleteTeamMatch, restoreTeamMatch } from '../src/lib/teamModel.js';
+
+test('deleting a match selects the remaining match and removes only its attendance and reports', () => {
+  const data = { matches: [{id:'a'}, {id:'b'}], activeMatchId:'a', attendance:{a:{u:'attending'},b:{u:'absent'}}, reports:{u:{a:{goals:2,assists:1},b:{goals:1,assists:0}}}, funds:{transactions:[{id:'payment'}]} };
+  const deleted = deleteTeamMatch(data, 'a');
+  assert.equal(deleted.activeMatchId, 'b');
+  assert.deepEqual(deleted.attendance, {b:{u:'absent'}});
+  assert.deepEqual(deleted.reports.u, {b:{goals:1,assists:0}});
+  assert.equal(deleted.funds, data.funds);
+  assert.equal(data.matches.length, 2);
+  assert.equal(deleteTeamMatch(deleted, 'missing'), deleted);
+  const empty = deleteTeamMatch(deleted, 'b');
+  assert.equal(empty.matches.length, 0);
+  assert.equal(empty.activeMatchId, undefined);
+});
+
+test('undo restores match data while preserving unrelated changes and cannot duplicate a match', () => {
+  const data = { matches:[{id:'b',title:'Edited'}], activeMatchId:'b', attendance:{b:{u:'absent'}}, reports:{u:{b:{goals:1,assists:0}}}, funds:{transactions:[{id:'new-payment'}]} };
+  const snapshot = {match:{id:'a'},index:0,attendance:{u:'attending'},reports:{u:{goals:2,assists:1}}};
+  const restored = restoreTeamMatch(data, snapshot);
+  assert.deepEqual(restored.matches, [{id:'a'},{id:'b',title:'Edited'}]);
+  assert.deepEqual(restored.attendance.a, snapshot.attendance);
+  assert.deepEqual(restored.reports.u.a, snapshot.reports.u);
+  assert.equal(restored.funds, data.funds);
+  assert.deepEqual(reportTotals({matches:0,goals:0,assists:0}, restored.reports.u), {matches:2,goals:3,assists:1});
+  assert.equal(restoreTeamMatch(restored, snapshot), restored);
+});
 
 test('approval is idempotent and clears only the correct debt', () => {
   const funds = {transactions:[],pendingApprovals:[{id:'p',playerId:'u',month:'2026-10',name:'Player',amount:150000}],debtors:[{playerId:'u',month:'2026-10'},{playerId:'u',month:'2026-11'}]};

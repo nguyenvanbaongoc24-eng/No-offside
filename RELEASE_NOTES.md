@@ -1,5 +1,10 @@
 # No Offside — sửa giao diện và dữ liệu trên thiết bị
 
+Danh sách trận hỗ trợ vuốt trái ít nhất 80 CSS px để xóa cho Owner/Admin,
+giữ cuộn dọc và hỗ trợ nút xóa bằng bàn phím. Có thể hoàn tác trong 10 giây,
+kể cả khi đã xóa trận cuối; điểm danh và báo cáo được khôi phục cùng trận.
+Xóa trận không thay đổi giao dịch quỹ. Mục điều hướng “Sa bàn” đổi thành “Sơ đồ”.
+
 Font mặc định dùng font hệ thống (`-apple-system`, `system-ui`). iPhone dùng
 font iOS; Windows và Android dùng font tương ứng. Có thể chọn Be Vietnam Pro.
 Đã tăng cỡ chữ nhỏ, vùng chạm, tương phản, trạng thái nhấn/chọn, nhãn điều hướng;
@@ -37,4 +42,9 @@ kết nối. Không hiển thị thành công giả cho việc gửi thông báo
 ## Kiểm tra
 
 `npm test`: kiểm tra duyệt quỹ một lần, báo cáo thay thế, roster/điểm danh,
-thăng quyền/chuyển Owner và URL QR. `npm run build`: Vite + PWA production.
+thăng quyền/chuyển Owner, URL QR, xóa trận cuối và hoàn tác không ghi đè dữ liệu
+khác. `npm run build`: Vite + PWA production.
+
+Chưa xác minh thao tác cảm ứng trên Safari iOS/Chrome Android hoặc PWA trên
+thiết bị thật. Kiểm thử trình duyệt local trong phiên thêm tính năng vuốt bị
+chặn bởi chính sách URL của công cụ; không coi các unit test là kiểm thử mobile.

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { readStored, writeStored } from '../lib/storage';
 import { usePersistentState } from './usePersistentState';
 import { supabase } from '../lib/supabase';
-import { uid, isLeaderRole, fundBalance, approvePayment, upsertReport, reportTotals, promoteMember, transferOwner, monthKey } from '../lib/teamModel';
+import { uid, isLeaderRole, fundBalance, approvePayment, upsertReport, reportTotals, promoteMember, transferOwner, monthKey, deleteTeamMatch, restoreTeamMatch } from '../lib/teamModel';
 
 const INITIAL_USER = {
   id: 'usr-9',
@@ -308,6 +308,7 @@ export function useAuth() {
   const [authSession, setAuthSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
   const [storageError, setStorageError] = useState('');
+  const [deletedMatch, setDeletedMatch] = useState(null);
   const [user, setUser] = usePersistentState('no_offside_user', INITIAL_USER);
   const [teamSettings, setTeamSettings] = usePersistentState('no_offside_team_settings', () => {
     const saved = readStored('no_offside_team_settings', INITIAL_TEAM_SETTINGS);
@@ -322,6 +323,18 @@ export function useAuth() {
   const setData = fn => setTeams(prev => ({ ...prev, [teamId]: fn(prev[teamId] || data) }));
   const setFunds = fn => { if (isLeaderRole(currentUserRole)) setData(prev => ({ ...prev, funds: typeof fn === 'function' ? fn(prev.funds) : fn })); };
   const leader = isLeaderRole(currentUserRole);
+
+  useEffect(() => { setDeletedMatch(null); }, [teamId, user.id]);
+  useEffect(() => {
+    if (!deletedMatch) return;
+    const timeout = setTimeout(() => setDeletedMatch(null), 10000);
+    return () => clearTimeout(timeout);
+  }, [deletedMatch]);
+  useEffect(() => {
+    if (!user.baseStats) return;
+    const stats = reportTotals(user.baseStats, data.reports[user.id] || {});
+    if (['matches', 'goals', 'assists'].some(key => stats[key] !== user.stats[key])) setUser(prev => ({ ...prev, stats }));
+  }, [data.reports, user.id, user.baseStats, user.stats]);
 
   useEffect(() => {
     if (user.id === 'fc-no-offside-99') setUser(prev => ({ ...prev, id: 'usr-9' }));
@@ -477,6 +490,18 @@ export function useAuth() {
   };
   const setMatchStatus = status => { if (leader && activeMatch && ['upcoming', 'completed'].includes(status)) setData(prev => ({ ...prev, matches: prev.matches.map(m => m.id === activeMatch.id ? { ...m, status } : m) })); };
   const selectMatch = id => setData(prev => ({ ...prev, activeMatchId: id }));
+  const deleteMatch = id => {
+    if (!leader) return;
+    const index = data.matches.findIndex(match => match.id === id);
+    if (index < 0) return;
+    setDeletedMatch({ teamId, index, match: data.matches[index], attendance: data.attendance[id], reports: Object.fromEntries(Object.entries(data.reports).filter(([, reports]) => reports[id]).map(([playerId, reports]) => [playerId, reports[id]])) });
+    setData(prev => deleteTeamMatch(prev, id));
+  };
+  const undoDeleteMatch = () => {
+    if (!leader || !deletedMatch || deletedMatch.teamId !== teamId) return;
+    setData(prev => restoreTeamMatch(prev, deletedMatch));
+    setDeletedMatch(null);
+  };
   const isLoggedIn = Boolean(demoSession || authSession);
-  return { user, currentUserRole, setCurrentUserRole, toggleRole, isLoggedIn, authLoading, demoSession, storageError, setAttendance, markFundPaid, approveFundPayment, resetFund, updateMatchStats, updateProfile, teamSettings, updateTreasurerQr, updateTeamName, updateTeamSettings, updateSubAdminTitle, addSubAdmin, requestAdmin, removeSubAdmin, removeMember, addMember, transferOwnership, approveAdminRequest, rejectAdminRequest, createTeam, joinTeam, login, logout, funds, setFunds, balance: fundBalance(funds.transactions), activeMatch, matches: data.matches, attendance: data.attendance[activeMatch?.id] || {}, reports: data.reports[user.id] || {}, saveMatch, setMatchStatus, selectMatch, notices: data.notices || [], addNotice };
+  return { user, currentUserRole, setCurrentUserRole, toggleRole, isLoggedIn, authLoading, demoSession, storageError, setAttendance, markFundPaid, approveFundPayment, resetFund, updateMatchStats, updateProfile, teamSettings, updateTreasurerQr, updateTeamName, updateTeamSettings, updateSubAdminTitle, addSubAdmin, requestAdmin, removeSubAdmin, removeMember, addMember, transferOwnership, approveAdminRequest, rejectAdminRequest, createTeam, joinTeam, login, logout, funds, setFunds, balance: fundBalance(funds.transactions), activeMatch, matches: data.matches, attendance: data.attendance[activeMatch?.id] || {}, reports: data.reports[user.id] || {}, saveMatch, setMatchStatus, selectMatch, deleteMatch, deletedMatch, undoDeleteMatch, notices: data.notices || [], addNotice };
 }

@@ -53,3 +53,25 @@ export function transferOwner(settings, from, to) {
   const members = settings.members.map(m => m.id === to ? { ...m, roleType: 'owner', customTitle: 'Đội trưởng' } : m.id === from ? { ...m, roleType: 'member', customTitle: 'Cầu thủ' } : m);
   return { ...settings, ownerId: to, members, subAdmins: members.filter(m => m.roleType === 'admin') };
 }
+
+export function deleteTeamMatch(data, matchId) {
+  if (!data.matches.some(match => match.id === matchId)) return data;
+  const matches = data.matches.filter(match => match.id !== matchId);
+  const attendance = { ...data.attendance };
+  delete attendance[matchId];
+  const reports = Object.fromEntries(Object.entries(data.reports).map(([playerId, playerReports]) => {
+    const remaining = { ...playerReports };
+    delete remaining[matchId];
+    return [playerId, remaining];
+  }));
+  return { ...data, matches, attendance, reports, activeMatchId: data.activeMatchId === matchId ? matches[0]?.id : data.activeMatchId };
+}
+
+export function restoreTeamMatch(data, snapshot) {
+  if (data.matches.some(match => match.id === snapshot.match.id)) return data;
+  const matches = [...data.matches];
+  matches.splice(Math.min(snapshot.index, matches.length), 0, snapshot.match);
+  const reports = { ...data.reports };
+  for (const [playerId, report] of Object.entries(snapshot.reports)) reports[playerId] = { ...reports[playerId], [snapshot.match.id]: report };
+  return { ...data, matches, activeMatchId: snapshot.match.id, attendance: snapshot.attendance ? { ...data.attendance, [snapshot.match.id]: snapshot.attendance } : data.attendance, reports };
+}

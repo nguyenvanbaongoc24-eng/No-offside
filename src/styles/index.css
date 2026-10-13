@@ -265,3 +265,5 @@ html[data-theme="dark"] .form-field textarea,html[data-theme="dark"] .form-field
 .tactics-header h1 { white-space:nowrap; font-size:17px; }
 .tactics-player { width:44px; min-width:44px; }
 .tactics-player > div:last-child { max-width:104px; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
+.simple-overlay { padding-top:max(16px,env(safe-area-inset-top,0px)); padding-bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + var(--keyboard-inset,0px)); }
+.simple-sheet { max-height:calc(var(--visual-viewport-height,100dvh) - max(16px,env(safe-area-inset-top,0px)) - max(16px,env(safe-area-inset-bottom,0px))); }

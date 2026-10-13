@@ -326,3 +326,4 @@ select { appearance:none; -webkit-appearance:none; padding-right:40px !important
 [data-theme="dark"] button[class*="bg-gradient-to-"] { background-color:#047857; color:#ffffff; }
 [data-theme="dark"] button[class*="bg-gradient-to-"][class*="from-rose"] { background-color:#be123c; }
 .settings-card { border-radius:16px; }
+.profile-home { padding-top:calc(20px + env(safe-area-inset-top,0px)); }

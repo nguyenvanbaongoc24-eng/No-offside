@@ -34,3 +34,5 @@ Các bản điều chỉnh quỹ là lịch sử local, người có quyền qu�
 Nguồn danh mục: [VietQR banks API](https://www.vietqr.io/danh-sach-api/api-danh-sach-ma-ngan-hang/), [Quick Link BIN](https://www.vietqr.io/en/danh-sach-api/link-tao-ma-nhanh/).
 
 Nhánh: codex/mobile-ui-refinement. Preview tự build từ Git; main và production giữ nguyên.
+
+Preview kiểm tra: https://no-offside-5v3fatq76-ngoc-nguyens-projects-c2fd1451.vercel.app/. Hộp thoại archive tại commit 3888c4a đã xác nhận focus vào Đóng, nav inert, body scroll khóa và Escape đóng đúng. Bản cập nhật tiếp theo chỉ bổ sung padding safe-area trên màn Cá nhân.

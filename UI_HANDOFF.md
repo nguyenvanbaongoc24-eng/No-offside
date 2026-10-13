@@ -31,6 +31,8 @@ có hai ảnh tham chiếu, nên chưa đối chiếu trực quan được với
 - Kiểm thử trực tiếp bản preview HTTPS: Quỹ đội và form tạo trận không tràn
   ngang ở 320/360/390/430 px; các tab bằng nhau, nhãn một dòng, icon 24 px;
   input form 16 px và thẳng lề. Preview dùng dữ liệu mẫu riêng trên thiết bị.
+- Kiểm tra chế độ tối của quỹ và thanh tab; tăng tương phản nhãn mục chưa chọn,
+  chữ Thu/Chi và làm nhẹ đường phân cách.
 - Chưa xác minh bàn phím ảo, Safari iOS, Chrome Android, xoay màn hình hoặc
   PWA standalone trên thiết bị thật. Kiểm tra viewport không thay thế thiết bị.
 

@@ -198,6 +198,10 @@ input::-webkit-date-and-time-value { text-align: left; min-height: 1.5em; }
 [data-theme="dark"] .nav-item[aria-current="page"],[data-theme="dark"] .text-action { color: #6ee7b7; }
 [data-theme="dark"] .nav-item:hover:not([aria-current]),[data-theme="dark"] .fund-segments,[data-theme="dark"] .quick-actions button,[data-theme="dark"] .form-field input,[data-theme="dark"] .form-field select { background: #0f172a; color: #e2e8f0; }
 [data-theme="dark"] .fund-segments button[aria-pressed="true"] { background: #334155; color: #6ee7b7; }
+[data-theme="dark"] .fund-segments button { color: #cbd5e1; }
+[data-theme="dark"] .fund-page .text-emerald-700 { color: #6ee7b7; }
+[data-theme="dark"] .fund-page .text-rose-700 { color: #fda4af; }
+[data-theme="dark"] .fund-totals,[data-theme="dark"] .transaction-row,[data-theme="dark"] .fund-person-row,[data-theme="dark"] .sheet-header,[data-theme="dark"] .form-field input,[data-theme="dark"] .form-field select { border-color: #334155; }
 [data-theme="dark"] .action-menu summary,[data-theme="dark"] .transaction-meta,[data-theme="dark"] .field-hint,[data-theme="dark"] .fund-totals dt,[data-theme="dark"] .segment-count { color: #cbd5e1; }
 [data-theme="dark"] .match-swipe-content { background: #1e293b; border-color: #475569; }
 [data-theme="dark"] .match-select-button[aria-pressed="true"] { background: #064e3b; }

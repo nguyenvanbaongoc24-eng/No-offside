@@ -62,7 +62,7 @@ export default function Chat({
   };
   return (
     <div className="chat-page">
-      <header className="bg-slate-900 text-white px-5 pt-safe-hero pb-5 rounded-b-3xl">
+      <header className="page-heading px-5 py-5">
         <div className="flex gap-3 items-center">
           <MessageSquare className="text-emerald-400" />
           <div>

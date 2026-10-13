@@ -461,7 +461,7 @@ export default function LineupBuilder({
 
         {/* NÚT LƯU ĐỘI HÌNH */}
         <motion.button
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.98 }}
           disabled={!canEdit}
           onClick={handleSaveLineupCoordinates}
           className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5   cursor-pointer"
@@ -798,7 +798,7 @@ export default function LineupBuilder({
 
               <div className="pt-2">
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={handleCreateNewFormation}
                   className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs   cursor-pointer"

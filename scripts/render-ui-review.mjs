@@ -1,0 +1,72 @@
+import { build } from 'esbuild';
+import { createRequire } from 'node:module';
+import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const output=await build({absWorkingDir:root,stdin:{resolveDir:root,loader:'jsx',contents:`
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {Home,Network,Wallet,MessageSquare,User} from 'lucide-react';
+import Login from './src/pages/Login.jsx';
+import TeamOnboarding from './src/pages/TeamOnboarding.jsx';
+import ClubCodeModal from './src/components/ClubCodeModal.jsx';
+import PlayerDashboard from './src/pages/PlayerDashboard.jsx';
+import TeamManager from './src/pages/TeamManager.jsx';
+import LineupBuilder from './src/pages/LineupBuilder.jsx';
+import Fund from './src/pages/FundManagement.jsx';
+import Chat from './src/pages/Chat.jsx';
+import Profile from './src/pages/ProfileMenu.jsx';
+import Settings from './src/pages/TeamSettings.jsx';
+import CreateTeam from './src/pages/CreateTeam.jsx';
+import MatchForm from './src/components/MatchFormSheet.jsx';
+import Appearance from './src/components/AppearanceSettings.jsx';
+import BankPicker from './src/components/BankPicker.jsx';
+import EmptyTeam from './src/pages/EmptyTeam.jsx';
+import InviteLanding from './src/pages/InviteLanding.jsx';
+import Governance from './src/pages/Governance.jsx';
+const noop=()=>{};
+const avatar='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="40" fill="#d9ede4"/><text x="40" y="51" text-anchor="middle" font-family="sans-serif" font-size="28" fill="#22503a">M</text></svg>');
+const user={id:'usr-9',name:'Minh Anh',number:9,avatar,teamName:'FC No Offside',role:'Tiền đạo',phone:'',height:175,weight:68,fundDebt:0,stats:{matches:12,goals:6,assists:4}};
+const members=[user,{...user,id:'usr-10',name:'Hoàng Hải',number:10,roleType:'admin',customTitle:'Thủ quỹ'},{...user,id:'usr-19',name:'Quang Hải',number:19,roleType:'member'},{...user,id:'usr-1',name:'Văn Lâm',number:1,roleType:'member'}].map((m,i)=>({...m,roleType:m.roleType||'owner'}));
+const team={id:'ui-review',teamName:'FC No Offside',teamCategory:'Sân 7',logo:avatar,venue:'Sân Chuyên Việt',schedule:'Thứ Sáu · 18:30',members,subAdmins:[members[1]],pendingAdminRequests:[],appearance:{}};
+const match={id:'review-match',title:'Kèo sân 7 — FC Sài Gòn',category:'Sân 7',datetime:'2026-10-24T18:30',deadline:'2026-10-24T12:00',venue:'Sân Chuyên Việt · Tân Bình',penaltyEnabled:true,penaltyAmount:'50.000 đ',status:'upcoming'};
+const funds={transactions:[{id:'t1',title:'Thu quỹ tháng 10',amount:600000,type:'income',date:'12/10/2026',author:'Thủ quỹ'},{id:'t2',title:'Tiền thuê sân',amount:300000,type:'expense',date:'10/10/2026',author:'Thủ quỹ'}],pendingApprovals:[],debtors:[]};
+const preferences={value:{theme:'system',fontFamily:'system',fontSize:'medium'},update:noop};
+const common={user,currentUserRole:'owner',demoSession:false,teamSettings:team,members,onNavigate:noop,onBack:noop,onLogout:noop,onUpdateProfile:noop};
+const gov={snapshot:null,loading:false,error:'Chưa kết nối nghiệp vụ cho đội này.',serverNow:Date.now(),mutate:noop};
+const cases={
+ login:<Login/>,
+ onboarding:<TeamOnboarding user={user} onOpenCreateTeam={noop} onOpenJoinCode={noop} onOpenScanQr={noop}/>,
+ join:<ClubCodeModal isOpen onClose={noop} onJoinSuccess={noop} currentUser={user}/>,
+ home:<PlayerDashboard {...common} teamId={team.id} matches={[match]} activeMatch={match} attendance={{}} reports={{}} balance={300000} funds={funds} treasurerQr={{}} governance={gov} onOpenNotifications={noop} onAddNotice={noop} onSaveMatch={noop} onSetMatchStatus={noop} onSelectMatch={noop} onDeleteMatch={noop} onApprove={noop} onChangeFunds={noop} onAttendanceChange={noop}/>,
+ members:<TeamManager isOpen members={members} currentUserRole="owner" onClose={noop} onOpenInvite={noop}/>,
+ tactics:<LineupBuilder {...common} teamId={team.id} accountId="ui-review"/>,
+ fund:<Fund funds={funds} currentUserRole="owner" onChangeFunds={noop} onApprove={noop} treasurerQr={{}}/>,
+ chat:<Chat user={user} members={members} teamId={team.id} accountId="ui-review"/>,
+ profile:<Profile {...common} hasTeam appearancePanel={<Appearance preferences={preferences}/>} accountPanel={<span>Tài khoản</span>} onOpenNotifications={noop}/>,
+ settings:<Settings {...common} onUpdateTeamSettings={noop}/>,
+ create:<CreateTeam onBack={noop} onTeamCreated={noop}/>,
+ form:<MatchForm canManage isOpen title="Thông tin trận đấu" draft={{opponent:'FC Sài Gòn',datetime:'2026-10-24T18:30',timeoutDatetime:'2026-10-24T12:00',venue:'Sân Chuyên Việt',penaltyEnabled:true,penaltyFine:'50000'}} onChange={noop} onClose={noop} onSubmit={noop}/>,
+ empty:<EmptyTeam teamSettings={team} leader onSaveMatch={noop} onNavigate={noop}/>,
+ error:<Governance governance={gov} onBack={noop}/>,
+ appearance:<Appearance preferences={preferences}/>,
+ bank:<BankPicker value="970422" name="MBBank" onChange={noop}/>,
+ invite:<InviteLanding teamData={{name:team.teamName,captain:user.name,membersCount:4,venue:team.venue,logo:avatar,category:'Sân 7',code:'UI1234'}} onBackToApp={noop} onRequireAuth={noop}/>
+};
+export const renderNav=()=>renderToStaticMarkup(<nav className="bottom-navigation" aria-label="Điều hướng chính"><div className="nav-items">{[['home','Trang chủ',Home],['tactics','Chiến thuật',Network],['fund','Quỹ đội',Wallet],['chat','Tin nhắn',MessageSquare],['profile','Cá nhân',User]].map(([key,label,Icon])=><button key={key} className="nav-item" data-target={key}><Icon size={24}/><span>{label}</span></button>)}</div></nav>);
+export const render=()=>Object.fromEntries(Object.entries(cases).map(([key,value])=>[key,renderToStaticMarkup(value)]));
+`},bundle:true,platform:'node',format:'cjs',write:false,logLevel:'silent',plugins:[{name:'read-only-fixture',setup(b){b.onResolve({filter:/lib\/supabase$/},()=>({path:'supabase-fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase = null;',loader:'js'}));}}]});
+globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
+globalThis.sessionStorage={getItem:()=> 'true',setItem:()=>{},removeItem:()=>{}};
+globalThis.document={};
+const compiled={exports:{}};
+new Function('require','module','exports',output.outputFiles[0].text)(createRequire(import.meta.url),compiled,compiled.exports);
+globalThis.window={location:{origin:'https://no-offside.vercel.app',pathname:'/'},sessionStorage:globalThis.sessionStorage,innerHeight:844,addEventListener(){},removeEventListener(){},matchMedia:()=>({matches:false,addListener(){},removeListener(){}})};
+const cases=compiled.exports.render();
+const cssName=(await readdir(root+'dist/assets')).find(name=>name.endsWith('.css'));
+const css=await readFile(root+'dist/assets/'+cssName,'utf8');
+const nav=compiled.exports.renderNav();
+const html='<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>No Offside — Kiểm chứng UI</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"><style>'+css+'[hidden]{display:none!important;} [data-screen] [style*="opacity:0"]{opacity:1!important;transform:none!important;}</style></head><body><div class="app-frame max-w-md mx-auto"><div class="session-banner">Kiểm chứng UI · dữ liệu minh họa · nghiệp vụ không hoạt động</div>'+Object.entries(cases).map(([key,markup])=>'<main data-screen="'+key+'" hidden>'+markup+'</main>').join('')+'<div id="review-nav">'+nav+'</div></div><script>const p=new URLSearchParams(location.search);const screen=p.get("screen")||"home";document.documentElement.dataset.theme=p.get("theme")||"light";document.documentElement.dataset.font=p.get("font")||"vietnam";document.documentElement.dataset.fontSize=p.get("size")||"medium";document.querySelectorAll("[data-screen]").forEach(el=>el.hidden=el.dataset.screen!==screen);if(!["home","tactics","fund","chat","profile"].includes(screen))document.getElementById("review-nav").hidden=true;document.addEventListener("submit",e=>e.preventDefault());document.querySelectorAll("button[data-target]").forEach(el=>{if(el.dataset.target===screen)el.setAttribute("aria-current","page")});document.querySelectorAll("button[data-target]").forEach(el=>el.onclick=()=>{p.set("screen",el.dataset.target);location.search=p.toString()});</script></body></html>';
+await mkdir(root+'public',{recursive:true});
+await writeFile(root+'public/ui-review.html',html);
+console.log('Rendered read-only UI cases:',Object.keys(cases).join(', '));

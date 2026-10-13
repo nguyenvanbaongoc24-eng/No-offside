@@ -552,16 +552,13 @@ export default function Login({ onLoginSuccess, initialMode }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col justify-center px-4 py-8 font-sans antialiased relative overflow-hidden select-none">
-      {/* Decorative gradient accents */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[480px] h-[320px] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-0 right-1/4 w-[360px] h-[360px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="auth-page min-h-screen flex flex-col justify-center px-4 py-8 font-sans antialiased relative">
 
       <div className="max-w-sm mx-auto w-full relative z-10">
         {/* App Branding */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-400 to-cyan-400 text-slate-950 font-black text-2xl shadow-lg shadow-emerald-500/30 mb-3">
-            ⚽
+        <div className="auth-brand text-center mb-6">
+          <div className="brand-mark inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3">
+            <ShieldCheck size={30} aria-hidden="true"/>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white">
             NO OFFSIDE
@@ -572,7 +569,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
         </div>
 
         {/* Card Frame */}
-        <div className="bg-slate-800/90 backdrop-blur-xl border border-slate-700/60 rounded-3xl p-6 shadow-2xl relative">
+        <div className="auth-card p-6 relative">
           {pendingJoin && (
             <div className="mb-4 p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">

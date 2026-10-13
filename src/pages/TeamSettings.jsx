@@ -35,7 +35,7 @@ export default function TeamSettings({
   };
   return (
     <div className="settings-page pb-8">
-      <header className="bg-slate-900 text-white p-5 pt-safe-hero rounded-b-3xl">
+      <header className="page-heading p-5">
         <button onClick={onBack} className="flex gap-2 items-center text-sm">
           <ArrowLeft size={18} />
           Quay lại

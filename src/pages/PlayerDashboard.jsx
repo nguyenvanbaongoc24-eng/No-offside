@@ -767,7 +767,7 @@ export default function PlayerDashboard({
                 </span>
                 <div className="flex items-center gap-3">
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() =>
                       setGoalsReported((prev) => Math.max(0, prev - 1))
@@ -780,7 +780,7 @@ export default function PlayerDashboard({
                     {goalsReported}
                   </span>
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setGoalsReported((prev) => prev + 1)}
                     className="w-8 h-8 rounded-full bg-emerald-600 shadow-xs text-white flex items-center justify-center font-bold text-base hover:bg-emerald-700 active:scale-95 cursor-pointer"
@@ -797,7 +797,7 @@ export default function PlayerDashboard({
                 </span>
                 <div className="flex items-center gap-3">
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() =>
                       setAssistsReported((prev) => Math.max(0, prev - 1))
@@ -810,7 +810,7 @@ export default function PlayerDashboard({
                     {assistsReported}
                   </span>
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setAssistsReported((prev) => prev + 1)}
                     className="w-8 h-8 rounded-full bg-amber-500 shadow-xs text-white flex items-center justify-center font-bold text-base hover:bg-amber-600 active:scale-95 cursor-pointer"
@@ -823,7 +823,7 @@ export default function PlayerDashboard({
 
             {/* Submit Button */}
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleSaveMatchReport}
               className={`w-full py-3 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
                 statsSaved

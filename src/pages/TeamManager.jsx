@@ -98,22 +98,22 @@ export default function TeamManager({
           initial={{ opacity: 0, y: '100%' }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-lg max-h-[92vh] sm:max-h-[85vh] bg-white rounded-t-[36px] sm:rounded-[36px] shadow-2xl flex flex-col overflow-hidden text-gray-900 z-10 border border-gray-100"
+          transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
+          className="member-sheet relative w-full max-w-lg max-h-[92vh] sm:max-h-[85vh] bg-white rounded-t-[36px] sm:rounded-[36px] flex flex-col overflow-hidden text-gray-900 z-10 border border-gray-100"
         >
           {/* Top Handle bar (Mobile bottom sheet indicator) */}
           <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 sm:hidden" />
 
           {/* Header Bar */}
-          <div className="p-5 pb-3 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+          <div className="member-sheet-header p-5 pb-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-xs">
                 <Users className="w-5 h-5" />
               </div>
               <div>
                 <h2 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
-                  <span>Quản Lý Nhân Sự & Đội Hình</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold tabular-nums">
+                  <span>Thành viên đội</span>
+                  <span className="member-count text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold tabular-nums">
                     {members.length}
                   </span>
                 </h2>
@@ -121,7 +121,7 @@ export default function TeamManager({
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
                 onClick={() => onOpenInvite && onOpenInvite()}
@@ -166,7 +166,7 @@ export default function TeamManager({
 
             {/* Filter Pills & Add Member Button */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-1 bg-gray-200/80 p-0.5 rounded-full text-xs font-bold">
+              <div className="member-filters flex items-center gap-1 bg-gray-200/80 p-0.5 rounded-full text-xs font-bold">
                 <button
                   onClick={() => setFilterRole('all')}
                   className={`px-3 py-1 rounded-full transition-all cursor-pointer whitespace-nowrap ${
@@ -202,7 +202,7 @@ export default function TeamManager({
                 className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-green-500/25 cursor-pointer whitespace-nowrap"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>+ Thêm Thành Viên</span>
+                <span>Thêm thành viên</span>
               </motion.button>
             </div>
           </div>
@@ -228,7 +228,7 @@ export default function TeamManager({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="p-3 bg-white hover:bg-slate-50/80 rounded-2xl border border-gray-100 flex items-center justify-between transition-colors shadow-xs"
+                    className="member-row p-3 bg-white rounded-2xl border border-gray-100 flex items-center justify-between transition-colors"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Avatar with Shirt number badge */}

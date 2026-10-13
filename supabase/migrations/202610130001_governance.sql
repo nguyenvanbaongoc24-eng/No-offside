@@ -111,8 +111,8 @@ begin
    if not found then raise exception 'Effective rules required'; end if;
    v_subject:=v_actor; v_data:=jsonb_build_object('ruleId',v_rule.id,'version',v_rule.version);
  when 'policy' then
-   if not (p_payload ?& array['period','threshold','types','mode','action']) or p_payload->>'period' not in ('month','quarter') or (p_payload->>'threshold')::integer not between 1 and 100 or p_payload->>'action' not in ('warning','lock','remove') or p_payload->>'mode'<>'review' or jsonb_typeof(p_payload->'types')<>'array' or jsonb_array_length(p_payload->'types')=0 then raise exception 'Invalid policy; automatic sanctions are not enabled'; end if;
-   if exists(select 1 from jsonb_array_elements_text(p_payload->'types') t where t not in ('late','unvoted','other')) then raise exception 'Invalid counted type'; end if;
+   if not (p_payload ?& array['period','threshold','types','mode','action']) or p_payload->>'period' is null or p_payload->>'threshold' is null or p_payload->>'mode' is null or p_payload->>'action' is null or p_payload->'types'='null'::jsonb or p_payload->>'period' not in ('month','quarter') or (p_payload->>'threshold')::integer not between 1 and 100 or p_payload->>'action' not in ('warning','lock','remove') or p_payload->>'mode'<>'review' or jsonb_typeof(p_payload->'types')<>'array' or jsonb_array_length(p_payload->'types')=0 then raise exception 'Invalid policy; automatic sanctions are not enabled'; end if;
+   if exists(select 1 from jsonb_array_elements_text(p_payload->'types') t where t is null or t not in ('late','unvoted','other')) then raise exception 'Invalid counted type'; end if;
    update public.no_gov_teams set policy=p_payload where id=p_team_id;
  when 'match' then
    if v_match_id is not null and exists(select 1 from public.no_gov_events where team_id=p_team_id and match_id=v_match_id and action in ('arrival','violation')) then raise exception 'Match has finalized history'; end if;

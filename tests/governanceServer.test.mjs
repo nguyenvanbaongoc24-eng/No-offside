@@ -458,6 +458,8 @@ test("automatic sanctions and incomplete policy changes are rejected; expired lo
     rpc(team, "policy", { period: "month" }),
     /Invalid policy/,
   );
+  await assert.rejects(rpc(team,'policy',{period:'month',threshold:null,types:['late'],mode:'review',action:'warning'}),/Invalid policy/);
+  await assert.rejects(rpc(team,'policy',{period:'month',threshold:3,types:[null],mode:'review',action:'warning'}),/Invalid counted type/);
   await rpc(team, "sanction", {
     subject: member,
     kind: "lock",

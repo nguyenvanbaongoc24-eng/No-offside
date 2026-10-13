@@ -63,7 +63,7 @@
 body { font-size: 16px; line-height: 1.5; }
 button, input, select, textarea { font-family: inherit; }
 button { min-height: 44px; min-width: 44px; touch-action: manipulation; transition: background-color 160ms, box-shadow 160ms, transform 120ms, filter 120ms; }
-button:not(:disabled):active, [role="button"]:active { transform: scale(.96); filter: brightness(.88); box-shadow: 0 0 0 4px rgb(16 185 129 / .26); }
+button:not(:disabled):active, [role="button"]:not(.tactics-player):active { transform: scale(.96); filter: brightness(.88); box-shadow: 0 0 0 4px rgb(16 185 129 / .26); }
 button:focus-visible, [role="button"]:focus-visible { outline: 3px solid #10b981; outline-offset: 3px; }
 button:disabled { opacity: .55; cursor: not-allowed; }
 button[aria-pressed="true"] { box-shadow: 0 0 0 2px #059669, 0 4px 12px rgb(5 150 105 / .18); }

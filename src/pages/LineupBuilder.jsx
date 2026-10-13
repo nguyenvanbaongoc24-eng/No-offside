@@ -26,8 +26,7 @@ export default function LineupBuilder({
   currentUserRole,
 }) {
   const pitchRef = useRef(null);
-  const dragUntil = useRef(0);
-  const tapStart = useRef(null);
+  const [draggedPlayer, setDraggedPlayer] = useState(null);
   useEffect(
     () => () =>
       window.dispatchEvent(
@@ -496,130 +495,113 @@ export default function LineupBuilder({
 
           {/* Player Pins with Framer Motion Free Drag */}
           {currentFormation.players.map((player) => (
-            <motion.div
+            <div
               key={player.id + player.top + player.left}
-              role={canEdit ? "button" : undefined}
-              tabIndex={canEdit ? 0 : undefined}
-              aria-label={`Đổi cầu thủ ${player.name}`}
-              onKeyDown={(e) => {
-                if (canEdit && (e.key === "Enter" || e.key === " ")) {
-                  e.preventDefault();
-                  setSelectedPlayer(player);
-                }
-              }}
-              drag={canEdit}
-              onClick={(e) => {
-                if (
-                  canEdit &&
-                  (e.detail === 0 || Date.now() > dragUntil.current)
-                )
-                  setSelectedPlayer(player);
-              }}
-              onPointerDownCapture={(e) => {
-                if (canEdit && e.isPrimary)
-                  tapStart.current = {
-                    id: e.pointerId,
-                    playerId: player.id,
-                    x: e.clientX,
-                    y: e.clientY,
-                  };
-              }}
-              onPointerUpCapture={(e) => {
-                const start = tapStart.current;
-                tapStart.current = null;
-                if (
-                  canEdit &&
-                  start?.id === e.pointerId &&
-                  start.playerId === player.id &&
-                  Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8
-                )
-                  setSelectedPlayer(player);
-              }}
-              dragConstraints={pitchRef}
-              dragElastic={0.05}
-              dragMomentum={false}
-              onDragStart={() => {
-                dragUntil.current = Infinity;
-                window.dispatchEvent(
-                  new CustomEvent("lineup-drag", { detail: { active: true } }),
-                );
-              }}
-              onPointerCancel={() => {
-                dragUntil.current = Date.now() + 350;
-                window.dispatchEvent(
-                  new CustomEvent("lineup-drag", { detail: { active: false } }),
-                );
-              }}
-              onDragEnd={(_event, info) => {
-                dragUntil.current = Date.now() + 350;
-                window.dispatchEvent(
-                  new CustomEvent("lineup-drag", { detail: { active: false } }),
-                );
-                const rect = pitchRef.current.getBoundingClientRect();
-                const left = Math.max(
-                  5,
-                  Math.min(
-                    95,
-                    parseFloat(player.left) +
-                      (info.offset.x / rect.width) * 100,
-                  ),
-                );
-                const top = Math.max(
-                  5,
-                  Math.min(
-                    95,
-                    parseFloat(player.top) +
-                      (info.offset.y / rect.height) * 100,
-                  ),
-                );
-                setFormationsList((prev) =>
-                  prev.map((f) =>
-                    f.id === selectedFormationId
-                      ? {
-                          ...f,
-                          players: f.players.map((p) =>
-                            p.id === player.id
-                              ? { ...p, left: left + "%", top: top + "%" }
-                              : p,
-                          ),
-                        }
-                      : f,
-                  ),
-                );
-              }}
-              whileDrag={{ scale: 1.2, zIndex: 50 }}
               style={{
                 top: player.top,
                 left: player.left,
-                x: "-50%",
-                y: "-50%",
+                zIndex: draggedPlayer === player.id ? 50 : 10,
               }}
-              className="tactics-player absolute cursor-grab active:cursor-grabbing z-10 flex flex-col items-center touch-none"
+              className="absolute -translate-x-1/2 -translate-y-1/2"
             >
-              {/* Number Circle */}
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (canEdit && Date.now() > dragUntil.current)
+              <motion.div
+                role={canEdit ? "button" : undefined}
+                tabIndex={canEdit ? 0 : undefined}
+                aria-label={`Đổi cầu thủ ${player.name}`}
+                onKeyDown={(e) => {
+                  if (canEdit && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
                     setSelectedPlayer(player);
+                  }
                 }}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2  transition-all cursor-pointer ${
-                  player.isUser
-                    ? "bg-emerald-400 text-slate-950 border-white ring-4 ring-emerald-400/50"
-                    : player.role === "GK"
-                      ? "bg-amber-400 text-slate-950 border-amber-100 ring-2 ring-amber-400/50"
-                      : "bg-slate-900 text-white border-white/80 ring-2 ring-black/40"
-                }`}
-                title="Kéo để di chuyển, click để đổi người"
+                drag={canEdit}
+                onTap={() => {
+                  if (canEdit) setSelectedPlayer(player);
+                }}
+                onClick={(e) => {
+                  if (canEdit && e.detail === 0) setSelectedPlayer(player);
+                }}
+                dragConstraints={pitchRef}
+                dragElastic={0.05}
+                dragMomentum={false}
+                onDragStart={() => {
+                  setDraggedPlayer(player.id);
+                  window.dispatchEvent(
+                    new CustomEvent("lineup-drag", {
+                      detail: { active: true },
+                    }),
+                  );
+                }}
+                onPointerCancel={() => {
+                  setDraggedPlayer(null);
+                  window.dispatchEvent(
+                    new CustomEvent("lineup-drag", {
+                      detail: { active: false },
+                    }),
+                  );
+                }}
+                onDragEnd={(_event, info) => {
+                  setDraggedPlayer(null);
+                  window.dispatchEvent(
+                    new CustomEvent("lineup-drag", {
+                      detail: { active: false },
+                    }),
+                  );
+                  const rect = pitchRef.current.getBoundingClientRect();
+                  const left = Math.max(
+                    5,
+                    Math.min(
+                      95,
+                      parseFloat(player.left) +
+                        (info.offset.x / rect.width) * 100,
+                    ),
+                  );
+                  const top = Math.max(
+                    5,
+                    Math.min(
+                      95,
+                      parseFloat(player.top) +
+                        (info.offset.y / rect.height) * 100,
+                    ),
+                  );
+                  setFormationsList((prev) =>
+                    prev.map((f) =>
+                      f.id === selectedFormationId
+                        ? {
+                            ...f,
+                            players: f.players.map((p) =>
+                              p.id === player.id
+                                ? { ...p, left: left + "%", top: top + "%" }
+                                : p,
+                            ),
+                          }
+                        : f,
+                    ),
+                  );
+                }}
+                whileDrag={{ scale: 1.2, zIndex: 50 }}
+                className="tactics-player cursor-grab active:cursor-grabbing flex flex-col items-center touch-none"
               >
-                {player.number}
-              </div>
+                {/* Number Circle */}
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2  transition-all cursor-pointer ${
+                    player.isUser
+                      ? "bg-emerald-400 text-slate-950 border-white ring-4 ring-emerald-400/50"
+                      : player.role === "GK"
+                        ? "bg-amber-400 text-slate-950 border-amber-100 ring-2 ring-amber-400/50"
+                        : "bg-slate-900 text-white border-white/80 ring-2 ring-black/40"
+                  }`}
+                  title="Kéo để di chuyển, click để đổi người"
+                >
+                  {player.number}
+                </div>
 
-              {/* High-Contrast White Name Badge */}
-              <div className="mt-1 px-2.5 py-0.5 rounded-full bg-slate-900/95 border border-white/25  text-xs font-bold text-white whitespace-nowrap text-center drop-">
-                {player.name}
-              </div>
-            </motion.div>
+                {/* High-Contrast White Name Badge */}
+                <div className="mt-1 px-2.5 py-0.5 rounded-full bg-slate-900/95 border border-white/25  text-xs font-bold text-white whitespace-nowrap text-center drop-">
+                  {player.name}
+                </div>
+              </motion.div>
+            </div>
           ))}
 
           {/* Hint Overlay */}

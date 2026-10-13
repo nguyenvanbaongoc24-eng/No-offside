@@ -1243,17 +1243,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
           )}
         </div>
 
-        {/* Quick Demo Access Button */}
-        <div className="mt-5 text-center">
-          <button
-            type="button"
-            onClick={handleDemoAccess}
-            className="text-xs text-slate-400 hover:text-emerald-400 font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer py-1 px-3 rounded-full hover:bg-slate-800/60"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Trải nghiệm với dữ liệu mẫu</span>
-          </button>
-        </div>
+
 
         {/* Footer */}
         <p className="text-[11px] text-center text-slate-500 mt-4 font-medium">

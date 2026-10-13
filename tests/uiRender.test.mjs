@@ -187,7 +187,7 @@ test("large match card starts with hidden swipe action and has accessible menu a
 test("login screen renders Google OAuth button and omits SMS and email OTP fields", () => {
   const html = render("Login", { onLoginSuccess: noop });
   assert.match(html, /Tiếp tục với Google/);
-  assert.match(html, /Trải nghiệm với dữ liệu mẫu/);
+  assert.doesNotMatch(html, /Trải nghiệm với dữ liệu mẫu/);
   assert.match(html, /Đăng nhập/);
   assert.match(html, /Tạo tài khoản/);
   assert.doesNotMatch(html, /Gửi mã đăng nhập/);

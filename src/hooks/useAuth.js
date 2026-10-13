@@ -626,6 +626,37 @@ export function useAuth() {
               readSession("no_offside_app_unlocked") === "true";
 
             if (isAutoLogin || hasSessionUnlock) {
+              if (typeof supabase.auth.getUser === "function") {
+                supabase.auth
+                  .getUser()
+                  .then(({ data: userData, error: userError }) => {
+                    if (!live) return;
+                    if (userError || !userData?.user?.id) {
+                      supabase.auth.signOut({ scope: "local" });
+                      removeSession("no_offside_app_unlocked");
+                      setAuthSession(null);
+                      setIsUnlocked(false);
+                      setVerifiedAccount(null);
+                      setAuthLoading(false);
+                      return;
+                    }
+                    setAuthSession(session);
+                    setIsUnlocked(true);
+                    setVerifiedAccount(userData.user.id);
+                    if (isAutoLogin) writeSession("no_offside_app_unlocked", "true");
+                    setDemoSession(false);
+                    setAuthLoading(false);
+                  })
+                  .catch(() => {
+                    if (!live) return;
+                    supabase.auth.signOut({ scope: "local" });
+                    removeSession("no_offside_app_unlocked");
+                    setAuthSession(null);
+                    setIsUnlocked(false);
+                    setAuthLoading(false);
+                  });
+                return;
+              }
               setAuthSession(session);
               setIsUnlocked(true);
               if (isAutoLogin) writeSession("no_offside_app_unlocked", "true");

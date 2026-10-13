@@ -34,3 +34,5 @@ dist-ssr
 .vercel
 !.env.example
 supabase/.temp
+
+.ui-review/

@@ -22,6 +22,7 @@
   --font-description: 14px;
   --motion-duration: 220ms;
   --motion-ease: cubic-bezier(.22, .61, .36, 1);
+  --page-safe-top: env(safe-area-inset-top, 0px);
 }
 :root[data-theme="dark"] {
   --background: #101813;
@@ -129,6 +130,9 @@ button[aria-pressed="true"] { box-shadow: none; }
 .page-heading h1 { font-size: 24px; }
 .page-heading p { color: var(--secondary-text); }
 .page-heading h1.mt-4 { margin-top: 8px; }
+.session-banner ~ main { --page-safe-top: 0px; }
+.page-heading, .dashboard-header, .compact-header, .tactics-header { padding-top: calc(20px + var(--page-safe-top)); }
+.profile-home { padding-top: calc(20px + var(--page-safe-top)); }
 .tactics-header { background: var(--surface); color: var(--text); border-bottom: 1px solid var(--border); }
 .tactics-header .primary-button { min-height: 44px; }
 .nav-items, .chat-composer { background: var(--surface); border-color: var(--border); box-shadow: none; }
@@ -155,7 +159,8 @@ button[aria-pressed="true"] { box-shadow: none; }
 .auth-card label { color: var(--text); font-size: var(--font-description); }
 .auth-card [class*="bg-slate-900/"], .auth-card .bg-slate-900 { background: var(--input-background); }
 .auth-card button.text-emerald-400, .auth-card .text-emerald-300 { color: var(--accent); }
-.auth-card .bg-white, .auth-card .bg-slate-800, .auth-card .bg-white\/5 { background: var(--input-background); color: var(--text); border: 1px solid var(--control-border); }
+.auth-card .bg-white, .auth-card .bg-white\/5 { background: var(--input-background); color: var(--text); border: 1px solid var(--control-border); }
+.auth-card .bg-slate-800 { background: var(--surface); color: var(--secondary-text); border: 0; }
 .auth-card .bg-emerald-500 { color: var(--on-primary); background: var(--primary-fill); }
 .auth-card [role="alert"] { color: var(--danger); background: var(--danger-surface); }
 .auth-card [role="status"] { color: var(--success); background: var(--input-background); }

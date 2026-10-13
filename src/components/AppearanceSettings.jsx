@@ -1,13 +1,19 @@
 import React from "react";
-import { Sun, Moon, Smartphone } from "lucide-react";
+import { Sun, Moon, Smartphone, Type } from "lucide-react";
+
 export default function AppearanceSettings({ preferences }) {
+  const currentFontSize = preferences.value.fontSize || "medium";
+
   return (
     <section className="settings-card">
       <h2>Giao diện cá nhân</h2>
       <p className="text-sm text-slate-500 mt-2">
         Áp dụng và tự lưu ngay cho tài khoản này.
       </p>
-      <div className="grid grid-cols-3 gap-2 mt-4">
+
+      {/* 1. Theme sáng/tối */}
+      <h3 className="text-sm font-medium mt-4 mb-2">Chủ đề màu sắc</h3>
+      <div className="grid grid-cols-3 gap-2">
         {[
           ["light", "Sáng", Sun],
           ["dark", "Tối", Moon],
@@ -25,6 +31,31 @@ export default function AppearanceSettings({ preferences }) {
           </button>
         ))}
       </div>
+
+      {/* 2. Cỡ chữ */}
+      <h3 className="text-sm font-medium mt-5 mb-2 flex items-center gap-1.5">
+        <Type size={16} />
+        <span>Cỡ chữ</span>
+      </h3>
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          ["small", "Nhỏ"],
+          ["medium", "Vừa"],
+          ["large", "Lớn"],
+        ].map(([value, label]) => (
+          <button
+            type="button"
+            key={value}
+            className="choice-button"
+            aria-pressed={currentFontSize === value}
+            onClick={() => preferences.update({ fontSize: value })}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* 3. Font chữ */}
       <h3 className="text-sm font-medium mt-5 mb-2">Font chữ</h3>
       <div className="grid grid-cols-2 gap-2">
         {[
@@ -45,6 +76,7 @@ export default function AppearanceSettings({ preferences }) {
       <p className="text-xs text-slate-500 mt-3">
         Font hệ thống theo thiết bị; trên iPhone dùng font của iOS.
       </p>
+
       {preferences.error && (
         <p role="alert" className="text-sm text-rose-700 mt-3">
           {preferences.error}

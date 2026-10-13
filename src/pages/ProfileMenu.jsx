@@ -36,6 +36,7 @@ export default function ProfileMenu(props) {
     onLogout,
     onOpenNotifications,
     onUpdateUsername,
+    onOpenJoinCode,
   } = props;
   const [detail, setDetail] = useState(null),
     [error, setError] = useState(""),
@@ -204,7 +205,7 @@ export default function ProfileMenu(props) {
           </Row>
         )}
       </section>
-      {hasTeam && (
+      {hasTeam ? (
         <section className="profile-group">
           <h2>Đội bóng</h2>
           <Row icon={Users} onClick={() => setDetail("members")}>
@@ -213,6 +214,30 @@ export default function ProfileMenu(props) {
           {onNavigate && (
             <Row icon={BookOpen} onClick={() => onNavigate("governance")}>
               Nội quy & vi phạm
+            </Row>
+          )}
+          {onOpenJoinCode && (
+            <Row icon={Users} onClick={onOpenJoinCode}>
+              Gia nhập đội khác
+            </Row>
+          )}
+          {onNavigate && (
+            <Row icon={Users} onClick={() => onNavigate("create-team")}>
+              Tạo đội mới
+            </Row>
+          )}
+        </section>
+      ) : (
+        <section className="profile-group">
+          <h2>Đội bóng</h2>
+          {onOpenJoinCode && (
+            <Row icon={Users} onClick={onOpenJoinCode}>
+              Gia nhập đội
+            </Row>
+          )}
+          {onNavigate && (
+            <Row icon={Users} onClick={() => onNavigate("create-team")}>
+              Tạo đội mới
             </Row>
           )}
         </section>

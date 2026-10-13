@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState } from "react";
 import { readStored, writeStored } from "../lib/storage";
-export const defaultAppearance = { theme: "system", fontFamily: "system" };
+export const defaultAppearance = { theme: "system", fontFamily: "system", fontSize: "medium" };
 export function usePersonalAppearance(accountId) {
   const key = "no_offside_appearance_" + accountId;
   const [state, setState] = useState(() => ({

@@ -21,7 +21,8 @@ const result = await build({
     import Governance from './src/pages/Governance.jsx';
     import AppearanceSettings from './src/components/AppearanceSettings.jsx';
     import SwipeMatchCard from './src/components/SwipeMatchCard.jsx';
-    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam,Governance,AppearanceSettings,SwipeMatchCard}[name],props));
+    import Login from './src/pages/Login.jsx';
+    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam,Governance,AppearanceSettings,SwipeMatchCard,Login}[name],props));
   `,
   },
   bundle: true,
@@ -182,3 +183,14 @@ test("large match card starts with hidden swipe action and has accessible menu a
   assert.match(html, /tabindex="-1" aria-hidden="true"/);
   assert.doesNotMatch(html, /role="dialog"/);
 });
+
+test("login screen renders Google OAuth button and omits SMS and email OTP fields", () => {
+  const html = render("Login", { onLoginSuccess: noop });
+  assert.match(html, /Tiếp tục với Google/);
+  assert.match(html, /Trải nghiệm với dữ liệu mẫu/);
+  assert.match(html, /Đăng nhập/);
+  assert.match(html, /Tạo tài khoản/);
+  assert.doesNotMatch(html, /Gửi mã đăng nhập/);
+  assert.doesNotMatch(html, /autoComplete="one-time-code"/);
+});
+

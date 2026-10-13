@@ -16,6 +16,32 @@ import {
   restoreTeamMatch,
 } from "../lib/teamModel";
 import { defaultLate } from "../lib/governance";
+import { getPendingJoin, clearPendingJoin, savePendingJoin } from "../lib/pendingJoin";
+
+function readSession(key, fallback = null) {
+  try {
+    if (typeof window !== "undefined" && window?.sessionStorage?.getItem) {
+      return window.sessionStorage.getItem(key) ?? fallback;
+    }
+  } catch {}
+  return fallback;
+}
+
+function writeSession(key, value) {
+  try {
+    if (typeof window !== "undefined" && window?.sessionStorage?.setItem) {
+      window.sessionStorage.setItem(key, value);
+    }
+  } catch {}
+}
+
+function removeSession(key) {
+  try {
+    if (typeof window !== "undefined" && window?.sessionStorage?.removeItem) {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {}
+}
 
 const INITIAL_USER = {
   id: "usr-9",
@@ -433,6 +459,12 @@ export function useAuth() {
     "no_offside_demo_session",
     false,
   );
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    if (typeof window === "undefined" || !window?.sessionStorage?.getItem) {
+      return true;
+    }
+    return window.sessionStorage.getItem("no_offside_app_unlocked") === "true";
+  });
   const [authSession, setAuthSession] = useState(null);
   const [verifiedAccount, setVerifiedAccount] = useState(null);
   const [legacyAccount] = useState(
@@ -466,11 +498,37 @@ export function useAuth() {
     "owner",
   );
   const [teams, setTeams] = usePersistentState("no_offside_teams_v1", {});
+  const [dbMemberships, setDbMemberships] = useState([]);
+  const loadDatabaseMemberships = async () => {
+    if (!supabase || typeof supabase.rpc !== "function" || !authSession?.user?.id) {
+      return [];
+    }
+    try {
+      const { data, error } = await supabase.rpc("no_gov_my_memberships");
+      if (!error && Array.isArray(data)) {
+        setDbMemberships(data);
+        return data;
+      }
+    } catch {}
+    return [];
+  };
+
+  useEffect(() => {
+    if (authSession?.user?.id && !demoSession) {
+      loadDatabaseMemberships();
+    } else {
+      setDbMemberships([]);
+    }
+  }, [authSession?.user?.id, demoSession]);
+
   const teamId = teamSettings.id || "fc-no-offside-99";
   const accountId = demoSession ? "demo" : authSession?.user.id || "anonymous";
   const dataKey = accountId + "::" + teamId;
   const data = teams[dataKey] ||
-    (demoSession || accountId === legacyAccount ? teams[teamId] : null) || {
+    (demoSession ||
+    (accountId === legacyAccount && teamSettings.ownerId === accountId)
+      ? teams[teamId]
+      : null) || {
       funds: demoSession
         ? INITIAL_FUNDS
         : { transactions: [], pendingApprovals: [], debtors: [] },
@@ -555,7 +613,32 @@ export function useAuth() {
       .getSession()
       .then(({ data }) => {
         if (live) {
-          setAuthSession(data.session);
+          const session = data.session;
+          if (session) {
+            const userId = session.user?.id;
+            const isAutoLogin =
+              userId &&
+              Boolean(readStored("no_offside_autologin_" + userId, false)) &&
+              readStored("no_offside_last_autologin_account", null) === userId;
+            const hasSessionUnlock =
+              typeof window === "undefined" ||
+              !window?.sessionStorage?.getItem ||
+              readSession("no_offside_app_unlocked") === "true";
+
+            if (isAutoLogin || hasSessionUnlock) {
+              setAuthSession(session);
+              setIsUnlocked(true);
+              if (isAutoLogin) writeSession("no_offside_app_unlocked", "true");
+              setDemoSession(false);
+            } else {
+              setAuthSession(null);
+              setIsUnlocked(false);
+              supabase.auth.signOut({ scope: "local" });
+            }
+          } else {
+            setAuthSession(null);
+            setIsUnlocked(false);
+          }
           setAuthLoading(false);
         }
       })
@@ -563,9 +646,32 @@ export function useAuth() {
         if (live) setAuthLoading(false);
       });
     const { data: subscription } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         if (live) {
-          setAuthSession(session);
+          if (session) {
+            const userId = session.user?.id;
+            const isAutoLogin =
+              userId &&
+              Boolean(readStored("no_offside_autologin_" + userId, false)) &&
+              readStored("no_offside_last_autologin_account", null) === userId;
+            const hasSessionUnlock =
+              typeof window === "undefined" ||
+              !window?.sessionStorage?.getItem ||
+              readSession("no_offside_app_unlocked") === "true";
+
+            if (event === "SIGNED_IN" || isAutoLogin || hasSessionUnlock) {
+              setAuthSession(session);
+              setIsUnlocked(true);
+              writeSession("no_offside_app_unlocked", "true");
+              setDemoSession(false);
+            } else {
+              setAuthSession(null);
+              setIsUnlocked(false);
+            }
+          } else {
+            setAuthSession(null);
+            setIsUnlocked(false);
+          }
           setAuthLoading(false);
         }
       },
@@ -580,11 +686,27 @@ export function useAuth() {
     const account = authSession.user;
     if (user.id !== account.id) {
       const saved = readStored("no_offside_workspace_" + account.id, null);
+      if (saved?.user) {
+        if (account.email) saved.user.email = account.email;
+        if (account.user_metadata?.username) saved.user.username = account.user_metadata.username;
+      }
       const profile = saved?.user || {
         ...INITIAL_USER,
         id: account.id,
-        name: account.user_metadata?.name || "Cầu thủ mới",
-        phone: account.phone || "",
+        name:
+          account.user_metadata?.full_name ||
+          account.user_metadata?.name ||
+          (account.email ? account.email.split("@")[0] : "Cầu thủ mới"),
+        username:
+          account.user_metadata?.username ||
+          (account.email ? account.email.split("@")[0] : ""),
+        avatar:
+          account.user_metadata?.avatar_url ||
+          account.user_metadata?.picture ||
+          INITIAL_USER.avatar,
+        email: account.email || account.user_metadata?.email || "",
+        phone: account.phone || account.user_metadata?.phone || "",
+        phoneVerified: false,
         teamName: "Đội của tôi",
         fundDebt: 0,
         isFundPaid: false,
@@ -1010,6 +1132,8 @@ export function useAuth() {
     writeStored("no_offside_team_" + teamId, teamSettings);
   }, [teamId, teamSettings]);
   const login = (profile) => {
+    writeSession("no_offside_app_unlocked", "true");
+    setIsUnlocked(true);
     if (profile?.demo) {
       const saved = readStored("no_offside_workspace_demo", null);
       const demoUser = saved?.user || INITIAL_USER;
@@ -1052,9 +1176,135 @@ export function useAuth() {
     setUser(member);
     setCurrentUserRole("member");
   };
+
+  const createInvite = async (targetTeamId) => {
+    const tId = targetTeamId || teamSettings.id;
+    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id) {
+      const { data, error } = await supabase.rpc("no_gov_create_invite", {
+        p_team_id: tId,
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    const code = "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    return { success: true, code, status: "active" };
+  };
+
+  const revokeInvite = async (targetTeamId) => {
+    const tId = targetTeamId || teamSettings.id;
+    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id) {
+      const { data, error } = await supabase.rpc("no_gov_revoke_invite", {
+        p_team_id: tId,
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    }
+    return { success: true, revoked: true };
+  };
+
+  const joinTeamViaInvite = async (code, memberProfile) => {
+    const cleanCode = String(code || "").trim().toUpperCase();
+    if (!cleanCode) throw new Error("Mã Club không được để trống.");
+
+    const name = String(memberProfile.name || "").trim();
+    if (!name) throw new Error("Vui lòng nhập họ và tên.");
+
+    const number = Number(memberProfile.number);
+    if (!Number.isInteger(number) || number < 0 || number > 99) {
+      throw new Error("Số áo phải là số nguyên từ 0 đến 99.");
+    }
+
+    const position = String(
+      memberProfile.position || memberProfile.role || "Tiền đạo",
+    ).trim();
+
+    if (
+      supabase &&
+      typeof supabase.rpc === "function" &&
+      authSession?.user?.id
+    ) {
+      const { data, error } = await supabase.rpc("no_gov_join_via_invite", {
+        p_code: cleanCode,
+        p_name: name,
+        p_number: number,
+        p_position: position,
+      });
+      if (error) throw new Error(error.message);
+
+      if (data && data.success) {
+        const teamObj = data.team;
+        const me = data.me;
+
+        const newSettings = {
+          ...teamSettings,
+          id: teamObj.id,
+          teamName: teamObj.name,
+          logo: teamObj.logo || teamSettings.logo,
+          members: [
+            ...(teamSettings.members || []).filter((m) => m.id !== me.user_id),
+            {
+              id: me.user_id,
+              name: me.name,
+              number: me.jersey_number,
+              role: me.position,
+              roleType: me.role || "member", // strictly 'member'
+              customTitle: "Cầu thủ",
+            },
+          ],
+        };
+        setTeamSettings(newSettings);
+        writeStored("no_offside_team_" + teamObj.id, newSettings);
+
+        setUser((prev) => ({
+          ...prev,
+          name: me.name,
+          number: me.jersey_number,
+          role: me.position,
+          teamName: teamObj.name,
+          isCaptain: false,
+          customTitle: "Cầu thủ",
+        }));
+        setCurrentUserRole(me.role || "member");
+
+        await loadDatabaseMemberships();
+        return data;
+      }
+    }
+
+    // Fallback join for demo / offline
+    const fallbackTeamKey = "no_offside_team_" + cleanCode.toLowerCase();
+    const existingTeam = readStored(fallbackTeamKey, teamSettings);
+    joinTeam(existingTeam, { ...memberProfile, name, number, role: position });
+  };
+
+  useEffect(() => {
+    if (!isUnlocked || !authSession?.user?.id || demoSession) return;
+    const pending = getPendingJoin();
+    if (pending && pending.code) {
+      joinTeamViaInvite(pending.code, pending)
+        .then(() => {
+          clearPendingJoin();
+        })
+        .catch((err) => {
+          console.warn("Auto-join pending invite error:", err);
+        });
+    }
+  }, [isUnlocked, authSession?.user?.id, demoSession]);
+
   const logout = async (scope = "local") => {
     setAuthLoading(true);
     try {
+      const currentUserId = authSession?.user?.id || user?.id;
+      if (currentUserId) {
+        writeStored("no_offside_autologin_" + currentUserId, false);
+        if (
+          readStored("no_offside_last_autologin_account", null) === currentUserId
+        ) {
+          writeStored("no_offside_last_autologin_account", null);
+        }
+      }
+      removeSession("no_offside_app_unlocked");
+      removeSession("hideWelcomePopup");
       if (supabase && authSession) {
         const { error } = await supabase.auth.signOut({ scope });
         if (error) throw error;
@@ -1063,7 +1313,7 @@ export function useAuth() {
       setAuthSession(null);
       setVerifiedAccount(null);
       setDeletedMatch(null);
-      sessionStorage.removeItem("hideWelcomePopup");
+      setIsUnlocked(false);
     } finally {
       setAuthLoading(false);
     }
@@ -1147,6 +1397,7 @@ export function useAuth() {
     const index = data.matches.findIndex((match) => match.id === id);
     if (index < 0) return;
     setDeletedMatch({
+      accountId,
       teamId,
       index,
       match: data.matches[index],
@@ -1160,7 +1411,13 @@ export function useAuth() {
     setData((prev) => deleteTeamMatch(prev, id, user.id));
   };
   const undoDeleteMatch = (snapshot = deletedMatch) => {
-    if (!leader || !snapshot || snapshot.teamId !== teamId) return;
+    if (
+      !leader ||
+      !snapshot ||
+      snapshot.teamId !== teamId ||
+      snapshot.accountId !== accountId
+    )
+      return;
     setData((prev) => restoreTeamMatch(prev, snapshot));
     setDeletedMatch(null);
   };
@@ -1170,7 +1427,53 @@ export function useAuth() {
     const { archivedAt, archivedBy, archiveReason, ...match } = archived;
     setData((prev) => restoreTeamMatch(prev, { match, index: 0 }));
   };
-  const isLoggedIn = Boolean(demoSession || authSession);
+  const updateUsername = async (newUsername) => {
+    if (!newUsername || !newUsername.trim()) {
+      throw new Error("Tên đăng nhập không được để trống.");
+    }
+    const trimmed = newUsername.trim();
+    if (!/^[a-zA-Z0-9_-]{3,20}$/.test(trimmed)) {
+      throw new Error(
+        "Tên đăng nhập chỉ gồm 3-20 ký tự chữ, số, gạch dưới hoặc gạch nối.",
+      );
+    }
+    if (supabase && authSession) {
+      const { data: result, error: rpcError } = await supabase.rpc(
+        "no_set_username",
+        { p_username: trimmed },
+      );
+      if (rpcError) throw rpcError;
+      if (result && !result.ok) {
+        throw new Error(result.error || "Không thể cập nhật tên đăng nhập.");
+      }
+      await supabase.auth.updateUser({
+        data: { username: trimmed },
+      });
+    }
+    setUser((prev) => ({ ...prev, username: trimmed }));
+    const remembered = readStored("no_offside_remembered_accounts", []);
+    const updated = remembered.map((acc) =>
+      acc.id === (authSession?.user?.id || user.id)
+        ? { ...acc, username: trimmed }
+        : acc,
+    );
+    writeStored("no_offside_remembered_accounts", updated);
+  };
+  const hasTeam = Boolean(
+    demoSession ||
+      dbMemberships.length > 0 ||
+      (teamSettings?.ownerId &&
+        teamSettings.id !== "workspace_" + accountId &&
+        teamSettings.members &&
+        teamSettings.members.length > 0) ||
+      (teamSettings?.members &&
+        teamSettings.members.some(
+          (m) =>
+            m.id === (authSession?.user?.id || user.id) &&
+            m.membershipStatus !== "removed",
+        )),
+  );
+  const isLoggedIn = Boolean(demoSession || (authSession && isUnlocked));
   return {
     user,
     accountId,
@@ -1179,6 +1482,9 @@ export function useAuth() {
     setCurrentUserRole,
     toggleRole,
     isLoggedIn,
+    isUnlocked,
+    hasTeam,
+    updateUsername,
     authLoading:
       authLoading ||
       (!demoSession &&
@@ -1213,6 +1519,11 @@ export function useAuth() {
     rejectAdminRequest,
     createTeam,
     joinTeam,
+    joinTeamViaInvite,
+    createInvite,
+    revokeInvite,
+    dbMemberships,
+    loadDatabaseMemberships,
     login,
     logout,
     funds,
@@ -1228,7 +1539,10 @@ export function useAuth() {
     setMatchStatus,
     selectMatch,
     deleteMatch,
-    deletedMatch,
+    deletedMatch:
+      deletedMatch?.accountId === accountId && deletedMatch?.teamId === teamId
+        ? deletedMatch
+        : null,
     undoDeleteMatch,
     notices: data.notices || [],
     addNotice,

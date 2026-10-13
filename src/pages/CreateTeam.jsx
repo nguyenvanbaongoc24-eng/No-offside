@@ -41,7 +41,8 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
       teamCategory: teamType,
       stadium: stadium.trim() || 'Sân bóng Sài Gòn',
       teamLogo: logoPreview || presetLogos[0],
-      role: 'Đội Trưởng (Admin)',
+      role: 'Đội Trưởng (Owner)',
+      roleType: 'owner',
       isCaptain: true,
     };
 
@@ -66,7 +67,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
           )}
 
           <span className="text-xs font-bold  tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-            Dành Cho Đội Trưởng
+            Dành Cho Chủ Đội (Owner)
           </span>
         </div>
 
@@ -213,7 +214,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
               <ArrowRight className="w-4 h-4 stroke-[3]" />
             </button>
             <p className="text-xs text-center text-gray-400 mt-3 font-medium">
-              Bạn sẽ tự động được cấp quyền Đội Trưởng (Admin) để quản lý đội bóng.
+              Bạn sẽ tự động trở thành Chủ đội (Owner) để quản lý đội bóng.
             </p>
           </div>
         </form>

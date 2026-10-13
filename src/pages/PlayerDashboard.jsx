@@ -69,6 +69,8 @@ export default function PlayerDashboard({
   onAddNotice,
   teamSettings,
   demoSession,
+  onCreateInvite,
+  onRevokeInvite,
 }) {
   // Modal states
   const [matchFormError, setMatchFormError] = useState("");
@@ -79,6 +81,10 @@ export default function PlayerDashboard({
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState(
+    teamSettings?.inviteCode || teamSettings?.id || "NO-FC99",
+  );
+  const [inviteStatus, setInviteStatus] = useState("active");
   const [attendanceActiveTab, setAttendanceActiveTab] = useState("attending"); // 'attending' | 'maybe' | 'absent' | 'unvoted'
   const [copiedField, setCopiedField] = useState("");
 
@@ -309,6 +315,13 @@ export default function PlayerDashboard({
           </div>
         </div>
         <div className="flex gap-1">
+          <button
+            aria-label="Tạo đội bóng mới"
+            title="Tạo đội bóng mới"
+            onClick={() => onNavigate("create-team")}
+          >
+            <PlusCircle size={20} />
+          </button>
           {isOwner && (
             <button
               aria-label="Cài đặt đội bóng"
@@ -1504,8 +1517,24 @@ export default function PlayerDashboard({
       <InviteShare
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        teamName={user?.teamName || "FC No Offside"}
-        teamCode="fc-no-offside-99"
+        teamName={teamSettings?.teamName || user?.teamName || "FC No Offside"}
+        teamLogo={teamSettings?.logo || ""}
+        teamCode={inviteCode}
+        inviteStatus={inviteStatus}
+        isLeader={["owner", "admin"].includes(currentUserRole)}
+        onRegenerateCode={async () => {
+          if (onCreateInvite) {
+            const res = await onCreateInvite(teamSettings?.id);
+            if (res?.code) setInviteCode(res.code);
+            setInviteStatus("active");
+          }
+        }}
+        onRevokeCode={async () => {
+          if (onRevokeInvite) {
+            await onRevokeInvite(teamSettings?.id);
+            setInviteStatus("revoked");
+          }
+        }}
         onPreviewLanding={() => {
           setShowInviteModal(false);
           if (onNavigate) onNavigate("invite-landing");

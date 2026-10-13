@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { ArrowRightLeft, LogOut, Plus, Check, X, User } from "lucide-react";
+import { ArrowRightLeft, LogOut, Plus, Check, X, User, Trash2 } from "lucide-react";
 import { readStored, writeStored } from "../lib/storage";
 import { maskedIdentifier } from "../lib/accounts";
+
 export default function AccountControls({
   user,
   accountId,
@@ -9,39 +10,60 @@ export default function AccountControls({
   onLogout,
   onNavigate,
 }) {
-  const [open, setOpen] = useState(false),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
-  const [accounts, setAccounts] = useState(() =>
-    readStored("no_offside_account_labels", []),
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [autoLogin, setAutoLogin] = useState(() =>
+    readStored("no_offside_autologin_" + accountId, false),
   );
+
+  const [rememberedAccounts, setRememberedAccounts] = useState(() =>
+    readStored("no_offside_remembered_accounts", []),
+  );
+
   const current = {
     id: accountId,
+    username: user.username || accountId,
     name: user.name,
     avatar: user.avatar,
-    identifier: maskedIdentifier(session?.user.email || session?.user.phone),
+    identifier: maskedIdentifier(session?.user.email || user.username || session?.user.phone),
   };
+
   useEffect(() => {
-    if (!session || accountId === "demo") return;
-    const next = [
-      current,
-      ...readStored("no_offside_account_labels", []).filter(
-        (a) => a.id !== accountId,
-      ),
-    ].slice(0, 8);
-    if (writeStored("no_offside_account_labels", next)) setAccounts(next);
-  }, [
-    accountId,
-    user.name,
-    user.avatar,
-    session?.user.email,
-    session?.user.phone,
-  ]);
-  const leave = async (scope) => {
+    setAutoLogin(readStored("no_offside_autologin_" + accountId, false));
+  }, [accountId]);
+
+  const handleToggleAutoLogin = (enabled) => {
+    setAutoLogin(enabled);
+    writeStored("no_offside_autologin_" + accountId, enabled);
+    if (enabled) {
+      writeStored("no_offside_last_autologin_account", accountId);
+    } else {
+      const last = readStored("no_offside_last_autologin_account", null);
+      if (last === accountId) {
+        writeStored("no_offside_last_autologin_account", null);
+      }
+    }
+  };
+
+  const handleForgetAccount = (e, targetUsername) => {
+    e.stopPropagation();
+    const updated = rememberedAccounts.filter(
+      (a) => a.username?.toLowerCase() !== targetUsername.toLowerCase(),
+    );
+    writeStored("no_offside_remembered_accounts", updated);
+    setRememberedAccounts(updated);
+  };
+
+  const leave = async (scope, targetUsername = null) => {
     setBusy(true);
     setError("");
     try {
       await onLogout(scope);
+      if (targetUsername) {
+        // Will be picked up by Login form prefill
+        sessionStorage.setItem("no_offside_prefill_username", targetUsername);
+      }
       onNavigate("dashboard");
     } catch {
       setError("Đăng xuất chưa thành công. Kiểm tra kết nối rồi thử lại.");
@@ -49,16 +71,50 @@ export default function AccountControls({
       setBusy(false);
     }
   };
+
   return (
     <section id="account-controls" className="settings-card">
       <h2>Tài khoản đăng nhập</h2>
       <p className="text-sm text-slate-500 mt-2">{current.identifier}</p>
+
+      {/* Auto-login Toggle per Section 6 */}
+      <div className="mt-4 pt-3 border-t border-slate-200/80">
+        <label
+          htmlFor="autologin-checkbox"
+          className="flex items-start justify-between gap-3 cursor-pointer select-none"
+        >
+          <div className="flex-1 pr-2">
+            <span className="text-sm font-semibold text-slate-800 block">
+              Tự động đăng nhập trên thiết bị này
+            </span>
+            <span className="text-xs text-slate-500 mt-0.5 block leading-relaxed">
+              Mặc định tắt. Khi tắt: Mỗi lần mở lại ứng dụng mới bạn sẽ phải nhập mật khẩu.
+            </span>
+          </div>
+          <input
+            id="autologin-checkbox"
+            type="checkbox"
+            checked={Boolean(autoLogin)}
+            onChange={(e) => handleToggleAutoLogin(e.target.checked)}
+            className="w-5 h-5 mt-0.5 accent-emerald-600 rounded cursor-pointer shrink-0"
+          />
+        </label>
+      </div>
+
       <div className="grid grid-cols-2 gap-2 mt-4">
-        <button className="choice-button" onClick={() => setOpen(true)}>
+        <button
+          type="button"
+          className="choice-button"
+          onClick={() => {
+            setRememberedAccounts(readStored("no_offside_remembered_accounts", []));
+            setOpen(true);
+          }}
+        >
           <ArrowRightLeft size={18} />
           Chuyển tài khoản
         </button>
         <button
+          type="button"
           className="choice-button text-rose-700"
           disabled={busy}
           onClick={() => leave("local")}
@@ -67,11 +123,13 @@ export default function AccountControls({
           Đăng xuất
         </button>
       </div>
+
       {error && (
         <p role="alert" className="text-rose-700 text-sm mt-3">
           {error}
         </p>
       )}
+
       {open && (
         <div
           className="simple-overlay"
@@ -81,6 +139,7 @@ export default function AccountControls({
         >
           <section className="simple-sheet">
             <button
+              type="button"
               className="sheet-close"
               aria-label="Đóng"
               onClick={() => setOpen(false)}
@@ -90,64 +149,96 @@ export default function AccountControls({
             <h2 id="account-switch-title" className="text-xl font-semibold">
               Chuyển tài khoản
             </h2>
-            <p className="text-sm text-slate-600 mt-3">
-              Mỗi lần dùng một phiên đăng nhập. Tài khoản khác cần xác thực lại;
-              thao tác này khác với chuyển đội bóng.
+            <p className="text-sm text-slate-600 mt-2">
+              Danh sách tài khoản đã sử dụng trên thiết bị. Để đảm bảo an toàn,
+              bạn sẽ cần nhập mật khẩu của tài khoản muốn chuyển.
             </p>
-            {[current, ...accounts.filter((a) => a.id !== accountId)].map(
-              (a) => (
-                <button
-                  key={a.id}
-                  className="account-row"
-                  disabled={busy || a.id === accountId}
-                  onClick={() => leave("local")}
-                >
-                  {a.avatar ? (
-                    <img src={a.avatar} alt="" />
-                  ) : (
-                    <User size={32} />
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <strong className="block break-words">{a.name}</strong>
-                    <span className="block text-xs text-slate-500 break-words">
-                      {a.identifier}
-                    </span>
+
+            <div className="space-y-2 mt-4">
+              {/* Current Account */}
+              <div className="account-row border-emerald-500 bg-emerald-50/40">
+                {current.avatar ? (
+                  <img src={current.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <User size={28} className="text-slate-500" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <strong className="block text-sm break-words">{current.name}</strong>
+                  <span className="block text-xs text-slate-500 break-words">
+                    @{current.username}
                   </span>
-                  {a.id === accountId ? (
-                    <span className="text-xs text-emerald-700 flex gap-1">
-                      <Check size={16} />
-                      Đang dùng
+                </span>
+                <span className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                  <Check size={16} />
+                  Đang dùng
+                </span>
+              </div>
+
+              {/* Other Remembered Accounts */}
+              {rememberedAccounts
+                .filter((a) => a.username?.toLowerCase() !== current.username?.toLowerCase())
+                .map((a) => (
+                  <div
+                    key={a.username}
+                    className="account-row group hover:bg-slate-50 cursor-pointer"
+                    onClick={() => leave("local", a.username)}
+                  >
+                    {a.avatar ? (
+                      <img src={a.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <User size={28} className="text-slate-500" />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <strong className="block text-sm break-words">{a.name}</strong>
+                      <span className="block text-xs text-slate-500 break-words">
+                        @{a.username}
+                      </span>
                     </span>
-                  ) : (
-                    <span className="text-xs">Xác thực lại</span>
-                  )}
-                </button>
-              ),
-            )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-emerald-600 font-bold group-hover:underline">
+                        Đăng nhập lại
+                      </span>
+                      <button
+                        type="button"
+                        title="Quên tài khoản này trên máy"
+                        aria-label={`Quên tài khoản ${a.username}`}
+                        onClick={(e) => handleForgetAccount(e, a.username)}
+                        className="text-slate-400 hover:text-rose-600 p-1 rounded-md transition-colors"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
             <button
+              type="button"
               className="primary-button w-full mt-4"
               disabled={busy}
               onClick={() => leave("local")}
             >
               <Plus size={20} />
-              Thêm tài khoản
+              Đăng nhập tài khoản khác
             </button>
+
             {session && (
               <button
+                type="button"
                 className="choice-button w-full mt-3 text-rose-700"
                 disabled={busy}
                 onClick={() => leave("global")}
               >
-                Đăng xuất mọi phiên của tài khoản hiện tại
+                Đăng xuất mọi phiên của tài khoản này
               </button>
             )}
+
             <p className="text-xs text-slate-500 mt-3">
-              Đăng xuất thông thường chỉ kết thúc phiên trên thiết bị này. Danh
-              sách chỉ lưu tên, ảnh và định danh đã che; không lưu thêm token
-              hay mật khẩu.
+              Không lưu trữ mật khẩu trên máy. Chuyển tài khoản luôn yêu cầu xác thực an toàn.
             </p>
+
             {error && (
-              <p role="alert" className="text-rose-700 mt-3">
+              <p role="alert" className="text-rose-700 mt-3 text-sm">
                 {error}
               </p>
             )}

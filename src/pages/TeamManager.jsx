@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Sparkles,
   CheckCircle2,
-  Calendar
+  Calendar,
+  QrCode,
 } from 'lucide-react';
 
 export default function TeamManager({
@@ -120,12 +121,25 @@ export default function TeamManager({
               </div>
             </div>
 
-            <button aria-label="Đóng"
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onOpenInvite && onOpenInvite()}
+                aria-label="Mời thành viên"
+                title="Mời thành viên qua mã Club & QR"
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 active:scale-95 transition-all cursor-pointer"
+              >
+                <QrCode className="w-5 h-5" />
+              </button>
+
+              <button
+                aria-label="Đóng"
+                onClick={onClose}
+                className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Search bar & Action Buttons */}

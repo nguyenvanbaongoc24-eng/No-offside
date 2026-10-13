@@ -14,6 +14,9 @@ import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import CreateTeam from "./pages/CreateTeam";
 import InviteLanding from "./pages/InviteLanding";
+import TeamOnboarding from "./pages/TeamOnboarding";
+import ClubCodeModal from "./components/ClubCodeModal";
+import QrScannerModal from "./components/QrScannerModal";
 import Login from "./pages/Login";
 import EmptyTeam from "./pages/EmptyTeam";
 import PersonalFund from "./pages/PersonalFund";
@@ -40,6 +43,10 @@ export default function App() {
       : "dashboard",
   );
   const [showNotices, setShowNotices] = useState(false);
+  const [showJoinCodeModal, setShowJoinCodeModal] = useState(false);
+  const [showQrScanModal, setShowQrScanModal] = useState(false);
+  const [joinCodeInitial, setJoinCodeInitial] = useState("");
+  const [loginInitialMode, setLoginInitialMode] = useState("signin");
   const preferences = usePersonalAppearance(
     auth.authLoading
       ? readStored("no_offside_appearance_account", "anonymous")
@@ -96,7 +103,9 @@ export default function App() {
   const activeTab =
     auth.currentUserRole !== "owner" && tab === "team-settings"
       ? "dashboard"
-      : tab;
+      : !auth.hasTeam && tab === "dashboard"
+        ? "onboarding"
+        : tab;
   const navigate = (target) => {
     setTab(target);
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -121,12 +130,13 @@ export default function App() {
         />
       </div>
     );
-  if (!auth.isLoggedIn)
+  if (!auth.isLoggedIn && tab !== "invite-landing")
     return (
       <Login
+        initialMode={loginInitialMode}
         onLoginSuccess={(profile) => {
           auth.login(profile);
-          if (tab !== "invite-landing") navigate("dashboard");
+          navigate("dashboard");
         }}
       />
     );
@@ -186,7 +196,17 @@ export default function App() {
               onOpen={() => navigate("governance")}
             />
           )}
-          {activeTab === "create-team" ? (
+          {activeTab === "onboarding" ? (
+            <TeamOnboarding
+              user={auth.user}
+              onOpenCreateTeam={() => navigate("create-team")}
+              onOpenJoinCode={() => {
+                setJoinCodeInitial("");
+                setShowJoinCodeModal(true);
+              }}
+              onOpenScanQr={() => setShowQrScanModal(true)}
+            />
+          ) : activeTab === "create-team" ? (
             <CreateTeam
               onTeamCreated={(data) => {
                 auth.createTeam(data);
@@ -195,43 +215,38 @@ export default function App() {
               onBack={() => navigate("profile")}
             />
           ) : activeTab === "invite-landing" ? (
-            inviteTeam ? (
-              <InviteLanding
-                teamData={{
-                  name: inviteTeam.teamName,
-                  captain:
-                    inviteTeam.members.find((m) => m.roleType === "owner")
-                      ?.name || "Đội trưởng",
-                  membersCount: inviteTeam.members.length,
-                  category: inviteTeam.teamCategory,
-                  venue: inviteTeam.venue,
-                  matchSchedule: inviteTeam.schedule,
-                  logo: inviteTeam.logo,
-                }}
-                authenticated
-                onJoinSuccess={(profile) => {
-                  auth.joinTeam(inviteTeam, profile);
-                  navigate("dashboard");
-                  history.replaceState(null, "", "/");
-                }}
-                onBackToApp={() => navigate("profile")}
-              />
-            ) : (
-              <div className="p-8">
-                <h1 className="text-xl font-bold">Không tìm thấy đội bóng</h1>
-                <p className="mt-3 text-slate-600">
-                  Liên kết mời chưa có dữ liệu trên thiết bị này. Liên hệ đội
-                  trưởng để kiểm tra mã mời. Đồng bộ liên thiết bị cần backend
-                  được cấu hình.
-                </p>
-                <button
-                  className="primary-button mt-5"
-                  onClick={() => navigate("dashboard")}
-                >
-                  Về trang chủ
-                </button>
-              </div>
-            )
+            <InviteLanding
+              inviteCode={inviteCode}
+              teamData={
+                inviteTeam
+                  ? {
+                      id: inviteTeam.id,
+                      name: inviteTeam.teamName,
+                      captain:
+                        inviteTeam.members.find((m) => m.roleType === "owner")
+                          ?.name || "Đội trưởng",
+                      membersCount: inviteTeam.members.length,
+                      category: inviteTeam.teamCategory,
+                      venue: inviteTeam.venue,
+                      matchSchedule: inviteTeam.schedule,
+                      logo: inviteTeam.logo,
+                      code: inviteCode,
+                    }
+                  : null
+              }
+              authenticated={auth.isLoggedIn}
+              currentUser={auth.user}
+              onJoinSuccess={async (profile) => {
+                await auth.joinTeamViaInvite(profile.code, profile);
+                navigate("dashboard");
+                history.replaceState(null, "", "/");
+              }}
+              onRequireAuth={({ mode = "signup" } = {}) => {
+                setLoginInitialMode(mode);
+                navigate("login");
+              }}
+              onBackToApp={() => navigate("profile")}
+            />
           ) : activeTab === "governance" ? (
             <Governance
               key={auth.accountId + auth.teamSettings.id}
@@ -290,6 +305,9 @@ export default function App() {
                 {...shared}
                 onOpenNotifications={() => setShowNotices(true)}
                 teamSettings={auth.teamSettings}
+                hasTeam={auth.hasTeam}
+                preferences={preferences}
+                onUpdateUsername={auth.updateUsername}
                 onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
                 onLogout={auth.logout}
                 accountPanel={
@@ -313,6 +331,11 @@ export default function App() {
                 onTransferOwnership={auth.transferOwnership}
                 onApproveAdminRequest={auth.approveAdminRequest}
                 onRejectAdminRequest={auth.rejectAdminRequest}
+                onOpenJoinCode={() => {
+                  setJoinCodeInitial("");
+                  setShowJoinCodeModal(true);
+                }}
+                onOpenScanQr={() => setShowQrScanModal(true)}
               />
             </React.Fragment>
           ) : !auth.activeMatch ? (
@@ -362,6 +385,8 @@ export default function App() {
               onUpdateMatchStats={auth.updateMatchStats}
               onRemoveMember={() => navigate("governance")}
               onAddMember={auth.addMember}
+              onCreateInvite={auth.createInvite}
+              onRevokeInvite={auth.revokeInvite}
             />
           )}
         </main>
@@ -477,6 +502,46 @@ export default function App() {
               </button>
             </section>
           </div>
+        )}
+        {showJoinCodeModal && (
+          <ClubCodeModal
+            isOpen={showJoinCodeModal}
+            onClose={() => {
+              setShowJoinCodeModal(false);
+              setJoinCodeInitial("");
+            }}
+            initialCode={joinCodeInitial}
+            isLoggedIn={auth.isLoggedIn}
+            currentUser={auth.user}
+            onJoinSuccess={async (payload) => {
+              await auth.joinTeamViaInvite(payload.code, payload);
+              setShowJoinCodeModal(false);
+              navigate("dashboard");
+            }}
+            onRequireAuth={({ mode = "signup" } = {}) => {
+              setShowJoinCodeModal(false);
+              setLoginInitialMode(mode);
+              navigate("login");
+            }}
+          />
+        )}
+        {showQrScanModal && (
+          <QrScannerModal
+            isOpen={showQrScanModal}
+            onClose={() => setShowQrScanModal(false)}
+            onScanSuccess={(detectedCode) => {
+              setShowQrScanModal(false);
+              const match = String(detectedCode).match(/\/invite\/([^/?#]+)/i);
+              const extracted = match ? match[1] : detectedCode;
+              setJoinCodeInitial(extracted);
+              setShowJoinCodeModal(true);
+            }}
+            onSwitchToCode={() => {
+              setShowQrScanModal(false);
+              setJoinCodeInitial("");
+              setShowJoinCodeModal(true);
+            }}
+          />
         )}
       </div>
     </div>

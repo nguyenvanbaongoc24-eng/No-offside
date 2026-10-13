@@ -43,4 +43,4 @@ Tham khảo: [Supabase RPC/security definer](https://supabase.com/docs/guides/da
 
 ## Kết quả bổ sung
 
-38 kiểm thử tự động qua; Vite/PWA build qua. Kiểm tra browser phát hiện và đã sửa ID đội trải nghiệm thiếu ở lần đầu đăng nhập (làm đổi khóa sơ đồ sau refresh), thêm đọc khóa legacy và ghi đồng bộ khi bấm Lưu. Vùng chạm cầu thủ có kích thước ổn định, chạm mở sheet và drag không mở nhầm sheet; lựa chọn đổi người là nút thật có thể dùng bàn phím. Độ tương phản của các nền trung tính/nhãn trạng thái trong theme tối đã được chỉnh.
+43 kiểm thử tự động qua; Vite/PWA build qua. Kiểm tra browser phát hiện và đã sửa ID đội trải nghiệm thiếu ở lần đầu đăng nhập (làm đổi khóa sơ đồ sau refresh), thêm đọc khóa legacy và ghi đồng bộ khi bấm Lưu. Vùng chạm cầu thủ có kích thước ổn định, chạm mở sheet và drag không mở nhầm sheet; lựa chọn đổi người là nút thật có thể dùng bàn phím. Độ tương phản của các nền trung tính/nhãn trạng thái trong theme tối đã được chỉnh.

@@ -10,13 +10,41 @@ const owner = "00000000-0000-4000-8000-000000000001",
 let db;
 before(async () => {
   db = new PGlite();
-  await db.exec(`create role anon; create role authenticated; create schema auth; create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$; grant usage on schema auth to authenticated;
- -- Test-only deterministic clock in this disposable WASM PostgreSQL instance.
- create or replace function pg_catalog.clock_timestamp() returns timestamptz language sql volatile as $$ select current_setting('test.clock')::timestamptz $$; set test.clock='2026-10-13T10:00:00Z';`);
+  await db.exec(`create role anon; create role authenticated; create schema auth;
+   create table if not exists auth.users (id uuid primary key, email text, raw_user_meta_data jsonb, phone text);
+   insert into auth.users (id, email) values
+     ('00000000-0000-4000-8000-000000000001', 'owner@example.com'),
+     ('00000000-0000-4000-8000-000000000002', 'admin@example.com'),
+     ('00000000-0000-4000-8000-000000000003', 'member@example.com'),
+     ('00000000-0000-4000-8000-000000000004', 'other@example.com')
+   on conflict do nothing;
+   create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+   grant usage on schema auth to authenticated;
+   -- Test-only deterministic clock in this disposable WASM PostgreSQL instance.
+   create or replace function pg_catalog.clock_timestamp() returns timestamptz language sql volatile as $$ select current_setting('test.clock')::timestamptz $$;
+   set test.clock='2026-10-13T10:00:00Z';`);
   await db.exec(
     await readFile(
       new URL(
         "../supabase/migrations/202610130001_governance.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL(
+        "../supabase/migrations/202610130002_profiles_and_teams.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  await db.exec(
+    await readFile(
+      new URL(
+        "../supabase/migrations/202610130003_team_invites.sql",
         import.meta.url,
       ),
       "utf8",
@@ -458,8 +486,26 @@ test("automatic sanctions and incomplete policy changes are rejected; expired lo
     rpc(team, "policy", { period: "month" }),
     /Invalid policy/,
   );
-  await assert.rejects(rpc(team,'policy',{period:'month',threshold:null,types:['late'],mode:'review',action:'warning'}),/Invalid policy/);
-  await assert.rejects(rpc(team,'policy',{period:'month',threshold:3,types:[null],mode:'review',action:'warning'}),/Invalid counted type/);
+  await assert.rejects(
+    rpc(team, "policy", {
+      period: "month",
+      threshold: null,
+      types: ["late"],
+      mode: "review",
+      action: "warning",
+    }),
+    /Invalid policy/,
+  );
+  await assert.rejects(
+    rpc(team, "policy", {
+      period: "month",
+      threshold: 3,
+      types: [null],
+      mode: "review",
+      action: "warning",
+    }),
+    /Invalid counted type/,
+  );
   await rpc(team, "sanction", {
     subject: member,
     kind: "lock",
@@ -471,3 +517,366 @@ test("automatic sanctions and incomplete policy changes are rejected; expired lo
   await rpc(team, "attendance", { matchId: "match", status: "attending" });
   assert.equal((await snapshot(team)).me.status, "active");
 });
+
+test("late fine remains independent of another finalized match violation", async () => {
+  const team = await fixture();
+  await as(admin);
+  await clock("2026-10-13T13:00Z");
+  const otherBreach = await rpc(team, "violation", {
+    ...violation(),
+    matchId: "match",
+  });
+  await rpc(team, "arrival", {
+    subject: member,
+    matchId: "match",
+    arrivedAt: "2026-10-13T12:40Z",
+    reason: "Confirmed after reviewing other breach",
+  });
+  const late = await rpc(team, "finalize", {
+    subject: member,
+    matchId: "match",
+  });
+  assert.equal(late.data.type, "late");
+  assert.notEqual(late.id, otherBreach.id);
+  assert.equal(
+    (await snapshot(team)).events.filter((e) => e.action === "violation")
+      .length,
+    2,
+  );
+});
+
+test("the same threshold period cannot duplicate when connection timezone changes", async () => {
+  const original = (await db.query("select current_setting('TimeZone') value"))
+    .rows[0].value;
+  const team = await fixture();
+  await as(admin);
+  await rpc(team, "violation", violation());
+  await rpc(team, "violation", violation());
+  await db.exec("set time zone 'UTC'");
+  await rpc(team, "violation", violation());
+  assert.equal(
+    (await snapshot(team)).events.filter((e) => e.action === "threshold")
+      .length,
+    1,
+  );
+  await db.query("select set_config('TimeZone',$1,false)", [original]);
+});
+
+test("authenticated user can create team and become owner, other user joins as member", async () => {
+  await as(owner);
+  const teamId = "team-" + randomUUID().slice(0, 8);
+  const res = await db.query(`select public.no_gov_create_team($1, $2) as r`, [teamId, "FC Sài Gòn"]);
+  const rawData = res.rows[0].r;
+  const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+  assert.equal(data.team.id, teamId);
+  assert.equal(data.me.role, "owner");
+
+  // Other user joins
+  await as(member);
+  const joinRes = await db.query(`select public.no_gov_join_team($1, $2) as r`, [teamId, "Thành viên Mới"]);
+  const rawJoin = joinRes.rows[0].r;
+  const joinData = typeof rawJoin === 'string' ? JSON.parse(rawJoin) : rawJoin;
+  assert.equal(joinData.me.role, "member");
+
+  // Member cannot edit rules (leader required)
+  await assert.rejects(
+    rpc(teamId, "rules", { content: "Luật bất hợp pháp", effectiveAt: "2026-10-13T10:01:00Z" }),
+    /Leader required/
+  );
+});
+
+test("username availability check validates format, rejects duplicate case-insensitively, and protects emails", async () => {
+  await db.exec("reset role");
+  const testUserId = randomUUID();
+  const testEmail = "ngocnguyen566@gmail.com";
+  // Inserting into auth.users automatically triggers profile row creation via handle_new_user()
+  await db.query(
+    `insert into auth.users(id, email, raw_user_meta_data) values($1, $2, '{"username":"ngocnguyen566","full_name":"Ngọc Nguyễn"}'::jsonb)`,
+    [testUserId, testEmail],
+  );
+
+  // Check valid non-existing username
+  const availRes = await db.query(
+    `select public.no_auth_check_availability('new_user_123', 'newuser@gmail.com') as r`,
+  );
+  const availData = typeof availRes.rows[0].r === 'string' ? JSON.parse(availRes.rows[0].r) : availRes.rows[0].r;
+  assert.equal(availData.usernameAvailable, true);
+  assert.equal(availData.emailAvailable, true);
+
+  // Check duplicate username with different case ("Ngocnguyen566")
+  const dupUserRes = await db.query(
+    `select public.no_auth_check_availability('Ngocnguyen566', null) as r`,
+  );
+  const dupUserData = typeof dupUserRes.rows[0].r === 'string' ? JSON.parse(dupUserRes.rows[0].r) : dupUserRes.rows[0].r;
+  assert.equal(dupUserData.usernameAvailable, false);
+
+  // Check duplicate email
+  const dupEmailRes = await db.query(
+    `select public.no_auth_check_availability(null, 'NgocNguyen566@gmail.com') as r`,
+  );
+  const dupEmailData = typeof dupEmailRes.rows[0].r === 'string' ? JSON.parse(dupEmailRes.rows[0].r) : dupEmailRes.rows[0].r;
+  assert.equal(dupEmailData.emailAvailable, false);
+});
+
+test("username resolution resolves case-insensitively without exposing entire table, and handles rate limiting lockout", async () => {
+  await db.exec("reset role");
+  const testUserId = randomUUID();
+  const testEmail = "testplayer789@example.com";
+  await db.query(
+    `insert into auth.users(id, email, raw_user_meta_data) values($1, $2, '{"username":"player_789","full_name":"Player 789"}'::jsonb)`,
+    [testUserId, testEmail],
+  );
+
+  const clientId = "client-test-" + randomUUID().slice(0, 8);
+
+  // Resolve with exact and different case username
+  const resolve1 = await db.query(
+    `select public.no_auth_resolve_username('Player_789', $1) as r`,
+    [clientId],
+  );
+  const r1 = typeof resolve1.rows[0].r === 'string' ? JSON.parse(resolve1.rows[0].r) : resolve1.rows[0].r;
+  assert.equal(r1.email, testEmail);
+
+  // Resolve unknown username throws generic credential error without revealing existence
+  await assert.rejects(
+    db.query(`select public.no_auth_resolve_username('non_existent_user_99', $1)`, [clientId]),
+    /Tên đăng nhập hoặc mật khẩu không chính xác/
+  );
+
+  // Simulate 5 failed attempts from same client
+  for (let i = 0; i < 5; i++) {
+    await db.query(
+      `select public.no_auth_record_login_result('Player_789', false, $1)`,
+      [clientId],
+    );
+  }
+
+  // 6th attempt should be blocked by rate limiting
+  await assert.rejects(
+    db.query(`select public.no_auth_resolve_username('Player_789', $1)`, [clientId]),
+    /quá nhiều lần/
+  );
+
+  // Recording success clears the lockout
+  await db.query(
+    `select public.no_auth_record_login_result('Player_789', true, $1)`,
+    [clientId],
+  );
+  const resolveAfterSuccess = await db.query(
+    `select public.no_auth_resolve_username('Player_789', $1) as r`,
+    [clientId],
+  );
+  const rAfter = typeof resolveAfterSuccess.rows[0].r === 'string' ? JSON.parse(resolveAfterSuccess.rows[0].r) : resolveAfterSuccess.rows[0].r;
+  assert.equal(rAfter.email, testEmail);
+});
+
+test("authenticated user can set username via no_set_username, and preserves database foreign keys", async () => {
+  const currentUserId = randomUUID();
+  await db.query(
+    `insert into auth.users(id, email, raw_user_meta_data) values($1, 'current@example.com', '{"full_name":"Current User"}'::jsonb)`,
+    [currentUserId],
+  );
+
+  await as(currentUserId);
+  const setResult = await db.query(
+    `select public.no_set_username('user_unique_1') as r`,
+  );
+  const sData = typeof setResult.rows[0].r === 'string' ? JSON.parse(setResult.rows[0].r) : setResult.rows[0].r;
+  assert.equal(sData.success, true);
+  assert.equal(sData.username, "user_unique_1");
+
+  // Setting duplicate username fails
+  await db.exec("reset role");
+  const otherUserId = randomUUID();
+  await db.query(
+    `insert into auth.users(id, email, raw_user_meta_data) values($1, 'other@example.com', '{"full_name":"Other User"}'::jsonb)`,
+    [otherUserId],
+  );
+
+  await as(otherUserId);
+  await assert.rejects(
+    db.query(`select public.no_set_username('USER_UNIQUE_1')`),
+    /đã được sử dụng/
+  );
+});
+
+test("team invite lifecycle: owner/admin creates and revokes invite, member is forbidden", async () => {
+  const team = await fixture();
+
+  // 1. Regular member cannot create invite
+  await as(member);
+  await assert.rejects(
+    db.query(`select public.no_gov_create_invite($1) as r`, [team]),
+    /Chỉ Đội trưởng hoặc Ban quản trị/
+  );
+
+  // 2. Owner creates invite
+  await as(owner);
+  const createRes1 = await db.query(`select public.no_gov_create_invite($1) as r`, [team]);
+  const invite1 = typeof createRes1.rows[0].r === 'string' ? JSON.parse(createRes1.rows[0].r) : createRes1.rows[0].r;
+  assert.equal(invite1.success, true);
+  assert.equal(invite1.status, 'active');
+  assert.ok(invite1.code && invite1.code.length === 6);
+
+  // 3. Public get_invite looks up code case-insensitively
+  await db.exec("reset role");
+  await db.exec("set role anon");
+  const lookupRes1 = await db.query(
+    `select public.no_gov_get_invite($1, 'test-client') as r`,
+    [invite1.code.toLowerCase()],
+  );
+  const lookup1 = typeof lookupRes1.rows[0].r === 'string' ? JSON.parse(lookupRes1.rows[0].r) : lookupRes1.rows[0].r;
+  assert.equal(lookup1.valid, true);
+  assert.equal(lookup1.teamId, team);
+  assert.equal(lookup1.teamName, 'Test team');
+  assert.equal(lookup1.captain, 'owner');
+
+  // 4. Admin regenerates invite: old code is revoked, new code generated
+  await as(admin);
+  const createRes2 = await db.query(`select public.no_gov_create_invite($1) as r`, [team]);
+  const invite2 = typeof createRes2.rows[0].r === 'string' ? JSON.parse(createRes2.rows[0].r) : createRes2.rows[0].r;
+  assert.notEqual(invite1.code, invite2.code);
+
+  // Old code lookup fails
+  await db.exec("reset role");
+  await db.exec("set role anon");
+  await assert.rejects(
+    db.query(`select public.no_gov_get_invite($1, 'test-client')`, [invite1.code]),
+    /không hợp lệ hoặc lời mời đã hết hạn/
+  );
+
+  // 5. Admin revokes invite
+  await as(admin);
+  const revokeRes = await db.query(`select public.no_gov_revoke_invite($1) as r`, [team]);
+  const rev = typeof revokeRes.rows[0].r === 'string' ? JSON.parse(revokeRes.rows[0].r) : revokeRes.rows[0].r;
+  assert.equal(rev.revoked, true);
+
+  // New code lookup fails after revocation
+  await db.exec("reset role");
+  await db.exec("set role anon");
+  await assert.rejects(
+    db.query(`select public.no_gov_get_invite($1, 'test-client')`, [invite2.code]),
+    /không hợp lệ hoặc lời mời đã hết hạn/
+  );
+});
+
+test("joining team via invite enforces role 'member', validates jersey number, prevents duplicates and handles idempotency", async () => {
+  const team = await fixture();
+
+  // Create active invite
+  await as(owner);
+  const invRes = await db.query(`select public.no_gov_create_invite($1) as r`, [team]);
+  const inv = typeof invRes.rows[0].r === 'string' ? JSON.parse(invRes.rows[0].r) : invRes.rows[0].r;
+
+  // Create a new user to join
+  await db.exec("reset role");
+  const newUserId = randomUUID();
+  await db.query(
+    `insert into auth.users(id, email, raw_user_meta_data) values($1, 'newjoiner@example.com', '{"full_name":"New Joiner"}'::jsonb)`,
+    [newUserId],
+  );
+
+  // 1. Join with valid code, name, jersey number 10
+  await as(newUserId);
+  const joinRes1 = await db.query(
+    `select public.no_gov_join_via_invite($1, 'New Joiner', 10, 'Tiền vệ (MF)') as r`,
+    [inv.code.toLowerCase()], // test case insensitivity
+  );
+  const j1 = typeof joinRes1.rows[0].r === 'string' ? JSON.parse(joinRes1.rows[0].r) : joinRes1.rows[0].r;
+  assert.equal(j1.success, true);
+  assert.equal(j1.alreadyMember, false);
+  assert.equal(j1.me.role, 'member'); // Role is ALWAYS 'member'
+  assert.equal(j1.me.jersey_number, 10);
+  assert.equal(j1.me.position, 'Tiền vệ (MF)');
+
+  // 2. Joining with another user using SAME jersey number 10 throws duplicate error
+  await db.exec("reset role");
+  const anotherUserId = randomUUID();
+  await db.query(
+    `insert into auth.users(id, email, raw_user_meta_data) values($1, 'another@example.com', '{"full_name":"Another Player"}'::jsonb)`,
+    [anotherUserId],
+  );
+  await as(anotherUserId);
+  await assert.rejects(
+    db.query(`select public.no_gov_join_via_invite($1, 'Another Player', 10, 'Hậu vệ')`, [inv.code]),
+    /Số áo 10 đã có thành viên sử dụng/
+  );
+
+  // 3. Another user joins with jersey number 7 successfully
+  const joinRes2 = await db.query(
+    `select public.no_gov_join_via_invite($1, 'Another Player', 7, 'Hậu vệ') as r`,
+    [inv.code],
+  );
+  const j2 = typeof joinRes2.rows[0].r === 'string' ? JSON.parse(joinRes2.rows[0].r) : joinRes2.rows[0].r;
+  assert.equal(j2.success, true);
+  assert.equal(j2.me.jersey_number, 7);
+
+  // 4. Idempotency: newUserId calls join again -> does NOT duplicate, does NOT change existing jersey number
+  await as(newUserId);
+  const reJoinRes = await db.query(
+    `select public.no_gov_join_via_invite($1, 'Different Name', 99, 'Thủ môn') as r`,
+    [inv.code],
+  );
+  const jRe = typeof reJoinRes.rows[0].r === 'string' ? JSON.parse(reJoinRes.rows[0].r) : reJoinRes.rows[0].r;
+  assert.equal(jRe.success, true);
+  assert.equal(jRe.alreadyMember, true);
+  assert.equal(jRe.me.jersey_number, 10); // Preserved original number 10!
+});
+
+test("no_gov_my_memberships returns distinct roles across multiple teams and isolates user memberships", async () => {
+  // Create Team A
+  const teamA = await fixture();
+  await db.exec("reset role");
+  // Create Team B
+  const teamB = randomUUID();
+  await db.query(`insert into public.no_gov_teams(id, name) values($1, 'Team B')`, [teamB]);
+
+  // Create user
+  await db.exec("reset role");
+  const multiUserId = randomUUID();
+  await db.query(
+    `insert into auth.users(id, email, raw_user_meta_data) values($1, 'multi@example.com', '{"full_name":"Multi User"}'::jsonb)`,
+    [multiUserId],
+  );
+
+  // Before joining any team
+  await as(multiUserId);
+  const m0Res = await db.query(`select public.no_gov_my_memberships() as r`);
+  const m0 = typeof m0Res.rows[0].r === 'string' ? JSON.parse(m0Res.rows[0].r) : m0Res.rows[0].r;
+  assert.equal(m0.length, 0);
+
+  // MultiUser is Owner of Team B
+  await db.exec("reset role");
+  await db.query(
+    `insert into public.no_gov_members(team_id, user_id, name, role, status, jersey_number) values($1, $2, 'Captain Multi', 'owner', 'active', 10)`,
+    [teamB, multiUserId],
+  );
+
+  // MultiUser joins Team A as Member via invite
+  await as(owner);
+  const invRes = await db.query(`select public.no_gov_create_invite($1) as r`, [teamA]);
+  const inv = typeof invRes.rows[0].r === 'string' ? JSON.parse(invRes.rows[0].r) : invRes.rows[0].r;
+
+  await as(multiUserId);
+  await db.query(`select public.no_gov_join_via_invite($1, 'Player Multi', 25, 'Tiền đạo')`, [inv.code]);
+
+  // Query my memberships
+  const mRes = await db.query(`select public.no_gov_my_memberships() as r`);
+  const memberships = typeof mRes.rows[0].r === 'string' ? JSON.parse(mRes.rows[0].r) : mRes.rows[0].r;
+
+  assert.equal(memberships.length, 2);
+  const roleA = memberships.find((m) => m.teamId === teamA);
+  const roleB = memberships.find((m) => m.teamId === teamB);
+
+  assert.ok(roleA);
+  assert.equal(roleA.role, 'member');
+  assert.equal(roleA.jerseyNumber, 25);
+
+  assert.ok(roleB);
+  assert.equal(roleB.role, 'owner');
+  assert.equal(roleB.jerseyNumber, 10);
+});
+
+
+
+

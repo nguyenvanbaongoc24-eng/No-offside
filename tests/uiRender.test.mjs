@@ -21,8 +21,9 @@ const result = await build({
     import Governance from './src/pages/Governance.jsx';
     import AppearanceSettings from './src/components/AppearanceSettings.jsx';
     import SwipeMatchCard from './src/components/SwipeMatchCard.jsx';
+    import TeamManager from './src/pages/TeamManager.jsx';
     import Login from './src/pages/Login.jsx';
-    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam,Governance,AppearanceSettings,SwipeMatchCard,Login}[name],props));
+    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam,Governance,AppearanceSettings,SwipeMatchCard,TeamManager,Login}[name],props));
   `,
   },
   bundle: true,
@@ -123,6 +124,25 @@ test("empty home keeps the long form closed and hides creation for members", () 
   assert.doesNotMatch(member, /Thêm thành viên/);
   assert.match(member, /Chưa có trận sắp tới/);
   assert.match(member, /Mời vào đội bóng/);
+});
+
+test("TeamManager renders member list, filter buttons, and role badges without returning null", () => {
+  const members = [
+    { id: "1", name: "Nguyễn Văn Toàn", number: 9, role: "Tiền Đạo", roleType: "owner" },
+    { id: "2", name: "Quang Hải", number: 19, role: "Tiền Vệ", roleType: "member" },
+  ];
+  const html = render("TeamManager", {
+    isOpen: true,
+    members,
+    currentUserRole: "owner",
+    onClose: noop,
+  });
+  assert.match(html, /Thành viên đội/);
+  assert.match(html, /Nguyễn Văn Toàn/);
+  assert.match(html, /Quang Hải/);
+  assert.match(html, /Chủ đội/);
+  assert.match(html, /Cầu thủ/);
+  assert.match(html, /Tất cả \(2\)/);
 });
 
 test("governance views use verified server role and gate all actions when backend is absent", () => {

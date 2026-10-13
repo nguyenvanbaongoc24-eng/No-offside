@@ -1,5 +1,5 @@
 import React, { useId, useState } from "react";
-import { X, CalendarDays, UserCheck } from "lucide-react";
+import { X, CalendarDays, UserCheck, Clock, ShieldAlert } from "lucide-react";
 import { defaultLate } from "../lib/governance";
 
 export default function MatchFormSheet({
@@ -15,6 +15,7 @@ export default function MatchFormSheet({
   const late = { ...defaultLate, ...draft.lateConfig };
   const updateLate = (key, value) =>
     onChange({ ...draft, lateConfig: { ...late, [key]: value } });
+
   const field = (key, label, type = "text", placeholder = "") => (
     <div className="form-field">
       <label htmlFor={`${prefix}-${key}`}>{label}</label>
@@ -44,6 +45,7 @@ export default function MatchFormSheet({
       )}
     </div>
   );
+
   return (
     <div
       role="dialog"
@@ -51,13 +53,17 @@ export default function MatchFormSheet({
       aria-label={editing ? "Sửa trận" : "Tạo trận"}
       className="match-form-overlay"
     >
-      <section className="match-form-sheet">
+      <section className="match-form-sheet animate-in slide-in-from-bottom duration-300">
+        {/* Mobile handle indicator */}
+        <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mt-3 sm:hidden" />
+
         <header className="sheet-header">
           <h2>{editing ? "Sửa trận" : "Tạo trận"}</h2>
           <button type="button" aria-label="Đóng" onClick={onClose}>
             <X size={20} />
           </button>
         </header>
+
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -73,17 +79,18 @@ export default function MatchFormSheet({
         >
           <fieldset>
             <legend>
-              <CalendarDays size={20} />
-              Thông tin trận
+              <CalendarDays size={18} className="text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+              <span>Thông tin trận</span>
             </legend>
             {field("opponent", "Đối thủ", "text", "Ví dụ: FC Phủi Sài Gòn")}
             {field("datetime", "Thời gian thi đấu", "datetime-local")}
             {field("venue", "Địa điểm", "text", "Tên sân và địa chỉ")}
           </fieldset>
+
           <fieldset>
             <legend>
-              <UserCheck size={20} />
-              Điểm danh
+              <UserCheck size={18} className="text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+              <span>Điểm danh</span>
             </legend>
             {field("timeoutDatetime", "Hạn chốt điểm danh", "datetime-local")}
             <p className="field-hint">
@@ -98,7 +105,7 @@ export default function MatchFormSheet({
                   onChange({ ...draft, penaltyEnabled: e.target.checked })
                 }
               />
-              Áp dụng mức phạt khi chưa điểm danh
+              <span>Áp dụng mức phạt khi chưa điểm danh</span>
             </label>
             {draft.penaltyEnabled && (
               <label htmlFor={`${prefix}-fine`} className="form-field">
@@ -121,10 +128,11 @@ export default function MatchFormSheet({
               </label>
             )}
           </fieldset>
+
           <fieldset>
             <legend>
-              <UserCheck size={20} />
-              Đến muộn
+              <UserCheck size={18} className="text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+              <span>Đến muộn</span>
             </legend>
             <p className="field-hint">
               Cấu hình chỉ được thực thi khi trận đã kết nối nghiệp vụ trên
@@ -158,7 +166,7 @@ export default function MatchFormSheet({
                   updateLate("approvalRequired", e.target.checked)
                 }
               />
-              Cần người có quyền duyệt
+              <span>Cần người có quyền duyệt</span>
             </label>
             <div className="form-field">
               <label htmlFor={prefix + "-approved-policy"}>
@@ -175,14 +183,16 @@ export default function MatchFormSheet({
               </select>
             </div>
           </fieldset>
+
           {error && (
             <p role="alert" className="form-error">
               {error}
             </p>
           )}
+
           <footer className="sheet-footer">
             <button
-              className="primary-button w-full"
+              className="primary-button w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-600/25 active:scale-[0.98] transition-all cursor-pointer"
               type="submit"
               disabled={saving}
             >

@@ -365,25 +365,25 @@ export default function PlayerDashboard({
       <div className="dashboard-card-flow px-3.5 space-y-3 mt-3">
         {/* YÊU CẦU 2: CARD NẰM NGANG [Thành viên đội] VỚI NÚT [THÊM THÀNH VIÊN] (DÀNH CHO OWNER & ADMIN) */}
         {isLeader && (
-          <div className="w-full bg-white rounded-[26px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex items-center justify-between transition-all group text-left relative overflow-hidden">
+          <div className="w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all group text-left relative overflow-hidden">
             <button
               type="button"
               onClick={() => setShowTeamManagerModal(true)}
-              className="flex items-center gap-3.5 relative z-10 min-w-0 flex-1 cursor-pointer text-left"
+              className="flex items-center gap-3.5 relative z-10 min-w-0 flex-1 cursor-pointer text-left outline-none"
             >
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
                 <Users2 className="w-6 h-6" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-gray-900 tracking-tight">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                     Thành viên đội
                   </h3>
-                  <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 tabular-nums">
                     {members.filter((m) => m.membershipStatus !== "removed").length} người
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 font-medium mt-0.5 truncate">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
                   Danh sách, phân quyền và sinh nhật
                 </p>
               </div>
@@ -394,7 +394,7 @@ export default function PlayerDashboard({
               <button
                 type="button"
                 onClick={() => setShowAddMemberModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
                 title="Thêm thành viên thủ công"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[3]" />
@@ -405,7 +405,7 @@ export default function PlayerDashboard({
               <button
                 type="button"
                 onClick={() => setShowInviteModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
                 title="Mời qua QR & Mã Club"
               >
                 <QrCode className="w-3.5 h-3.5" />
@@ -416,7 +416,7 @@ export default function PlayerDashboard({
                 type="button"
                 aria-label="Xem chi tiết danh sách"
                 onClick={() => setShowTeamManagerModal(true)}
-                className="p-1 text-gray-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer outline-none"
               >
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
               </button>
@@ -425,7 +425,7 @@ export default function PlayerDashboard({
         )}
 
         {/* CARD MỜI VÀO ĐỘI (MÃ CLUB & QR CODE) */}
-        <div className="w-full bg-white dark:bg-slate-800 rounded-[26px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+        <div className="w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-left">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
               <QrCode className="w-5 h-5" />
@@ -433,11 +433,11 @@ export default function PlayerDashboard({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MÃ CLUB:</span>
-                <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 tracking-wider">
+                <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 tracking-wider truncate block max-w-[160px] sm:max-w-[200px]">
                   {inviteCode}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 font-medium truncate mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
                 Quét QR hoặc nhập mã để vào đội
               </p>
             </div>
@@ -447,7 +447,7 @@ export default function PlayerDashboard({
             <button
               type="button"
               onClick={() => copyToClipboard(inviteCode, "clubCode")}
-              className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+              className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 outline-none"
             >
               {copiedField === "clubCode" ? (
                 <>

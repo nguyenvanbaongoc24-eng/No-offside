@@ -99,6 +99,7 @@ export default async function handler(req, res) {
       const newTeam = {
         id: teamId,
         teamName,
+        inviteCode: "NO" + teamId.replace(/-/g, "").slice(0, 5).toUpperCase(),
         teamCategory: teamPayload.teamCategory || "Sân 7",
         venue: teamPayload.stadium || teamPayload.venue || "Sân bóng Sài Gòn",
         logo: teamPayload.teamLogo || teamPayload.logo || "",

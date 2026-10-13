@@ -1376,9 +1376,13 @@ export function useAuth() {
         p_team_id: tId,
       });
       if (error) throw new Error(error.message);
+      if (data?.code) {
+        setTeamSettings((prev) => ({ ...prev, inviteCode: data.code }));
+      }
       return data;
     }
     const code = "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    setTeamSettings((prev) => ({ ...prev, inviteCode: code }));
     return { success: true, code, status: "active" };
   };
 

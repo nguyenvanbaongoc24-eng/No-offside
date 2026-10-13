@@ -11,6 +11,7 @@
   --accent: #047857;
   --primary-fill: #047857;
   --on-primary: #ffffff;
+  --on-highlight: #123a24;
   --warning-surface: #fff5dc;
   --danger-surface: #fff0f3;
   --brand-start: #e5f1e3;
@@ -72,6 +73,16 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   color: var(--secondary-text);
 }
 .form-error { background: var(--danger-surface); color: var(--danger); }
+.text-emerald-500, .text-emerald-600 { color: var(--success); }
+.text-amber-500, .text-amber-600 { color: var(--warning); }
+.text-rose-500, .text-rose-600 { color: var(--danger); }
+[data-theme="dark"] .text-rose-800 { color: var(--danger); }
+[data-theme="dark"] [class*="bg-white/"] { background-color: var(--surface); }
+[data-theme="dark"] [class*="hover:bg-white"]:hover { background-color: var(--elevated-surface); }
+.tactics-player .text-slate-950 { color: var(--on-highlight); }
+.dashboard-card-flow [class*="blur-"] { display: none; }
+.chat-stream p.opacity-80, .chat-stream time { opacity: 1; }
+.backdrop-blur-xl, .backdrop-blur-sm { backdrop-filter: none; }
 .bg-slate-50 { background-color: var(--background); }
 button[class*="bg-gradient-to-"] {
   background-image: none !important;
@@ -170,6 +181,9 @@ button[aria-pressed="true"] { box-shadow: none; }
 .create-team-page > div { margin-top: 16px; }
 .create-team-page form { border-radius: 16px; padding: 20px; box-shadow: none; }
 .create-team-page input:not([type="file"]) { border-radius: 12px; }
+.create-team-page form .mt-3.flex.items-center.gap-2 { flex-wrap: wrap; }
+.create-team-page img[class*="w-7"] { width: 44px; height: 44px; }
+input[type="file"] { min-height: 44px; max-width: 100%; font-size: 16px; }
 .member-sheet { background: var(--elevated-surface) !important; border-radius: 20px 20px 0 0; }
 .member-sheet-header { gap: 8px; padding: 16px 12px 12px; }
 .member-sheet-header h2 { flex-wrap: wrap; }

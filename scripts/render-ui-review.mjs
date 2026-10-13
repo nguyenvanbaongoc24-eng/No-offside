@@ -50,13 +50,14 @@ const cases={
  empty:<EmptyTeam teamSettings={team} leader onSaveMatch={noop} onNavigate={noop}/>,
  error:<Governance governance={gov} onBack={noop}/>,
  appearance:<Appearance preferences={preferences}/>,
+ controls:<section className="settings-card m-4 space-y-4"><h1>Trạng thái control</h1><label className="form-field">Đã nhập<input defaultValue="Tiếng Việt có dấu"/></label><label className="form-field">Placeholder<input placeholder="Nhập nội dung"/></label><label className="form-field">Readonly<input readOnly value="Thông tin chỉ đọc"/></label><label className="form-field">Disabled<input disabled value="Chưa được phép sửa"/></label><label className="form-field">Dropdown<select defaultValue="one"><option value="one">Một lựa chọn</option></select></label><label className="form-field">Lỗi<input aria-invalid="true" defaultValue="Nội dung chưa hợp lệ"/></label><p className="form-error" role="alert">Kiểm tra lại thông tin đã nhập.</p><button className="primary-button" disabled>Đang chờ xử lý</button></section>,
  bank:<BankPicker value="970422" name="MBBank" onChange={noop}/>,
  invite:<InviteLanding teamData={{name:team.teamName,captain:user.name,membersCount:4,venue:team.venue,logo:avatar,category:'Sân 7',code:'UI1234'}} onBackToApp={noop} onRequireAuth={noop}/>
 };
 export const renderNav=()=>renderToStaticMarkup(<nav className="bottom-navigation" aria-label="Điều hướng chính"><div className="nav-items">{[['home','Trang chủ',Home],['tactics','Chiến thuật',Network],['fund','Quỹ đội',Wallet],['chat','Tin nhắn',MessageSquare],['profile','Cá nhân',User]].map(([key,label,Icon])=><button key={key} className="nav-item" data-target={key}><Icon size={24}/><span>{label}</span></button>)}</div></nav>);
 export const render=()=>Object.fromEntries(Object.entries(cases).map(([key,value])=>[key,renderToStaticMarkup(value)]));
 `},bundle:true,platform:'node',format:'cjs',write:false,logLevel:'silent',plugins:[{name:'read-only-fixture',setup(b){b.onResolve({filter:/lib\/supabase$/},()=>({path:'supabase-fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase = null;',loader:'js'}));}}]});
-globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
+globalThis.localStorage={getItem:key=>key==='no_offside_messages_ui-review::ui-review'?JSON.stringify([{id:'m1',senderId:'usr-10',sender:'Hoàng Hải',text:'Hẹn cả đội ra sân lúc 18:30. Chúc mọi người một buổi đá vui!',createdAt:'2026-10-13T10:00Z'},{id:'m2',senderId:'usr-9',sender:'Minh Anh',text:'Mình đã nhận thông tin lịch thi đấu.',createdAt:'2026-10-13T10:02Z'}]):null,setItem:()=>{}};
 globalThis.sessionStorage={getItem:()=> 'true',setItem:()=>{},removeItem:()=>{}};
 globalThis.document={};
 const compiled={exports:{}};

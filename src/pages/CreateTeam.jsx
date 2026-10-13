@@ -12,11 +12,15 @@ import {
   Trophy
 } from 'lucide-react';
 
+import { Loader2, AlertCircle } from 'lucide-react';
+
 export default function CreateTeam({ onTeamCreated, onBack }) {
   const [teamName, setTeamName] = useState('');
   const [stadium, setStadium] = useState('');
   const [teamType, setTeamType] = useState('Sân 7');
   const [logoPreview, setLogoPreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const teamTypeOptions = ['Sân 5', 'Sân 7', 'Sân 11'];
 
@@ -29,12 +33,17 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
 
   const handleLogoUpload = async e => { try { setLogoPreview(await imageDataUrl(e.target.files?.[0])); } catch (err) { alert(err.message); } };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!teamName.trim()) {
-      alert('Vui lòng nhập tên đội bóng của bạn!');
+    if (isSubmitting) return;
+
+    if (!teamName.trim() || teamName.trim().length < 2) {
+      setSubmitError('Vui lòng nhập tên đội bóng của bạn (tối thiểu 2 ký tự)!');
       return;
     }
+
+    setSubmitError('');
+    setIsSubmitting(true);
 
     const newTeamData = {
       teamName: teamName.trim(),
@@ -46,8 +55,13 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
       isCaptain: true,
     };
 
-    if (onTeamCreated) {
-      onTeamCreated(newTeamData);
+    try {
+      if (onTeamCreated) {
+        await onTeamCreated(newTeamData);
+      }
+    } catch (err) {
+      setSubmitError(err.message || 'Không thể tạo đội bóng. Vui lòng kiểm tra kết nối và thử lại.');
+      setIsSubmitting(false);
     }
   };
 
@@ -85,6 +99,13 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
           onSubmit={handleSubmit}
           className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-6 space-y-6"
         >
+          {submitError && (
+            <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+              <span className="font-semibold leading-relaxed">{submitError}</span>
+            </div>
+          )}
+
           {/* 1. KHU VỰC UPLOAD LOGO: HÌNH TRÒN TO W-32 H-32 */}
           <div className="flex flex-col items-center">
             <label className="text-xs font-bold text-gray-600 mb-2">
@@ -208,10 +229,24 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full h-14 rounded-full bg-[#22C55E] hover:bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+              disabled={isSubmitting}
+              className={`w-full h-14 rounded-full text-white font-bold text-sm flex items-center justify-center gap-2 shadow-xl transition-all duration-200 cursor-pointer ${
+                isSubmitting
+                  ? 'bg-emerald-400 opacity-80 cursor-not-allowed'
+                  : 'bg-[#22C55E] hover:bg-emerald-600 shadow-emerald-500/25 active:scale-95'
+              }`}
             >
-              <span>Tạo Đội Bóng & Vào Dashboard</span>
-              <ArrowRight className="w-4 h-4 stroke-[3]" />
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Đang lưu đội bóng vào hệ thống...</span>
+                </>
+              ) : (
+                <>
+                  <span>Tạo Đội Bóng & Vào Dashboard</span>
+                  <ArrowRight className="w-4 h-4 stroke-[3]" />
+                </>
+              )}
             </button>
             <p className="text-xs text-center text-gray-400 mt-3 font-medium">
               Bạn sẽ tự động trở thành Chủ đội (Owner) để quản lý đội bóng.

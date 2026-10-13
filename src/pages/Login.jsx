@@ -83,6 +83,37 @@ export default function Login({ onLoginSuccess, initialMode }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [forgotCooldown, setForgotCooldown] = useState(0);
+  const [unconfirmedEmailAlert, setUnconfirmedEmailAlert] = useState(null);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendNotice, setResendNotice] = useState("");
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleResendVerificationEmail = async () => {
+    if (resendCooldown > 0 || resendingEmail || !unconfirmedEmailAlert?.email) return;
+    setResendingEmail(true);
+    setResendNotice("");
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: unconfirmedEmailAlert.email,
+      });
+      if (resendError) throw resendError;
+      setResendNotice("Đã gửi lại email xác minh. Hãy kiểm tra hộp thư của bạn.");
+      setResendCooldown(60);
+    } catch (err) {
+      setResendNotice("Lỗi: " + (err.message || "Không thể gửi lại email xác minh lúc này."));
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   // Google first-time user state
   const [googleUser, setGoogleUser] = useState(null);
@@ -94,6 +125,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     // Check URL parameters / hash for recovery or OAuth errors
     const searchParams = new URLSearchParams(window.location.search);
     let hashParams = new URLSearchParams();
@@ -317,6 +349,19 @@ export default function Login({ onLoginSuccess, initialMode }) {
         });
 
       if (signInError) {
+        const isUnconfirmed =
+          signInError.code === "email_not_confirmed" ||
+          signInError.message?.toLowerCase().includes("email not confirmed");
+
+        if (isUnconfirmed) {
+          setUnconfirmedEmailAlert({
+            email: resolvedEmail || email || cleanUsername,
+          });
+          setError("");
+          return;
+        }
+
+        setUnconfirmedEmailAlert(null);
         // Record failed attempt for rate limiting
         try {
           await supabase.rpc("no_auth_record_login_result", {
@@ -327,6 +372,8 @@ export default function Login({ onLoginSuccess, initialMode }) {
         } catch {}
         throw signInError;
       }
+
+      setUnconfirmedEmailAlert(null);
 
       // Record successful login (clears failed attempts)
       try {
@@ -705,6 +752,8 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   setMode("signin");
                   setError("");
                   setSuccess("");
+                  setUnconfirmedEmailAlert(null);
+                  setResendNotice("");
                 }}
                 className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
                   mode === "signin"
@@ -720,6 +769,8 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   setMode("signup");
                   setError("");
                   setSuccess("");
+                  setUnconfirmedEmailAlert(null);
+                  setResendNotice("");
                 }}
                 className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
                   mode === "signup"
@@ -729,6 +780,56 @@ export default function Login({ onLoginSuccess, initialMode }) {
               >
                 Tạo tài khoản
               </button>
+            </div>
+          )}
+
+          {/* Unconfirmed Email Alert */}
+          {unconfirmedEmailAlert && (
+            <div
+              role="alert"
+              className="mb-4 p-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-rose-100 text-xs shadow-lg space-y-2.5 animate-in fade-in"
+            >
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5 stroke-[2.2]" />
+                <div className="space-y-1">
+                  <p className="font-bold text-rose-200 text-xs leading-snug">
+                    Email của bạn chưa được xác minh. Hãy kiểm tra hộp thư, mở liên kết xác minh rồi đăng nhập lại.
+                  </p>
+                  <p className="text-[11px] text-rose-300/90 font-medium">
+                    Nếu chưa thấy email, hãy kiểm tra thư rác.
+                  </p>
+                </div>
+              </div>
+
+              {resendNotice && (
+                <p className="text-[11px] font-semibold text-emerald-300 bg-emerald-950/60 p-2 rounded-xl border border-emerald-500/30">
+                  {resendNotice}
+                </p>
+              )}
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  disabled={resendingEmail || resendCooldown > 0}
+                  onClick={handleResendVerificationEmail}
+                  className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    resendingEmail || resendCooldown > 0
+                      ? "bg-rose-900/40 text-rose-300/60 border border-rose-800/40 cursor-not-allowed"
+                      : "bg-rose-600 hover:bg-rose-500 text-white shadow-sm active:scale-95"
+                  }`}
+                >
+                  {resendingEmail ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang gửi lại...</span>
+                    </>
+                  ) : resendCooldown > 0 ? (
+                    <span>Gửi lại sau {resendCooldown}s</span>
+                  ) : (
+                    <span>Gửi lại email xác minh</span>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 

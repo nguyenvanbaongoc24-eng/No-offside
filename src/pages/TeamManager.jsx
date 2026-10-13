@@ -23,7 +23,8 @@ export default function TeamManager({
   members = [],
   currentUserRole = 'owner',
   onRemoveMember,
-  onOpenInvite
+  onOpenInvite,
+  onOpenAddMember,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all'); // 'all' | 'leaders' | 'members'
@@ -193,17 +194,36 @@ export default function TeamManager({
                 </button>
               </div>
 
-              {/* NÚT [THÊM THÀNH VIÊN] (MỞ POPUP CHIA SẺ QR/LINK) */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  if (onOpenInvite) onOpenInvite();
-                }}
-                className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-green-500/25 cursor-pointer whitespace-nowrap"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>+ Thêm Thành Viên</span>
-              </motion.button>
+              {/* NÚT THAO TÁC: THÊM THỦ CÔNG & MỜI QR */}
+              {(isOwner || currentUserRole === 'admin') && (
+                <div className="flex items-center gap-1.5">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    onClick={() => {
+                      if (onOpenAddMember) onOpenAddMember();
+                    }}
+                    className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
+                    title="Thêm thành viên thủ công"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>+ Thêm thành viên</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    onClick={() => {
+                      if (onOpenInvite) onOpenInvite();
+                    }}
+                    className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+                    title="Mời qua QR & Mã Club"
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>Mã / QR</span>
+                  </motion.button>
+                </div>
+              )}
             </div>
           </div>
 

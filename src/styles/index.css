@@ -115,6 +115,8 @@ button[class*="bg-gradient-to-"][class*="from-amber"] { background-image: linear
 .match-undo button { flex-shrink: 0; padding: 8px; color: #6ee7b7; font-weight: 600; }
 /* Mobile UI: equal tabs, native inputs, compact financial hierarchy. */
 .lucide { stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+button .lucide { width: 20px; height: 20px; flex-shrink: 0; }
+.nav-item .lucide { width: 24px; height: 24px; }
 .bottom-navigation { bottom: var(--keyboard-inset); left: 0; right: 0; max-width: 448px; }
 .nav-items { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 0; height: calc(64px + env(safe-area-inset-bottom,0px)); padding: 2px 4px calc(2px + env(safe-area-inset-bottom,0px)); background: #fff; border: 0; border-top: 1px solid #e2e8f0; border-radius: 0; box-shadow: 0 -2px 8px rgb(15 23 42 / .025); }
 .nav-item { min-height: 60px; height: 60px; padding: 4px 0; gap: 3px; color: #64748b; border-radius: 12px; font-size: 11px; font-weight: 500; }

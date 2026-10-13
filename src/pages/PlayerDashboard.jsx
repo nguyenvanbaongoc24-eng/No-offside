@@ -737,7 +737,7 @@ export default function PlayerDashboard({
 
               {attendanceActiveTab === 'maybe' && (
                 roster.maybe.map((p) => (
-                  <div key={p.id} className="p-2.5 rounded-2xl bg-amber-Chưa chắc border border-amber-100 flex items-center justify-between">
+                  <div key={p.id} className="p-2.5 rounded-2xl bg-amber-50/50 border border-amber-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">
                         #{p.number}
@@ -756,7 +756,7 @@ export default function PlayerDashboard({
 
               {attendanceActiveTab === 'absent' && (
                 roster.absent.map((p) => (
-                  <div key={p.id} className="p-2.5 rounded-2xl bg-rose-Chưa chắc border border-rose-100 flex items-center justify-between">
+                  <div key={p.id} className="p-2.5 rounded-2xl bg-rose-50/50 border border-rose-100 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-800 font-bold text-xs flex items-center justify-center">
                         #{p.number}

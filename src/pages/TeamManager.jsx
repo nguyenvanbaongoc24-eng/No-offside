@@ -62,14 +62,14 @@ export default function TeamManager({
     if (isToday) {
       return (
         <span className="text-xs font-bold bg-pink-100 text-pink-700 border border-pink-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1 animate-pulse">
-          🎂 Hôm nay!
+           Hôm nay!
         </span>
       );
     }
     if (isThisMonth) {
       return (
         <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.2 rounded-full inline-flex items-center gap-0.5">
-          🎉 Tháng này
+           Tháng này
         </span>
       );
     }
@@ -120,7 +120,7 @@ export default function TeamManager({
               </div>
             </div>
 
-            <button
+            <button aria-label="Đóng"
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all cursor-pointer"
             >
@@ -296,7 +296,7 @@ export default function TeamManager({
 
           {/* Footer Info */}
           <div className="p-3 bg-gray-50 border-t border-gray-100 text-center text-xs text-gray-500 font-medium">
-            💡 Gợi ý: Chia sẻ mã QR hoặc link tham gia để mời thêm bạn bè vào đội
+             Gợi ý: Chia sẻ mã QR hoặc link tham gia để mời thêm bạn bè vào đội
           </div>
 
           {/* Modal xác nhận xóa thành viên */}
@@ -307,9 +307,7 @@ export default function TeamManager({
                   <AlertTriangle className="w-7 h-7" />
                 </div>
 
-                <h3 className="font-bold text-base text-gray-900">
-                  Xóa Thành Viên Khỏi Đội
-                </h3>
+                <h3 className="font-bold text-base text-gray-900">Xóa thành viên khỏi đội</h3>
 
                 <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
                   Bạn có chắc chắn muốn xóa <strong>{memberToDelete.name} (#{memberToDelete.number})</strong> khỏi danh sách đội bóng?

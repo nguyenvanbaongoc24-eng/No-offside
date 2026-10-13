@@ -60,10 +60,10 @@ export default function InviteShare({
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-              ⚽
+
             </div>
             <div>
-              <h3 className="font-bold text-base text-gray-900">Mời Thành Viên Mới</h3>
+              <h3 className="font-bold text-base text-gray-900">Mời thành viên mới</h3>
               <p className="text-xs text-gray-400">Gửi mã QR hoặc link cho cầu thủ</p>
             </div>
           </div>

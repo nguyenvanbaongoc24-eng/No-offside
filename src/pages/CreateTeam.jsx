@@ -65,15 +65,13 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
             </button>
           )}
 
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+          <span className="text-xs font-bold  tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
             Dành Cho Đội Trưởng
           </span>
         </div>
 
         <div className="relative z-10">
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Tạo đội bóng của bạn
-          </h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Tạo đội bóng của bạn</h1>
           <p className="text-xs text-gray-400 mt-1">
             Khởi tạo FC và trở thành Đội trưởng để quản lý quỹ, điểm danh và xếp sa bàn chiến thuật.
           </p>

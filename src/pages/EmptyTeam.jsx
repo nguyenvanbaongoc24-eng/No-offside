@@ -1,8 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { CalendarDays, Plus } from "lucide-react";
+import MatchFormSheet from "../components/MatchFormSheet";
 
-export default function EmptyTeam({ teamSettings, leader, onSaveMatch, onNavigate }) {
-  const [form, setForm] = useState({ opponent: '', venue: teamSettings.venue || '', datetime: '', timeoutDatetime: '', penaltyEnabled: false, penaltyFine: 0 });
-  const [error, setError] = useState('');
-  const field = (key, label, type = 'text') => <label className="block text-sm font-medium">{label}<input required type={type} value={form[key]} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))} className="w-full p-3 mt-2 rounded-xl border border-slate-200 bg-white"/></label>;
-  return <section className="p-5 space-y-5"><h1 className="text-2xl font-bold">{teamSettings.teamName}</h1><p className="text-slate-600">Đội chưa có trận đấu. {leader ? 'Tạo lịch đầu tiên để bắt đầu điểm danh.' : 'Chờ đội trưởng tạo lịch đấu.'}</p>{leader && <form className="settings-card space-y-4" onSubmit={e => { e.preventDefault(); try { onSaveMatch(form); } catch (err) { setError(err.message); } }}>{field('opponent', 'Đối thủ')}{field('venue', 'Sân bóng')}{field('datetime', 'Giờ đá', 'datetime-local')}{field('timeoutDatetime', 'Hạn chốt điểm danh', 'datetime-local')}{error && <p role="alert" className="text-rose-600">{error}</p>}<button className="primary-button w-full">Tạo trận đấu</button></form>}<button className="choice-button w-full" onClick={() => onNavigate('profile')}>Quản lý tài khoản và đội bóng</button></section>;
+export default function EmptyTeam({
+  teamSettings,
+  leader,
+  onSaveMatch,
+  onNavigate,
+}) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    opponent: "",
+    venue: teamSettings.venue || "",
+    datetime: "",
+    timeoutDatetime: "",
+    penaltyEnabled: false,
+    penaltyFine: 0,
+  });
+  return (
+    <section className="empty-team p-5">
+      <p className="text-sm text-slate-600">{teamSettings.teamName}</p>
+      <h1 className="text-2xl font-semibold mt-2">Trang chủ</h1>
+      <div className="empty-state">
+        <CalendarDays size={28} className="text-slate-500" />
+        <h2>Chưa có trận sắp tới</h2>
+        <p>
+          {leader
+            ? "Tạo lịch thi đấu để đội bắt đầu điểm danh."
+            : "Chờ chủ đội hoặc quản trị viên tạo lịch thi đấu."}
+        </p>
+        {leader && (
+          <button
+            className="primary-button"
+            onClick={() => {
+              setError("");
+              setOpen(true);
+            }}
+          >
+            <Plus size={20} />
+            Tạo trận
+          </button>
+        )}
+      </div>
+      <button
+        className="text-sm text-slate-600 w-full mt-5"
+        onClick={() => onNavigate("profile")}
+      >
+        Xem thông tin cá nhân và đội bóng
+      </button>
+      {open && leader && (
+        <MatchFormSheet
+          draft={form}
+          onChange={setForm}
+          error={error}
+          onClose={() => setOpen(false)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            try {
+              onSaveMatch(form);
+              setOpen(false);
+            } catch (err) {
+              setError(err.message);
+            }
+          }}
+        />
+      )}
+    </section>
+  );
 }

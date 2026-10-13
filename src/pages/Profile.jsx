@@ -7,7 +7,6 @@ import {
   Settings,
   Bell,
   CreditCard,
-  Crown,
   LogOut,
   ChevronRight,
   Edit3,
@@ -133,7 +132,7 @@ export default function Profile({
       alert(`Đã cấp quyền Admin với chức danh "${promoteTitle}" cho ${selectedPromotee.name} thành công!`);
     } else {
       onRequestAdmin({ ...selectedPromotee, customTitle: promoteTitle });
-      alert(`Đã gửi yêu cầu phong Admin (${promoteTitle}) cho ${selectedPromotee.name} tới Đội Trưởng phê duyệt!`);
+      alert(`Đã gửi yêu cầu phong Admin (${promoteTitle}) cho ${selectedPromotee.name} tới Chủ đội phê duyệt!`);
     }
     setShowPromoteModal(false);
     setSelectedPromotee(null);
@@ -153,7 +152,7 @@ export default function Profile({
     if (onTransferOwnership) {
       onTransferOwnership(selectedNewOwner.id);
     }
-    alert(`Bạn đã nhường toàn quyền Đội Trưởng cho ${selectedNewOwner.name}! Vai trò của bạn hiện là Thành Viên.`);
+    alert(`Bạn đã nhường toàn quyền Chủ đội cho ${selectedNewOwner.name}! Vai trò của bạn hiện là Thành Viên.`);
     setShowTransferOwnerModal(false);
     setSelectedNewOwner(null);
   };
@@ -217,20 +216,20 @@ export default function Profile({
                   ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
                   : 'bg-white/10 text-gray-200 border-white/20 hover:bg-white/20'
               }`}
-              title="Click để đổi vai trò thử nghiệm: Owner -> Admin -> Member"
+              title="Đổi vai trò trải nghiệm: chủ đội, quản trị viên, thành viên"
             >
               {currentUserRole === 'owner' ? (
                 <>
-                  <Crown className="w-3.5 h-3.5 text-slate-950" />
-                  <span>👑 Đội Trưởng</span>
+
+                  <span> Đội Trưởng</span>
                 </>
               ) : currentUserRole === 'admin' ? (
                 <>
                   <Shield className="w-3.5 h-3.5" />
-                  <span>⭐ Admin Phụ</span>
+                  <span> Admin Phụ</span>
                 </>
               ) : (
-                <span>⚽ Cầu Thủ</span>
+                <span> Thành viên</span>
               )}
             </button>
 
@@ -270,9 +269,7 @@ export default function Profile({
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">
-              HỒ SƠ CÁ NHÂN
-            </h3>
+            <h3 className="text-xs font-bold  tracking-wider text-gray-800">Hồ sơ cá nhân</h3>
           </div>
           <span className="text-xs text-gray-400 font-bold">Chỉnh sửa & Cập nhật</span>
         </div>
@@ -335,7 +332,7 @@ export default function Profile({
             type="submit"
             className="w-full h-11 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs shadow-lg shadow-green-500/30 flex items-center justify-center whitespace-nowrap cursor-pointer mt-1"
           >
-            {isSaved ? '✓ Đã Lưu Thông Tin' : 'Lưu Hồ Sơ Cầu Thủ'}
+            {isSaved ? ' Đã Lưu Thông Tin' : 'Lưu Hồ Sơ Thành viên'}
           </motion.button>
         </form>
       </section>
@@ -346,12 +343,12 @@ export default function Profile({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
-              <h3 className="text-xs font-bold text-amber-950 uppercase tracking-tight">
+              <h3 className="text-xs font-bold text-amber-950  tracking-tight">
                 Yêu Cầu Phong Admin Chờ Duyệt ({pendingRequests.length})
               </h3>
             </div>
             <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-              Cần Owner Duyệt
+              Chờ chủ đội duyệt
             </span>
           </div>
 
@@ -365,7 +362,7 @@ export default function Profile({
                       {req.name} <span className="text-amber-700 font-bold">#{req.number}</span>
                     </p>
                     <p className="text-xs text-gray-500">
-                      Đề xuất làm: <strong className="text-amber-800 font-bold">👑 {req.requestedTitle}</strong> • Bởi: {req.requestedBy}
+                      Đề xuất làm: <strong className="text-amber-800 font-bold"> {req.requestedTitle}</strong> • Bởi: {req.requestedBy}
                     </p>
                   </div>
                 </div>
@@ -405,13 +402,13 @@ export default function Profile({
         <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 mx-3.5 mt-3 border border-gray-100">
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="flex items-center gap-2">
-              <Crown className="w-4 h-4 text-amber-500" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900">
-                {isOwner ? 'QUẢN TRỊ ĐỘI BÓNG (ĐỘI TRƯỞNG)' : 'QUẢN TRỊ ĐỘI BÓNG (ADMIN PHỤ)'}
+
+              <h3 className="text-xs font-bold  tracking-wider text-gray-900">
+                {isOwner ? 'Quản trị đội bóng' : 'Quản trị đội bóng'}
               </h3>
             </div>
             <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-              {isOwner ? 'Owner' : 'Sub-Admin'}
+              {isOwner ? 'Chủ đội' : 'Quản trị viên'}
             </span>
           </div>
 
@@ -440,7 +437,7 @@ export default function Profile({
                   type="submit"
                   className="h-10 px-3.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shrink-0 cursor-pointer whitespace-nowrap flex items-center justify-center"
                 >
-                  {teamNameSaved ? '✓ Đã Lưu' : 'Đổi Tên'}
+                  {teamNameSaved ? ' Đã Lưu' : 'Đổi Tên'}
                 </motion.button>
               </form>
             ) : (
@@ -476,7 +473,7 @@ export default function Profile({
                         <span>{admin.name}</span>
                         {/* BADGE CHỨC DANH MÀU VÀNG GOLD */}
                         <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400/25 to-yellow-500/20 text-amber-900 border border-amber-300 font-bold text-xs inline-flex items-center gap-1 shadow-xs whitespace-nowrap">
-                          👑 {admin.customTitle || 'Admin Phụ'}
+                           {admin.customTitle || 'Admin Phụ'}
                         </span>
                       </p>
                       <p className="text-xs text-gray-400">{admin.phone || 'Admin'}</p>
@@ -504,7 +501,7 @@ export default function Profile({
                           setShowRemoveAdminModal(true);
                         }}
                         className="p-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 active:scale-90 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center"
-                        title="Giáng cấp xuống Member"
+                        title="Đổi về thành viên"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -569,9 +566,7 @@ export default function Profile({
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">
-              Gia Nhập & Mời Thành Viên
-            </h3>
+            <h3 className="text-xs font-bold  tracking-wider text-gray-800">Gia nhập & mời thành viên</h3>
           </div>
           <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
             QR / Link
@@ -726,9 +721,7 @@ export default function Profile({
               <AlertTriangle className="w-7 h-7" />
             </div>
 
-            <h3 className="font-bold text-base text-gray-900">
-              Giáng Chức Admin
-            </h3>
+            <h3 className="font-bold text-base text-gray-900">Giáng chức admin</h3>
 
             <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
               Bạn có chắc chắn muốn xóa quyền Admin của <strong>{adminToRemove.name}</strong>? Người này sẽ bị giáng xuống thành Cầu thủ (Member).
@@ -761,15 +754,13 @@ export default function Profile({
           <div className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100 text-center">
 
             <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-300 text-amber-600 flex items-center justify-center mx-auto mb-3">
-              <Crown className="w-7 h-7" />
+
             </div>
 
-            <h3 className="font-bold text-base text-gray-900">
-              Nhường Quyền Đội Trưởng
-            </h3>
+            <h3 className="font-bold text-base text-gray-900">Nhường quyền đội trưởng</h3>
 
             <p className="text-xs text-rose-600 mt-2 leading-relaxed font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
-              ⚠️ LƯU Ý QUAN TRỌNG: Bạn sẽ mất toàn quyền kiểm soát đội bóng và tự giáng cấp mình xuống làm Cầu thủ (Member)!
+               LƯU Ý QUAN TRỌNG: Bạn sẽ mất toàn quyền kiểm soát đội bóng và tự giáng cấp mình xuống làm Cầu thủ (Member)!
             </p>
 
             <div className="my-4 text-left">

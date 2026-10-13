@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Shield,
+  Network,
   Users,
   PlusCircle,
   Check,
@@ -147,8 +147,8 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
           </motion.button>
 
           <h1 className="text-sm font-bold text-white flex items-center gap-1.5">
-            <Shield className="w-4 h-4 text-emerald-400" />
-            <span>Sa Bàn Free Drag & Drop</span>
+            <Network className="w-4 h-4 text-emerald-400" />
+            <span>Đội hình chiến thuật</span>
           </h1>
 
           <motion.button
@@ -157,16 +157,16 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
             className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-emerald-600/20 cursor-pointer"
           >
             <PlusCircle className="w-3.5 h-3.5" />
-            <span>+ Tạo sơ đồ</span>
+            <span>Tạo sơ đồ</span>
           </motion.button>
         </div>
       </section>
 
       {/* Control Bar: Hướng dẫn kéo thả & Nút Lưu Đội Hình */}
-      <div className="px-4 mt-2.5 flex items-center justify-between">
+      <div className="px-4 mt-2.5 flex flex-wrap gap-2 items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
           <Move className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Dùng tay kéo thả tự do cầu thủ</span>
+          <span>Kéo để xếp, chạm để đổi</span>
         </div>
 
         {/* NÚT LƯU ĐỘI HÌNH */}
@@ -176,7 +176,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
           className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer"
         >
           <Save className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{saveSuccessNotice ? '✓ Đã Lưu!' : 'Lưu đội hình'}</span>
+          <span>{saveSuccessNotice ? 'Đã lưu' : 'Lưu đội hình'}</span>
         </motion.button>
       </div>
 
@@ -197,7 +197,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
 
             {/* Sideline Touchline indicator */}
             <div className="absolute bottom-1 left-2 right-2 h-7 border-t border-dashed border-emerald-300/40 flex items-center justify-center">
-              <span className="text-xs text-emerald-300/60 font-bold uppercase tracking-wider">Băng Ghế / Mép Sân Kéo Vào</span>
+              <span className="text-xs text-emerald-300/60 font-bold  tracking-wider">Băng Ghế / Mép Sân Kéo Vào</span>
             </div>
           </div>
 
@@ -250,7 +250,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
 
           {/* Hint Overlay */}
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-emerald-200/90 font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
-            🖐️ Kéo thả vị trí tùy ý • Chạm để đổi người
+             Kéo thả vị trí tùy ý • Chạm để đổi người
           </div>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
       {/* 3. Tactics List (Render thành một danh sách có Checkmark) */}
       <div className="px-4 mt-3">
         <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+          <span className="text-xs font-bold  tracking-wider text-gray-500">
             DANH SÁCH CHIẾN THUẬT ({formationsList.length})
           </span>
           <span className="text-xs font-bold text-emerald-600">
@@ -283,15 +283,13 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
                 <div className="flex items-center gap-2.5">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
                     isActive ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    ⚽
-                  </div>
+                  }`}><Network size={20}/></div>
                   <div>
                     <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                       <span>{item.name}</span>
                       {isActive && (
                         <span className="text-xs font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          Đang đá
+                          Đang chọn
                         </span>
                       )}
                     </h4>
@@ -363,7 +361,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <PlusCircle className="w-4 h-4 text-emerald-600" />
-                <h3 className="font-bold text-base text-gray-900">Tạo Sơ Đồ Tự Xếp Mới</h3>
+                <h3 className="font-bold text-base text-gray-900">Tạo sơ đồ tự xếp mới</h3>
               </div>
               <button aria-label="Đóng" onClick={() => setShowCreateFormationModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
                 <X className="w-4 h-4" />
@@ -383,7 +381,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
                 />
               </div>
               <p className="text-xs text-gray-400 leading-relaxed">
-                💡 Khi tạo xong, các cầu thủ sẽ xuất hiện ở mép sân. Bạn có thể dùng tay kéo thả họ tự do vào bất kỳ vị trí chiến thuật nào trên sân!
+                 Khi tạo xong, các cầu thủ sẽ xuất hiện ở mép sân. Bạn có thể dùng tay kéo thả họ tự do vào bất kỳ vị trí chiến thuật nào trên sân!
               </p>
 
               <div className="pt-2">

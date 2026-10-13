@@ -41,7 +41,7 @@ export default function Login({ onLoginSuccess }) {
   };
   return <div className="min-h-screen bg-slate-50 px-5 py-12 flex flex-col justify-center">
     <div className="max-w-sm w-full mx-auto">
-      <div className="w-16 h-16 rounded-3xl bg-emerald-600 text-white grid place-items-center text-3xl mb-7 shadow-lg">⚽</div>
+      <div className="w-16 h-16 rounded-3xl bg-emerald-600 text-white grid place-items-center text-3xl mb-7 shadow-sm"><ShieldCheck size={28}/></div>
       <p className="text-emerald-700 font-semibold mb-2">NO OFFSIDE</p>
       <h1 className="text-3xl font-bold text-slate-900">Hẹn nhau ra sân.</h1>
       <p className="text-slate-600 mt-3 mb-7 leading-relaxed">Lịch thi đấu, đồng đội và quỹ đội — trong một ứng dụng.</p>

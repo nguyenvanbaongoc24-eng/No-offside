@@ -588,8 +588,13 @@ export default function LineupBuilder({
                 );
               }}
               whileDrag={{ scale: 1.2, zIndex: 50 }}
-              style={{ top: player.top, left: player.left }}
-              className="tactics-player absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing z-10 flex flex-col items-center touch-none"
+              style={{
+                top: player.top,
+                left: player.left,
+                x: "-50%",
+                y: "-50%",
+              }}
+              className="tactics-player absolute cursor-grab active:cursor-grabbing z-10 flex flex-col items-center touch-none"
             >
               {/* Number Circle */}
               <div

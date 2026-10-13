@@ -265,6 +265,8 @@ export default function App() {
             ) : (
               <FundManagement
                 {...fundProps}
+                actor={auth.user.name}
+                timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
                 treasurerQr={auth.teamSettings.treasurerQr}
                 onUpdateTreasurerQr={auth.updateTreasurerQr}
                 currentUserRole={auth.currentUserRole}
@@ -286,6 +288,7 @@ export default function App() {
             <React.Fragment key={auth.accountId + auth.teamSettings.id}>
               <Profile
                 {...shared}
+                onOpenNotifications={() => setShowNotices(true)}
                 teamSettings={auth.teamSettings}
                 onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
                 onLogout={auth.logout}

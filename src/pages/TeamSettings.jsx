@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { imageDataUrl } from "../lib/images";
-import AppearanceSettings from "../components/AppearanceSettings";
 export default function TeamSettings({
   teamSettings,
   onUpdateTeamSettings,
@@ -19,14 +18,19 @@ export default function TeamSettings({
   const save = (e) => {
     e.preventDefault();
     if (currentUserRole !== "owner") return;
-    onUpdateTeamSettings(
-      Object.fromEntries(
+    onUpdateTeamSettings({
+      ...Object.fromEntries(
         ["teamName", "teamCategory", "venue", "schedule", "logo"].map((k) => [
           k,
           draft[k],
         ]),
       ),
-    );
+      appearance: {
+        ...teamSettings.appearance,
+        birthdayReportEnabled:
+          draft.appearance?.birthdayReportEnabled !== false,
+      },
+    });
     setSaved(true);
   };
   return (
@@ -38,9 +42,6 @@ export default function TeamSettings({
         </button>
         <h1 className="text-2xl font-bold mt-4">Cài đặt đội bóng</h1>
       </header>
-      <div className="p-4">
-        <AppearanceSettings preferences={preferences} />
-      </div>
       <form onSubmit={save} className="p-4 space-y-4">
         <section className="settings-card">
           <h2>Thông tin đội</h2>
@@ -80,6 +81,25 @@ export default function TeamSettings({
               />
             </label>
           ))}
+        </section>
+        <section className="settings-card">
+          <h2>Sinh nhật đồng đội</h2>
+          <label className="checkbox-field mt-4">
+            <input
+              type="checkbox"
+              checked={draft.appearance?.birthdayReportEnabled !== false}
+              onChange={(e) =>
+                update("appearance", {
+                  ...draft.appearance,
+                  birthdayReportEnabled: e.target.checked,
+                })
+              }
+            />
+            Hiển thị lời chúc sinh nhật trong tin nhắn đội
+          </label>
+          <p className="text-sm text-slate-500 mt-3">
+            Thông báo SMS, Zalo và push tự động chưa được kết nối.
+          </p>
         </section>
         <button
           type="submit"

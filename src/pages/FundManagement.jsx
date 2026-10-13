@@ -9,10 +9,22 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { qrUrl, uid } from "../lib/teamModel";
+import BankPicker from "../components/BankPicker";
+import QrPreview from "../components/QrPreview";
+import { readQrImage } from "../lib/qrImage";
+import {
+  localTransactionTime,
+  transactionInstant,
+  transactionLabel,
+  legacyTransactionDay,
+  editTransaction,
+} from "../lib/transactionTime";
 import { formatCurrency } from "../lib/formatCurrency";
 
 export default function FundManagement({
   onBack,
+  timeZone = "Asia/Ho_Chi_Minh",
+  actor = "Thủ quỹ",
   treasurerQr,
   onUpdateTreasurerQr,
   funds,
@@ -39,11 +51,22 @@ export default function FundManagement({
   const [qrBankCode, setQrBankCode] = useState(
     treasurerQr?.bankCode || "970422",
   );
-  const qrPreviewUrl = qrUrl({
-    bankCode: qrBankCode,
-    accountNumber: qrAccountNumber,
-    accountHolder: qrAccountHolder,
-  });
+  const [qrMode, setQrMode] = useState(treasurerQr?.qrMode || "generated"),
+    [qrImage, setQrImage] = useState(treasurerQr?.uploadedQrImage || ""),
+    [qrBusy, setQrBusy] = useState(false),
+    [qrError, setQrError] = useState("");
+  const [txTime, setTxTime] = useState(""),
+    [txError, setTxError] = useState(""),
+    [txBusy, setTxBusy] = useState(false);
+  const txSubmitting = useRef(false);
+  const qrPreviewUrl =
+    qrMode === "uploaded"
+      ? qrImage
+      : qrUrl({
+          bankCode: qrBankCode,
+          accountNumber: qrAccountNumber,
+          accountHolder: qrAccountHolder,
+        });
   const [qrSavedNotice, setQrSavedNotice] = useState(false);
 
   // New Transaction State
@@ -109,7 +132,7 @@ export default function FundManagement({
 
     const rows = transactions.map((t, index) => [
       index + 1,
-      cell(t.date),
+      cell(transactionLabel(t, timeZone)),
       cell(t.title),
       t.type === "income" ? "Khoản Thu" : "Khoản Chi",
       t.amount,
@@ -139,84 +162,115 @@ export default function FundManagement({
 
   const handleApprove = onApprove;
 
-  const handleSaveQrConfig = (e) => {
+  const handleSaveQrConfig = async (e) => {
     e.preventDefault();
-    if (!canManage) return;
-    if (!qrPreviewUrl) {
-      alert("Số tài khoản phải gồm 6–25 chữ số.");
+    if (!canManage || qrBusy) return;
+    setQrError("");
+    setQrSavedNotice(false);
+    if (
+      !qrPreviewUrl ||
+      !/^\d{6,25}$/.test(qrAccountNumber) ||
+      !qrAccountHolder.trim()
+    ) {
+      setQrError(
+        "Nhập số tài khoản 6–25 chữ số, tên người nhận và ảnh QR nếu chọn tải ảnh.",
+      );
       return;
     }
-    if (onUpdateTreasurerQr) {
-      onUpdateTreasurerQr({
+    setQrBusy(true);
+    try {
+      if (!onUpdateTreasurerQr)
+        throw new Error("Chưa có cơ chế lưu tài khoản.");
+      await onUpdateTreasurerQr({
         bankName: qrBankName,
         bankCode: qrBankCode,
         accountNumber: qrAccountNumber,
-        accountHolder: qrAccountHolder,
-        qrImageUrl: qrPreviewUrl,
+        accountHolder: qrAccountHolder.trim(),
+        qrMode,
+        uploadedQrImage: qrImage,
+        qrImageUrl: qrMode === "generated" ? qrPreviewUrl : "",
       });
+      setQrSavedNotice(true);
+    } catch (e) {
+      setQrError(e.message || "Không lưu được tài khoản.");
+    } finally {
+      setQrBusy(false);
     }
-    setQrSavedNotice(true);
-    setTimeout(() => setQrSavedNotice(false), 2500);
   };
-
-  const handleSaveEditedTx = (e) => {
+  const submitTx = async (e) => {
     e.preventDefault();
-    if (!canManage || !editingTransaction) return;
-    if (
-      !editingTransaction.title.trim() ||
-      !Number.isInteger(Number(editingTransaction.amount)) ||
-      Number(editingTransaction.amount) <= 0
-    ) {
-      alert("Nội dung và số tiền phải hợp lệ.");
-      return;
-    }
-    setTransactions((prev) =>
-      prev.map((t) =>
-        t.id === editingTransaction.id ? editingTransaction : t,
-      ),
-    );
-    setEditingTransaction(null);
-  };
-
-  const handleCreateTx = (e) => {
-    e.preventDefault();
-    if (!canManage) return;
-    if (
-      !newTxTitle.trim() ||
-      !Number.isInteger(Number(newTxAmount)) ||
-      Number(newTxAmount) <= 0
-    ) {
-      alert("Nhập nội dung và số tiền nguyên lớn hơn 0.");
-      return;
-    }
-    const newTx = {
-      id: uid(),
-      title: newTxTitle.trim(),
-      amount: parseInt(newTxAmount) || 0,
+    if (!canManage || txSubmitting.current) return;
+    setTxError("");
+    const draft = editingTransaction || {
+      title: newTxTitle,
+      amount: Number(newTxAmount),
       type: newTxType,
-      date: new Date().toLocaleDateString("vi-VN"),
-      author: "Thủ quỹ",
     };
-    setTransactions([newTx, ...transactions]);
-    setNewTxTitle("");
-    setNewTxAmount("");
-    setShowAddTxModal(false);
+    if (
+      !draft.title.trim() ||
+      !Number.isInteger(Number(draft.amount)) ||
+      Number(draft.amount) <= 0
+    ) {
+      setTxError("Nhập nội dung và số tiền nguyên lớn hơn 0.");
+      return;
+    }
+    txSubmitting.current = true;
+    setTxBusy(true);
+    try {
+      if (!editingTransaction && !txTime)
+        throw new Error("Nhập thời gian giao dịch.");
+      const original =
+        editingTransaction &&
+        transactions.find((t) => t.id === editingTransaction.id);
+      if (editingTransaction && !original)
+        throw new Error("Giao dịch không còn tồn tại.");
+      const now = new Date().toISOString();
+      const next = original
+        ? editTransaction(
+            original,
+            {
+              title: draft.title.trim(),
+              amount: Number(draft.amount),
+              type: draft.type,
+            },
+            txTime,
+            timeZone,
+            actor,
+            now,
+          )
+        : {
+            id: uid(),
+            title: draft.title.trim(),
+            amount: Number(draft.amount),
+            type: draft.type,
+            date: txTime.slice(0, 10),
+            occurredAt: transactionInstant(txTime, timeZone),
+            timeZone,
+            timePrecision: "minute",
+            createdAt: now,
+            author: actor,
+          };
+      await onChangeFunds((prev) => ({
+        ...prev,
+        transactions: original
+          ? prev.transactions.map((t) => (t.id === next.id ? next : t))
+          : [next, ...prev.transactions],
+      }));
+      setEditingTransaction(null);
+      setShowAddTxModal(false);
+      setNewTxTitle("");
+      setNewTxAmount("");
+    } catch (error) {
+      setTxError(error.message || "Không lưu được giao dịch.");
+    } finally {
+      txSubmitting.current = false;
+      setTxBusy(false);
+    }
   };
 
   const closeMore = () => {
     if (moreRef.current) moreRef.current.open = false;
   };
-  const banks = [
-    ["970422", "MB Bank"],
-    ["970436", "Vietcombank"],
-    ["970407", "Techcombank"],
-    ["970415", "VietinBank"],
-    ["970418", "BIDV"],
-    ["970405", "Agribank"],
-    ["970416", "ACB"],
-    ["970432", "VPBank"],
-    ["970403", "Sacombank"],
-  ];
   return (
     <div className="fund-page">
       <header className="compact-header">
@@ -293,7 +347,11 @@ export default function FundManagement({
               {canManage && (
                 <button
                   className="text-action"
-                  onClick={() => setShowAddTxModal(true)}
+                  onClick={() => {
+                    setTxTime(localTransactionTime(Date.now(), timeZone));
+                    setTxError("");
+                    setShowAddTxModal(true);
+                  }}
                 >
                   <PlusCircle size={18} />
                   Thêm giao dịch
@@ -306,7 +364,7 @@ export default function FundManagement({
                   <div className="transaction-description">
                     <p className="transaction-name">{t.title}</p>
                     <p className="transaction-meta">
-                      {t.date} · {t.author}
+                      {transactionLabel(t, timeZone)} · {t.author}
                     </p>
                   </div>
                   <div className="transaction-value">
@@ -333,6 +391,12 @@ export default function FundManagement({
                         <button
                           onClick={(e) => {
                             setEditingTransaction({ ...t });
+                            setTxTime(
+                              t.occurredAt
+                                ? localTransactionTime(t.occurredAt, timeZone)
+                                : "",
+                            );
+                            setTxError("");
                             e.currentTarget.closest("details").open = false;
                           }}
                         >
@@ -452,25 +516,89 @@ export default function FundManagement({
             </button>
             <h2>Tài khoản nhận quỹ</h2>
             <form className="match-form mt-4" onSubmit={handleSaveQrConfig}>
-              <label className="form-field">
-                Ngân hàng
-                <select
-                  value={qrBankCode}
-                  onChange={(e) => {
-                    setQrBankCode(e.target.value);
-                    setQrBankName(
-                      banks.find((b) => b[0] === e.target.value)[1],
-                    );
+              <BankPicker
+                value={qrBankCode}
+                name={qrBankName}
+                onChange={(bank) => {
+                  setQrBankCode(bank.bin);
+                  setQrBankName(bank.shortName);
+                  setQrSavedNotice(false);
+                }}
+                disabled={qrBusy}
+              />
+              <div
+                className="grid grid-cols-2 gap-2"
+                role="group"
+                aria-label="Nguồn ảnh QR"
+              >
+                <button
+                  type="button"
+                  className="choice-button"
+                  aria-pressed={qrMode === "generated"}
+                  onClick={() => {
+                    setQrMode("generated");
                     setQrSavedNotice(false);
                   }}
                 >
-                  {banks.map(([code, name]) => (
-                    <option key={code} value={code}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  Tạo từ tài khoản
+                </button>
+                <button
+                  type="button"
+                  className="choice-button"
+                  aria-pressed={qrMode === "uploaded"}
+                  onClick={() => {
+                    setQrMode("uploaded");
+                    setQrSavedNotice(false);
+                  }}
+                >
+                  Ảnh có sẵn
+                </button>
+              </div>
+              {qrMode === "uploaded" && (
+                <div className="form-field">
+                  <label htmlFor="fund-qr-upload">
+                    {qrImage ? "Thay ảnh QR" : "Tải ảnh QR"}
+                  </label>
+                  <input
+                    id="fund-qr-upload"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={qrBusy}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!file) return;
+                      setQrBusy(true);
+                      setQrError("");
+                      setQrSavedNotice(false);
+                      try {
+                        setQrImage(await readQrImage(file));
+                      } catch (error) {
+                        setQrError(error.message);
+                      } finally {
+                        setQrBusy(false);
+                      }
+                    }}
+                  />
+                  <p className="field-hint">
+                    PNG/JPEG/WebP, tối đa 1 MB, 128–4096 px. Giữ nguyên toàn bộ
+                    ảnh.
+                  </p>
+                  {qrImage && (
+                    <button
+                      type="button"
+                      className="text-action"
+                      disabled={qrBusy}
+                      onClick={() => {
+                        setQrImage("");
+                        setQrSavedNotice(false);
+                      }}
+                    >
+                      Xóa ảnh khỏi bản nháp
+                    </button>
+                  )}
+                </div>
+              )}
               <label className="form-field">
                 Số tài khoản
                 <input
@@ -495,17 +623,25 @@ export default function FundManagement({
                   }}
                 />
               </label>
-              {qrPreviewUrl && (
-                <img
-                  src={qrPreviewUrl}
-                  alt="Mã QR tài khoản nhận quỹ"
-                  className="w-48 max-w-full mx-auto rounded-2xl"
-                />
+              <QrPreview src={qrPreviewUrl} uploaded={qrMode === "uploaded"} />
+              {qrBusy && (
+                <p role="status">Đang xử lý ảnh hoặc lưu tài khoản…</p>
               )}
-              <button className="primary-button w-full">Lưu tài khoản</button>
+              {qrError && (
+                <p role="alert" className="form-error">
+                  {qrError}
+                </p>
+              )}
+              <p className="field-hint">
+                Lưu trên thiết bị theo tài khoản và đội hiện tại. Chưa cấu hình
+                Supabase Storage hoặc đồng bộ ảnh giữa các thành viên.
+              </p>
+              <button className="primary-button w-full" disabled={qrBusy}>
+                Lưu tài khoản
+              </button>
               {qrSavedNotice && (
                 <p role="status" className="text-sm text-emerald-700">
-                  Đã lưu tài khoản nhận quỹ.
+                  Đã lưu tài khoản nhận quỹ trên thiết bị.
                 </p>
               )}
             </form>
@@ -528,12 +664,7 @@ export default function FundManagement({
                 <X size={20} />
               </button>
             </header>
-            <form
-              className="match-form"
-              onSubmit={
-                editingTransaction ? handleSaveEditedTx : handleCreateTx
-              }
-            >
+            <form className="match-form" onSubmit={submitTx}>
               <label className="form-field">
                 Nội dung
                 <input
@@ -592,8 +723,40 @@ export default function FundManagement({
                   }
                 />
               </label>
+              <label className="form-field">
+                Thời gian giao dịch
+                <input
+                  type="datetime-local"
+                  value={txTime}
+                  required={
+                    !editingTransaction ||
+                    Boolean(editingTransaction.occurredAt)
+                  }
+                  onChange={(e) => setTxTime(e.target.value)}
+                  onInput={(e) => setTxTime(e.currentTarget.value)}
+                />
+              </label>
+              <p className="field-hint">
+                Múi giờ đội: {timeZone}.{" "}
+                {editingTransaction && !editingTransaction.occurredAt
+                  ? `Bản ghi cũ chỉ có ngày ${editingTransaction.date}. Để trống để giữ độ chính xác cũ; không tự thêm giờ.`
+                  : "Thời gian giao dịch độc lập với thời gian tạo và chỉnh sửa."}
+              </p>
+              {editingTransaction?.adjustments?.length > 0 && (
+                <p className="field-hint">
+                  Đã lưu {editingTransaction.adjustments.length} lần điều chỉnh
+                  trên thiết bị; giữ giá trị trước và sau.
+                </p>
+              )}
+              {txError && (
+                <p role="alert" className="form-error">
+                  {txError}
+                </p>
+              )}
               <footer className="sheet-footer">
-                <button className="primary-button w-full">Lưu giao dịch</button>
+                <button className="primary-button w-full" disabled={txBusy}>
+                  {txBusy ? "Đang lưu…" : "Lưu giao dịch"}
+                </button>
               </footer>
             </form>
           </section>

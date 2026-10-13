@@ -487,11 +487,11 @@ export function useAuth() {
   const setData = (fn) =>
     setTeams((prev) => ({ ...prev, [dataKey]: fn(prev[dataKey] || data) }));
   const setFunds = (fn) => {
-    if (isLeaderRole(currentUserRole))
-      setData((prev) => ({
-        ...prev,
-        funds: typeof fn === "function" ? fn(prev.funds) : fn,
-      }));
+    if (!isLeaderRole(currentUserRole)) throw new Error("Không có quyền sửa quỹ.");
+    const nextFunds = typeof fn === "function" ? fn(data.funds) : fn;
+    const nextTeams = { ...teams, [dataKey]: { ...data, funds:nextFunds } };
+    if (!writeStored("no_offside_teams_v1",nextTeams)) throw new Error("Không lưu được quỹ trên thiết bị. Kiểm tra dung lượng rồi thử lại.");
+    setTeams(nextTeams);
   };
   const leader = isLeaderRole(currentUserRole);
 
@@ -833,11 +833,10 @@ export function useAuth() {
   };
   const updateTeamName = (teamName) => updateTeamSettings({ teamName });
   const updateTreasurerQr = (updates) => {
-    if (leader)
-      setTeamSettings((prev) => ({
-        ...prev,
-        treasurerQr: { ...prev.treasurerQr, ...updates },
-      }));
+    if (!leader) throw new Error("Không có quyền sửa tài khoản nhận quỹ.");
+    const next = { ...teamSettings, treasurerQr: { ...teamSettings.treasurerQr, ...updates } };
+    if (!writeStored("no_offside_workspace_" + accountId,{user,teamSettings:next})) throw new Error("Không lưu được ảnh QR trên thiết bị. Giảm dung lượng ảnh rồi thử lại.");
+    setTeamSettings(next);
   };
   const addSubAdmin = (member) => {
     if (currentUserRole === "owner")

@@ -194,7 +194,7 @@ export default function PlayerDashboard({
     accountHolder: treasurerQr?.accountHolder || "NGUYEN HOANG HAI (THỦ QUỸ)",
     amount: formatCurrency(user.fundDebt || 150000),
     content: "NO OFFSIDE SO " + user.number + " DONG QUY " + monthKey(),
-    qrUrl: qrUrl(
+    qrUrl: treasurerQr?.qrMode === "uploaded" ? treasurerQr.uploadedQrImage : qrUrl(
       { ...treasurerQr, bankCode: treasurerQr?.bankCode || "970422" },
       user.fundDebt || 150000,
       "NO OFFSIDE SO " + user.number + " DONG QUY " + monthKey(),
@@ -345,7 +345,7 @@ export default function PlayerDashboard({
       {/* =========================================================
           2. CARDS CONTAINER VỚI TIGHT SPACING & MOTION
           ========================================================= */}
-      <div className="px-3.5 space-y-3 -mt-6 relative z-10">
+      <div className="dashboard-card-flow px-3.5 space-y-3 mt-3">
         {/* YÊU CẦU 2: CARD/BUTTON LỚN NẰM NGANG [ Thành viên đội] (DÀNH CHO OWNER & ADMIN) */}
         {isLeader && (
           <motion.button

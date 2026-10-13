@@ -1,11 +1,15 @@
 import React from "react";
 import { Wallet, Check, Clock } from "lucide-react";
 import { qrUrl, monthKey } from "../lib/teamModel";
+import QrPreview from "../components/QrPreview";
 import { formatCurrency } from "../lib/formatCurrency";
 
 export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
   const memo = `NO OFFSIDE SO ${user.number} DONG QUY ${monthKey()}`;
-  const image = qrUrl(treasurerQr, user.fundDebt || 0, memo);
+  const uploaded = treasurerQr?.qrMode === "uploaded";
+  const image = uploaded
+    ? treasurerQr.uploadedQrImage
+    : qrUrl(treasurerQr, user.fundDebt || 0, memo);
   return (
     <div className="p-5">
       <header className="compact-header !p-0">
@@ -35,11 +39,7 @@ export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
           <div className="mt-5 space-y-3">
             {image ? (
               <>
-                <img
-                  src={image}
-                  alt="Mã QR đóng quỹ"
-                  className="w-56 max-w-full mx-auto"
-                />
+                <QrPreview src={image} uploaded={uploaded} />
                 <p className="text-sm break-words">
                   {treasurerQr.bankName} · {treasurerQr.accountNumber}
                 </p>

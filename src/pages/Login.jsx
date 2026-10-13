@@ -53,7 +53,10 @@ function translateAuthError(msg) {
     lower.includes("invalid login credentials") ||
     lower.includes("invalid credential") ||
     lower.includes("not found") ||
-    lower.includes("user not found")
+    lower.includes("user not found") ||
+    lower.includes("schema cache") ||
+    lower.includes("could not find the function") ||
+    lower.includes("no_auth_resolve_username")
   ) {
     return "Tên đăng nhập hoặc mật khẩu không chính xác.";
   }
@@ -207,6 +210,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
         name: acc.name || acc.username,
         avatar: acc.avatar || "",
         accountId: acc.id || acc.username,
+        email: acc.email || "",
         lastUsed: Date.now(),
       },
       ...currentList.filter(
@@ -214,6 +218,13 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
       ),
     ].slice(0, 5);
     writeStored("no_offside_remembered_accounts", updated);
+    if (acc.email) {
+      const curMap = readStored("no_offside_username_map", {});
+      writeStored("no_offside_username_map", {
+        ...curMap,
+        [acc.username.toLowerCase()]: acc.email,
+      });
+    }
     setRememberedAccounts(updated);
   };
 
@@ -256,23 +267,68 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
     try {
       let resolvedEmail = "";
 
-      // If user typed an email directly, use it directly
+      // 1. If user typed an email directly, use it directly
       if (cleanUsername.includes("@")) {
         resolvedEmail = cleanUsername;
       } else {
-        // Resolve email via secure server RPC with rate limiting
-        const { data: resolved, error: rpcError } = await supabase.rpc(
-          "no_auth_resolve_username",
-          {
-            p_username: cleanUsername,
-            p_client_id: "web",
-          },
+        // 2. Check local device memory / remembered accounts first (instant & offline safe)
+        const remembered = readStored("no_offside_remembered_accounts", []);
+        const matchedRemembered = remembered.find(
+          (a) =>
+            (a.username || "").toLowerCase() === cleanUsername.toLowerCase() &&
+            a.email,
         );
+        const localMap = readStored("no_offside_username_map", {});
+        const mappedEmail =
+          matchedRemembered?.email || localMap[cleanUsername.toLowerCase()];
 
-        if (rpcError) {
-          throw new Error(translateAuthError(rpcError.message));
+        if (mappedEmail) {
+          resolvedEmail = mappedEmail;
+        } else {
+          // 3. Resolve email via /api/resolve-username
+          try {
+            const apiRes = await fetch("/api/resolve-username", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username: cleanUsername }),
+            });
+            if (apiRes.ok) {
+              const resData = await apiRes.json();
+              if (resData?.email) {
+                resolvedEmail = resData.email;
+                const curMap = readStored("no_offside_username_map", {});
+                writeStored("no_offside_username_map", {
+                  ...curMap,
+                  [cleanUsername.toLowerCase()]: resData.email,
+                });
+              }
+            } else if (apiRes.status === 404) {
+              throw new Error("Tên đăng nhập hoặc mật khẩu không chính xác.");
+            }
+          } catch (apiErr) {
+            if (
+              apiErr.message === "Tên đăng nhập hoặc mật khẩu không chính xác."
+            ) {
+              throw apiErr;
+            }
+          }
+
+          // 4. Fallback to Supabase RPC if API didn't resolve
+          if (!resolvedEmail) {
+            try {
+              const { data: resolved, error: rpcError } = await supabase.rpc(
+                "no_auth_resolve_username",
+                {
+                  p_username: cleanUsername,
+                  p_client_id: "web",
+                },
+              );
+              if (!rpcError && resolved?.email) {
+                resolvedEmail = resolved.email;
+              }
+            } catch {}
+          }
         }
-        resolvedEmail = resolved?.email;
       }
 
       if (!resolvedEmail) {
@@ -288,22 +344,26 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
 
       if (signInError) {
         // Record failed attempt for rate limiting
-        await supabase.rpc("no_auth_record_login_result", {
-          p_username: cleanUsername,
-          p_success: false,
-          p_client_id: "web",
-        }).catch(() => {});
+        try {
+          await supabase.rpc("no_auth_record_login_result", {
+            p_username: cleanUsername,
+            p_success: false,
+            p_client_id: "web",
+          });
+        } catch {}
         throw signInError;
       }
 
       // Record successful login (clears failed attempts)
-      await supabase.rpc("no_auth_record_login_result", {
-        p_username: cleanUsername,
-        p_success: true,
-        p_client_id: "web",
-      }).catch(() => {});
+      try {
+        await supabase.rpc("no_auth_record_login_result", {
+          p_username: cleanUsername,
+          p_success: true,
+          p_client_id: "web",
+        });
+      } catch {}
 
-      // Remember account on device without password
+      // Remember account on device with email
       if (data?.user) {
         saveRememberedAccount({
           username: cleanUsername,
@@ -313,6 +373,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
             cleanUsername,
           avatar: data.user.user_metadata?.avatar_url || "",
           id: data.user.id,
+          email: resolvedEmail || data.user.email,
         });
       }
 
@@ -366,35 +427,80 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
 
     try {
       // 1. Check availability on server first
-      const { data: avail, error: availError } = await supabase.rpc(
-        "no_auth_check_availability",
-        {
-          p_username: cleanUsername,
-          p_email: cleanEmail,
-        },
-      );
-
-      if (!availError && avail) {
-        if (!avail.usernameAvailable) {
-          throw new Error("Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.");
+      try {
+        const apiRes = await fetch("/api/check-availability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: cleanUsername,
+            email: cleanEmail,
+          }),
+        });
+        if (apiRes.ok) {
+          const avail = await apiRes.json();
+          if (!avail.usernameAvailable) {
+            throw new Error(
+              "Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.",
+            );
+          }
+          if (!avail.emailAvailable) {
+            throw new Error(
+              "Email này đã được đăng ký tài khoản. Vui lòng chọn Đăng nhập.",
+            );
+          }
         }
-        if (!avail.emailAvailable) {
-          throw new Error("Email này đã được đăng ký tài khoản. Vui lòng chọn Đăng nhập.");
+      } catch (checkErr) {
+        if (
+          checkErr.message.includes("đã được") ||
+          checkErr.message.includes("Vui lòng chọn")
+        ) {
+          throw checkErr;
+        }
+      }
+
+      try {
+        const { data: avail, error: availError } = await supabase.rpc(
+          "no_auth_check_availability",
+          {
+            p_username: cleanUsername,
+            p_email: cleanEmail,
+          },
+        );
+
+        if (!availError && avail) {
+          if (!avail.usernameAvailable) {
+            throw new Error(
+              "Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.",
+            );
+          }
+          if (!avail.emailAvailable) {
+            throw new Error(
+              "Email này đã được đăng ký tài khoản. Vui lòng chọn Đăng nhập.",
+            );
+          }
+        }
+      } catch (checkErr) {
+        if (
+          checkErr.message.includes("đã được") ||
+          checkErr.message.includes("Vui lòng chọn")
+        ) {
+          throw checkErr;
         }
       }
 
       // 2. Perform Supabase Auth registration
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: password,
-        options: {
-          data: {
-            full_name: cleanName,
-            username: cleanUsername.toLowerCase(),
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email: cleanEmail,
+          password: password,
+          options: {
+            data: {
+              full_name: cleanName,
+              username: cleanUsername.toLowerCase(),
+            },
+            emailRedirectTo: window.location.origin,
           },
-          emailRedirectTo: window.location.origin,
-        },
-      });
+        });
 
       if (signUpError) throw signUpError;
 
@@ -405,10 +511,11 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
         await supabase.auth.signOut({ scope: "local" });
       }
 
-      // 4. Remember account identifier on device for fast filling
+      // 4. Remember account identifier and email on device for fast filling & instant resolution
       saveRememberedAccount({
         username: cleanUsername,
         name: cleanName,
+        email: cleanEmail,
         id: signUpData?.user?.id || cleanUsername,
       });
 

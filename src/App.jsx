@@ -58,6 +58,8 @@ export default function App() {
     auth.accountId,
     auth.teamSettings.id,
     auth.demoSession || auth.authLoading || !auth.isLoggedIn,
+    auth.currentUserRole,
+    auth.teamSettings.members,
   );
   const saveRequest = useRef(null);
   const saveMatch = async (form, editId) => {

@@ -1,10 +1,28 @@
 import React, { useId, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, X, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BookOpen, X, ShieldCheck, Plus, Edit2 } from "lucide-react";
 import {
   adjustedViolation,
   effectiveRules,
   violationCount,
 } from "../lib/governance";
+
+const STANDARD_FOOTBALL_RULES_TEMPLATE = `NỘI QUY & QUY CHẾ ĐỘI BÓNG
+
+I. THỜI GIAN & ĐIỂM DANH
+1. Điểm danh tham gia trận đấu trước giờ bóng lăn ít nhất 12 tiếng trên ứng dụng.
+2. Có mặt tại sân trước giờ thi đấu ít nhất 15 phút để khởi động và chuẩn bị trang phục.
+
+II. MỨC PHẠT VI PHẠM KỶ LUẬT
+1. Đi muộn dưới 15 phút: Phạt 20.000 đ vào quỹ đội.
+2. Đi muộn trên 15 phút: Phạt 50.000 đ vào quỹ đội.
+3. Vắng mặt không báo trước / báo sát giờ: Phạt 100.000 đ vào quỹ đội.
+4. Quên mang áo thi đấu của đội: Phạt 30.000 đ vào quỹ đội.
+5. Tự ý bỏ về giữa trận không lý do: Phạt 50.000 đ vào quỹ đội.
+
+III. TINH THẦN & VĂN HÓA SÂN CỎ
+1. Tôn trọng trọng tài, đối thủ và đồng đội. Tuyệt đối không có hành vi phi thể thao hoặc bạo lực.
+2. Thẻ vàng do lỗi phi thể thao tự đóng tiền phạt (50.000 đ), thẻ đỏ tự đóng tiền phạt (100.000 đ).
+3. Đóng quỹ đội đầy đủ và đúng hạn theo thông báo của thủ quỹ.`;
 
 export default function Governance({ governance, onBack }) {
   const snapshot = governance.snapshot;
@@ -99,8 +117,13 @@ export default function Governance({ governance, onBack }) {
       "occurredAt",
       "effectiveAt",
       "until",
-    ])
-      if (payload[key]) payload[key] = new Date(payload[key]).toISOString();
+    ]) {
+      if (payload[key]) {
+        payload[key] = new Date(payload[key]).toISOString();
+      } else {
+        delete payload[key];
+      }
+    }
     for (const key of ["threshold", "fine"])
       if (payload[key] !== undefined) payload[key] = Number(payload[key]);
     run(form.action, payload);
@@ -133,32 +156,69 @@ export default function Governance({ governance, onBack }) {
               Nội quy, xin muộn, ghi nhận giờ đến và xử lý vi phạm cần migration
               cùng tư cách thành viên đã được xác thực trên server.
             </p>
-            <button className="choice-button mt-4" onClick={governance.refresh}>
-              Kiểm tra lại kết nối
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <button className="choice-button" onClick={governance.refresh}>
+                Kiểm tra lại kết nối
+              </button>
+              {governance.enableLocalMode && (
+                <button
+                  className="primary-button"
+                  onClick={governance.enableLocalMode}
+                >
+                  Tạo &amp; Quản lý nội quy trên thiết bị
+                </button>
+              )}
+            </div>
           </section>
         ) : (
           <>
             <section className="settings-card">
-              <div className="flex gap-3 items-center justify-between">
-                <h2>Nội quy</h2>
+              <div className="flex gap-3 items-center justify-between flex-wrap">
+                <div>
+                  <h2>Nội quy đội</h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Quy định giờ giấc, tác phong thi đấu, mức phạt vi phạm và cam kết
+                  </p>
+                </div>
                 {leader && (
-                  <button
-                    className="choice-button text-sm"
-                    onClick={() =>
-                      open(
-                        "rules",
-                        {
-                          content: rules?.content || "",
-                          effectiveAt: "",
-                          requireAck: false,
-                        },
-                        "Sửa nội quy",
-                      )
-                    }
-                  >
-                    Sửa nội quy
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      className="choice-button text-sm flex items-center gap-1.5"
+                      onClick={() =>
+                        open(
+                          "rules",
+                          {
+                            content: STANDARD_FOOTBALL_RULES_TEMPLATE,
+                            effectiveAt: "",
+                            requireAck: true,
+                          },
+                          "Tạo mới nội quy",
+                        )
+                      }
+                    >
+                      <Plus size={16} />
+                      Tạo mới
+                    </button>
+                    {rules && (
+                      <button
+                        className="choice-button text-sm flex items-center gap-1.5"
+                        onClick={() =>
+                          open(
+                            "rules",
+                            {
+                              content: rules?.content || "",
+                              effectiveAt: "",
+                              requireAck: false,
+                            },
+                            "Sửa nội quy",
+                          )
+                        }
+                      >
+                        <Edit2 size={16} />
+                        Sửa nội quy
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
               {rules ? (
@@ -187,9 +247,30 @@ export default function Governance({ governance, onBack }) {
                     )}
                 </>
               ) : (
-                <p className="text-sm text-slate-500 mt-3">
-                  Chưa có nội quy có hiệu lực.
-                </p>
+                <div className="mt-4 p-4 rounded-xl border border-dashed border-slate-700 text-center">
+                  <p className="text-sm text-slate-400">
+                    Đội bóng chưa có bản nội quy chính thức.
+                  </p>
+                  {leader && (
+                    <button
+                      className="primary-button mt-3 inline-flex items-center gap-2"
+                      onClick={() =>
+                        open(
+                          "rules",
+                          {
+                            content: STANDARD_FOOTBALL_RULES_TEMPLATE,
+                            effectiveAt: "",
+                            requireAck: true,
+                          },
+                          "Tạo mới nội quy",
+                        )
+                      }
+                    >
+                      <Plus size={16} />
+                      Tạo nội quy ngay
+                    </button>
+                  )}
+                </div>
               )}
               {snapshot.rules.length > 1 && (
                 <details className="mt-4 text-sm">
@@ -367,7 +448,36 @@ export default function Governance({ governance, onBack }) {
               </section>
             )}
             <section className="settings-card">
-              <h2>Lịch sử vi phạm {leader ? "theo quyền" : "của bạn"}</h2>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <h2>Lịch sử vi phạm {leader ? "theo quyền" : "của bạn"}</h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Ghi nhận đi muộn, chưa điểm danh hoặc vi phạm nội quy khác
+                  </p>
+                </div>
+                {leader && (
+                  <button
+                    className="choice-button text-sm flex items-center gap-1.5"
+                    onClick={() =>
+                      open(
+                        "violation",
+                        {
+                          subject: "",
+                          matchId: "",
+                          type: "late",
+                          description: "",
+                          occurredAt: new Date().toISOString().slice(0, 16),
+                          fine: 50000,
+                        },
+                        "Ghi nhận vi phạm mới",
+                      )
+                    }
+                  >
+                    <Plus size={16} />
+                    Ghi vi phạm
+                  </button>
+                )}
+              </div>
               {snapshot.events
                 .filter((e) => e.action === "violation")
                 .map((e) => {
@@ -409,23 +519,43 @@ export default function Governance({ governance, onBack }) {
                         </p>
                       ))}
                       {leader && e.subject !== snapshot.me.user_id && (
-                        <button
-                          className="choice-button mt-3"
-                          onClick={() =>
-                            open(
-                              "adjust",
-                              {
-                                eventId: e.id,
-                                status: "void",
-                                fine: 0,
-                                reason: "",
-                              },
-                              "Điều chỉnh vi phạm",
-                            )
-                          }
-                        >
-                          Tạo điều chỉnh
-                        </button>
+                        <div className="flex gap-2 mt-3 flex-wrap">
+                          <button
+                            className="choice-button text-xs flex items-center gap-1"
+                            onClick={() =>
+                              open(
+                                "adjust",
+                                {
+                                  eventId: e.id,
+                                  status: "upheld",
+                                  fine: value.fine || 0,
+                                  reason: "",
+                                },
+                                "Sửa mức phạt vi phạm",
+                              )
+                            }
+                          >
+                            <Edit2 size={13} />
+                            Sửa mức phạt
+                          </button>
+                          <button
+                            className="choice-button text-xs"
+                            onClick={() =>
+                              open(
+                                "adjust",
+                                {
+                                  eventId: e.id,
+                                  status: "void",
+                                  fine: 0,
+                                  reason: "",
+                                },
+                                "Hủy vi phạm",
+                              )
+                            }
+                          >
+                            Hủy vi phạm
+                          </button>
+                        </div>
                       )}
                     </article>
                   );
@@ -607,15 +737,34 @@ export default function Governance({ governance, onBack }) {
                 ])}
               {form.action === "rules" && (
                 <>
-                  {field("content", "Nội dung nội quy", "textarea")}
-                  {field("effectiveAt", "Thời điểm hiệu lực", "datetime-local")}
+                  <div className="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-lg text-xs space-y-2">
+                    <p className="text-emerald-300 font-medium">
+                      💡 Mẹo: Bạn có thể tự soạn nội quy hoặc bấm nút bên dưới để chèn mẫu nội quy bóng đá phong trào.
+                    </p>
+                    <button
+                      type="button"
+                      className="choice-button text-xs py-1.5 px-3 w-full sm:w-auto"
+                      onClick={() =>
+                        update("content", STANDARD_FOOTBALL_RULES_TEMPLATE)
+                      }
+                    >
+                      ⚡ Chèn mẫu nội quy chuẩn bóng đá
+                    </button>
+                  </div>
+                  {field("content", "Nội dung nội quy & mức phạt", "textarea")}
+                  {field(
+                    "effectiveAt",
+                    "Thời điểm hiệu lực (để trống: áp dụng ngay)",
+                    "datetime-local",
+                    false,
+                  )}
                   <label className="checkbox-field">
                     <input
                       type="checkbox"
                       checked={form.payload.requireAck}
                       onChange={(e) => update("requireAck", e.target.checked)}
                     />
-                    Yêu cầu thành viên xác nhận đã đọc
+                    Yêu cầu tất cả thành viên xác nhận đã đọc
                   </label>
                 </>
               )}

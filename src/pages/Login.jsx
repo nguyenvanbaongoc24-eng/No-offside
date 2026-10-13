@@ -3,6 +3,8 @@ import {
   ShieldCheck,
   Sun,
   Moon,
+  Ellipsis,
+  Monitor,
   Loader2,
   Sparkles,
   AlertCircle,
@@ -578,25 +580,35 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
   return (
     <div lang={language} className="auth-page min-h-screen flex flex-col justify-center px-4 py-8 font-sans antialiased relative">
 
-      <div className="max-w-sm mx-auto w-full relative z-10">
-        <div className="auth-preferences">
+      <div className="auth-shell mx-auto w-full relative z-10">
+        <header className="auth-header">
+          <div className="auth-identity">
+            <img src="/pwa-512x512.png" width="48" height="48" alt="" />
+            <h1>No Offside</h1>
+          </div>
+          <div className="auth-preferences">
+          <div className="auth-theme-tools">
           <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Color theme" : "Giao diện"}>
-            <button type="button" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={16} aria-hidden="true" /> Light</button>
-            <button type="button" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={16} aria-hidden="true" /> Dark</button>
+            <button type="button" aria-label="Giao diện sáng" title="Giao diện sáng" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={18} strokeWidth={1.75} aria-hidden="true" /></button>
+            <button type="button" aria-label="Giao diện tối" title="Giao diện tối" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={18} strokeWidth={1.75} aria-hidden="true" /></button>
+          </div>
+          <details className="auth-theme-menu">
+            <summary aria-label={language === "en" ? "Theme options" : "Tùy chọn giao diện"} title={language === "en" ? "Theme options" : "Tùy chọn giao diện"}><Ellipsis size={18} strokeWidth={1.75} aria-hidden="true" /></summary>
+            <div className="auth-theme-popover">
+              <button type="button" aria-pressed={theme === "system"} onClick={(event) => {
+                onThemeChange?.("system");
+                event.currentTarget.closest("details").open = false;
+              }}><Monitor size={18} strokeWidth={1.75} aria-hidden="true" />{language === "en" ? "System" : "Hệ thống"}</button>
+            </div>
+          </details>
           </div>
           <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Language" : "Ngôn ngữ"}>
-            <button type="button" lang="vi" aria-pressed={language === "vi"} onClick={() => changeLanguage("vi")}>Việt</button>
-            <button type="button" lang="en" aria-pressed={language === "en"} onClick={() => changeLanguage("en")}>English</button>
+            <button type="button" lang="vi" aria-label="Tiếng Việt" title="Tiếng Việt" aria-pressed={language === "vi"} onClick={() => changeLanguage("vi")}>VI</button>
+            <button type="button" lang="en" aria-label="English" title="English" aria-pressed={language === "en"} onClick={() => changeLanguage("en")}>EN</button>
           </div>
         </div>
-        {/* App Branding */}
+        </header>
         <div className="auth-brand text-center mb-6">
-          <div className="brand-mark inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3">
-            <ShieldCheck size={30} aria-hidden="true"/>
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-white">
-            NO OFFSIDE
-          </h1>
           <p className="text-xs text-slate-400 mt-1">
             {t("Nền tảng quản lý đội bóng phong trào số 1")}
           </p>

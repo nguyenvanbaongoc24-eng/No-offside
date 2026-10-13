@@ -71,7 +71,7 @@ begin
    if v_match.archived_at is not null and p_action not in ('adjust','restore_match') then raise exception 'Match archived'; end if;
  end if;
  if p_action in ('attendance','late_request') and (v_subject<>v_actor or v_target.status='removed') then raise exception 'Only own attendance' using errcode='42501'; end if;
- if p_action in ('attendance','late_request','arrival') and exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='violation') then raise exception 'Record finalized; append an adjustment'; end if;
+ if p_action in ('attendance','late_request') and exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='violation') then raise exception 'Record finalized; append an adjustment'; end if;
  if p_action in ('attendance','late_request','arrival','finalize','archive_match','restore_match') and v_match_id is null then raise exception 'Match required'; end if;
  if p_action in ('rules','policy','match','arrival','review_late','finalize','violation','adjust','sanction','archive_match','restore_match') and v_me.role not in ('owner','admin') then raise exception 'Leader required' using errcode='42501'; end if;
 
@@ -129,8 +129,8 @@ begin
    if v_subject=v_actor then raise exception 'Cannot finalize own violation' using errcode='42501'; end if;
    select * into v_arrival from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='arrival' order by created_at desc,seq desc limit 1;
    if not found then raise exception 'Confirmed arrival required'; end if;
-   if exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='violation') then
-     select jsonb_build_object('id',id,'action',action,'data',data) into v_existing from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='violation' limit 1; return v_existing;
+   if exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='violation' and data->>'type'='late') then
+     select jsonb_build_object('id',id,'action',action,'data',data) into v_existing from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='violation' and data->>'type'='late' limit 1; return v_existing;
    end if;
    v_actual:=coalesce((select (data->>'arrivedAt')::timestamptz from public.no_gov_events where team_id=p_team_id and action='adjust' and data->>'eventId'=v_arrival.id::text order by created_at desc,seq desc limit 1),(v_arrival.data->>'arrivedAt')::timestamptz); v_baseline:=v_match.kickoff;
    select * into v_request from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='late_request' order by created_at desc,seq desc limit 1;
@@ -191,7 +191,7 @@ begin
    v_start:=date_trunc(v_period,v_now at time zone v_team.timezone) at time zone v_team.timezone;
    v_end:=(date_trunc(v_period,v_now at time zone v_team.timezone)+case when v_period='quarter' then interval '3 months' else interval '1 month' end) at time zone v_team.timezone;
    select count(*) into v_count from public.no_gov_events e where e.team_id=p_team_id and e.subject=v_subject and e.action='violation' and (e.data->>'occurredAt')::timestamptz>=v_start and (e.data->>'occurredAt')::timestamptz<v_end and v_team.policy->'types' ? (e.data->>'type') and coalesce((select a.data->>'status' from public.no_gov_events a where a.team_id=p_team_id and a.action='adjust' and a.data->>'eventId'=e.id::text order by a.created_at desc,a.seq desc limit 1),'final')<>'void';
-   if v_count>=v_threshold and not exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_subject and action='threshold' and data->>'periodStart'=v_start::text and data->'policy'->>'period'=v_period and (data->>'threshold')::integer=v_threshold) then
+   if v_count>=v_threshold and not exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_subject and action='threshold' and (data->>'periodStart')::timestamptz=v_start and data->'policy'->>'period'=v_period and (data->>'threshold')::integer=v_threshold) then
      insert into public.no_gov_events(team_id,actor,subject,action,request_key,data) values(p_team_id,v_actor,v_subject,'threshold',gen_random_uuid(),jsonb_build_object('periodStart',v_start::text,'periodEnd',v_end,'count',v_count,'threshold',v_threshold,'policy',v_team.policy,'status','needs_review'));
    end if;
  end if;

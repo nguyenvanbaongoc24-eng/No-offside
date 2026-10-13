@@ -508,6 +508,13 @@ export default function LineupBuilder({
                 }
               }}
               drag={canEdit}
+              onClick={(e) => {
+                if (
+                  canEdit &&
+                  (e.detail === 0 || Date.now() > dragUntil.current)
+                )
+                  setSelectedPlayer(player);
+              }}
               onPointerDownCapture={(e) => {
                 if (canEdit && e.isPrimary)
                   tapStart.current = {

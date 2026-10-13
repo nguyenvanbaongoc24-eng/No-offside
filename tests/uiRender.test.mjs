@@ -116,8 +116,13 @@ test("empty home keeps the long form closed and hides creation for members", () 
   const member = render("EmptyTeam", { ...props, leader: false });
   assert.doesNotMatch(owner, /<form/);
   assert.match(owner, /Tạo trận/);
+  assert.match(owner, /Thêm thành viên/);
+  assert.match(owner, /Mời vào đội bóng/);
+  assert.match(owner, /Mã QR/);
   assert.doesNotMatch(member, /Tạo trận/);
+  assert.doesNotMatch(member, /Thêm thành viên/);
   assert.match(member, /Chưa có trận sắp tới/);
+  assert.match(member, /Mời vào đội bóng/);
 });
 
 test("governance views use verified server role and gate all actions when backend is absent", () => {

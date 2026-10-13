@@ -27,6 +27,7 @@ export default function LineupBuilder({
 }) {
   const pitchRef = useRef(null);
   const dragUntil = useRef(0);
+  const tapStart = useRef(null);
   useEffect(
     () => () =>
       window.dispatchEvent(
@@ -469,6 +470,26 @@ export default function LineupBuilder({
                 }
               }}
               drag={canEdit}
+              onPointerDownCapture={(e) => {
+                if (canEdit && e.isPrimary)
+                  tapStart.current = {
+                    id: e.pointerId,
+                    playerId: player.id,
+                    x: e.clientX,
+                    y: e.clientY,
+                  };
+              }}
+              onPointerUpCapture={(e) => {
+                const start = tapStart.current;
+                tapStart.current = null;
+                if (
+                  canEdit &&
+                  start?.id === e.pointerId &&
+                  start.playerId === player.id &&
+                  Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8
+                )
+                  setSelectedPlayer(player);
+              }}
               dragConstraints={pitchRef}
               dragElastic={0.05}
               dragMomentum={false}
@@ -523,7 +544,7 @@ export default function LineupBuilder({
               }}
               whileDrag={{ scale: 1.2, zIndex: 50 }}
               style={{ top: player.top, left: player.left }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing z-10 flex flex-col items-center touch-none"
+              className="tactics-player absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing z-10 flex flex-col items-center touch-none"
             >
               {/* Number Circle */}
               <div
@@ -646,6 +667,7 @@ export default function LineupBuilder({
                 </p>
               </div>
               <button
+                aria-label="Đóng"
                 onClick={() => setSelectedPlayer(null)}
                 className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700"
               >
@@ -655,10 +677,11 @@ export default function LineupBuilder({
 
             <div className="mt-3 space-y-2 max-h-60 overflow-y-auto pr-1">
               {teamRoster.map((rosterPlayer, idx) => (
-                <div
-                  key={idx}
+                <button
+                  type="button"
+                  key={rosterPlayer.id || idx}
                   onClick={() => handleSwapPlayer(rosterPlayer)}
-                  className="p-2.5 rounded-2xl bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 flex items-center justify-between cursor-pointer transition-colors"
+                  className="w-full text-left p-2.5 rounded-2xl bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 flex items-center justify-between cursor-pointer transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-full bg-slate-900 text-white tabular-nums text-xs font-bold flex items-center justify-center">
@@ -677,7 +700,7 @@ export default function LineupBuilder({
                   <span className="text-xs font-bold text-emerald-600 px-2 py-0.5 rounded-full bg-white border border-gray-200">
                     Chọn
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -710,12 +733,16 @@ export default function LineupBuilder({
 
             <div className="mt-3.5 space-y-3 text-xs">
               <div>
-                <label className="text-gray-600 block mb-1 font-bold">
+                <label
+                  htmlFor="new-formation-name"
+                  className="text-gray-600 block mb-1 font-bold"
+                >
                   Tên Sơ Đồ Chiến Thuật
                 </label>
                 <input
                   type="text"
                   required
+                  id="new-formation-name"
                   placeholder="Ví dụ: Đội hình tử thủ, Tiki-Taka 7 người..."
                   value={newFormationName}
                   onChange={(e) => setNewFormationName(e.target.value)}

@@ -136,9 +136,9 @@ export default function MatchFormSheet({
               ["fine", "Phạt đi muộn (đ)", 100000000],
             ].map(([key, label, max]) => (
               <div className="form-field" key={key}>
-                <label htmlFor={prefix + "-" + key}>{label}</label>
+                <label htmlFor={prefix + "-late-" + key}>{label}</label>
                 <input
-                  id={prefix + "-" + key}
+                  id={prefix + "-late-" + key}
                   type="number"
                   inputMode="numeric"
                   min="0"

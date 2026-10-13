@@ -69,6 +69,7 @@ test("transaction time round-trips team timezone and rejects DST gap without shi
     () => transactionInstant("2026-03-08T02:30", "America/New_York"),
     /không tồn tại/,
   );
+  assert.throws(() => transactionInstant("2026-02-30T12:00"), /không hợp lệ/);
 });
 test("legacy transaction edits preserve unknown hours, original creation and append adjustment snapshots", () => {
   const original = {

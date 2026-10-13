@@ -33,7 +33,7 @@ export function useDialogAccessibility() {
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
       }
     };
-    const observer = new MutationObserver(update); observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+    const observer = new MutationObserver(update); observer.observe(document.body, { childList: true, subtree: true });
     document.addEventListener('keydown', onKey); update();
     return () => { observer.disconnect(); document.removeEventListener('keydown',onKey); document.body.style.overflow = previousOverflow; document.querySelector('nav')?.removeAttribute('inert'); };
   }, []);

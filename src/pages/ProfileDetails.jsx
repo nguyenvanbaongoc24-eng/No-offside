@@ -227,8 +227,12 @@ export default function ProfileDetails({
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
+            <label className="form-field" htmlFor="profile-avatar">Ảnh đại diện
+              <img src={avatar} alt="Ảnh đại diện hiện tại" className="w-16 h-16 rounded-full object-cover"/>
+              <input id="profile-avatar" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAvatarChange}/>
+            </label>
             <div>
-              <label className="text-gray-600 block mb-1 font-bold">
+              <label htmlFor="profile-name" className="text-gray-600 block mb-1 font-bold">
                 Họ và tên
               </label>
               <input
@@ -307,11 +311,12 @@ export default function ProfileDetails({
             </div>
 
             <div>
-              <label className="text-gray-600 block mb-1 font-bold">
+              <label htmlFor="profile-phone" className="text-gray-600 block mb-1 font-bold">
                 Số điện thoại liên hệ (tùy chọn)
               </label>
               <input
                 type="tel"
+                id="profile-phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Ví dụ: 0912345678"

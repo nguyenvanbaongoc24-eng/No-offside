@@ -1,5 +1,6 @@
 import LateArrivalPanel from "../components/LateArrivalPanel";
 import SwipeMatchCard from "../components/SwipeMatchCard";
+import QrPreview from "../components/QrPreview";
 import React, { useState, useEffect } from "react";
 import MatchList from "../components/MatchList";
 import MatchFormSheet from "../components/MatchFormSheet";
@@ -1260,25 +1261,7 @@ export default function PlayerDashboard({
             </div>
 
             <div className="mt-3.5 p-3.5 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100">
-              <img
-                src={bankInfo.qrUrl}
-                alt="VietQR Code"
-                className="w-40 h-40 object-contain rounded-xl"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  if (e.target.nextSibling)
-                    e.target.nextSibling.style.display = "flex";
-                }}
-              />
-              <div
-                style={{ display: "none" }}
-                className="w-40 h-40 bg-white rounded-xl items-center justify-center flex-col text-center p-3"
-              >
-                <QrCode className="w-12 h-12 text-emerald-600 mb-1" />
-                <span className="text-xs tabular-nums font-bold text-gray-800">
-                  MB: {bankInfo.accountNumber}
-                </span>
-              </div>
+              <QrPreview src={bankInfo.qrUrl} uploaded={treasurerQr?.qrMode === "uploaded"}/>
               <p className="text-xs text-gray-500 font-semibold mt-2 text-center">
                 QR: {bankInfo.amount} • số áo #{user.number}
               </p>

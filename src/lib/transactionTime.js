@@ -20,7 +20,7 @@ export function transactionInstant(value, zone = "Asia/Ho_Chi_Minh") {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))
     throw new Error("Thời gian giao dịch không hợp lệ.");
   const target = Date.parse(value + ":00Z");
-  if (!Number.isFinite(target))
+  if (!Number.isFinite(target) || new Date(target).toISOString().slice(0,16) !== value)
     throw new Error("Thời gian giao dịch không hợp lệ.");
   let candidate = target;
   for (let i = 0; i < 4; i++)

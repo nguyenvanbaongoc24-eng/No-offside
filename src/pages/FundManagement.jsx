@@ -591,6 +591,7 @@ export default function FundManagement({
                       disabled={qrBusy}
                       onClick={() => {
                         setQrImage("");
+                        setQrMode("generated");
                         setQrSavedNotice(false);
                       }}
                     >

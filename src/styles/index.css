@@ -322,3 +322,7 @@ select { appearance:none; -webkit-appearance:none; padding-right:40px !important
 .profile-detail { padding-bottom:calc(96px + env(safe-area-inset-bottom,0px)); } .profile-detail .settings-card { border-radius:16px; }
 .profile-detail-content { padding:16px; } .profile-detail-content>section { margin:0; border-radius:16px; box-shadow:none; }
 .profile-detail-content>div:first-child { margin:0; }
+[data-theme="dark"] .text-amber-950 { color:var(--warning); }
+[data-theme="dark"] button[class*="bg-gradient-to-"] { background-color:#047857; color:#ffffff; }
+[data-theme="dark"] button[class*="bg-gradient-to-"][class*="from-rose"] { background-color:#be123c; }
+.settings-card { border-radius:16px; }

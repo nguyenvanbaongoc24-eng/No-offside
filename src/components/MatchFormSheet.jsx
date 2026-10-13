@@ -11,8 +11,8 @@ export default function MatchFormSheet({
 }) {
   const prefix = useId();
   const field = (key, label, type = "text", placeholder = "") => (
-    <label htmlFor={`${prefix}-${key}`} className="form-field">
-      {label}
+    <div className="form-field">
+      <label htmlFor={`${prefix}-${key}`}>{label}</label>
       <input
         id={`${prefix}-${key}`}
         required
@@ -20,16 +20,24 @@ export default function MatchFormSheet({
         value={draft[key]}
         placeholder={placeholder}
         onChange={(e) => onChange({ ...draft, [key]: e.target.value })}
+        onInput={
+          type === "datetime-local"
+            ? (e) => onChange({ ...draft, [key]: e.currentTarget.value })
+            : undefined
+        }
+        aria-describedby={
+          type === "datetime-local" ? `${prefix}-${key}-hint` : undefined
+        }
         autoComplete="off"
       />
       {type === "datetime-local" && (
-        <span className="field-hint">
+        <span id={`${prefix}-${key}-hint`} className="field-hint">
           {draft[key]
             ? "Giờ địa phương trên thiết bị"
             : "Chọn ngày và giờ trên thiết bị"}
         </span>
       )}
-    </label>
+    </div>
   );
   return (
     <div

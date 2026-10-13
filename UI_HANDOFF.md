@@ -28,10 +28,11 @@ có hai ảnh tham chiếu, nên chưa đối chiếu trực quan được với
 - `npm test`: 11 kiểm thử (7 logic dữ liệu, 4 render HTML thực của component).
 - `npm run build`: Vite + PWA production build.
 - Repository không có lệnh lint hoặc typecheck riêng.
-- Kiểm thử render HTML không chứng minh bố cục responsive, bàn phím hay cảm ứng.
-  Chưa xác minh các viewport 320/360/390/430, Safari iOS, Chrome Android, xoay
-  màn hình hoặc PWA standalone trên thiết bị thật. Công cụ trình duyệt đã chặn
-  URL localhost trong phiên trước; không dùng đường vòng để vượt chính sách đó.
+- Kiểm thử trực tiếp bản preview HTTPS: Quỹ đội và form tạo trận không tràn
+  ngang ở 320/360/390/430 px; các tab bằng nhau, nhãn một dòng, icon 24 px;
+  input form 16 px và thẳng lề. Preview dùng dữ liệu mẫu riêng trên thiết bị.
+- Chưa xác minh bàn phím ảo, Safari iOS, Chrome Android, xoay màn hình hoặc
+  PWA standalone trên thiết bị thật. Kiểm tra viewport không thay thế thiết bị.
 
 Thay đổi nằm trên nhánh riêng để xem preview. Không push thay đổi lên main,
 không merge và không deploy production.

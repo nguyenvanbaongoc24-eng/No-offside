@@ -346,6 +346,13 @@ export default function App() {
             <EmptyTeam
               teamSettings={auth.teamSettings}
               leader={leader}
+              members={auth.teamSettings.members}
+              onAddMember={auth.addMember}
+              onRemoveMember={auth.removeMember}
+              currentUserRole={auth.currentUserRole}
+              user={shared.user}
+              onCreateInvite={auth.createInvite}
+              onRevokeInvite={auth.revokeInvite}
               onSaveMatch={saveMatch}
               onNavigate={navigate}
             />

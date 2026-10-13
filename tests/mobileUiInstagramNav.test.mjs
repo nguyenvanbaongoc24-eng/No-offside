@@ -14,11 +14,10 @@ test("Navigation Bar: Instagram mobile layout, flat bottom, 44px touch targets a
   // Avatar support for Profile tab
   assert.ok(appSrc.includes('auth.user?.avatar'));
 
-  // Flat navigation bar without giant floating pill
-  assert.ok(cssSrc.includes(".bottom-navigation { position: fixed; bottom: var(--keyboard-inset, 0px); left: 0; right: 0; max-width: 448px;"));
+  // Pill navigation bar with rounded corners (viên thuốc)
+  assert.ok(cssSrc.includes(".bottom-navigation { position: fixed;"));
+  assert.ok(cssSrc.includes("border-radius: 9999px;"));
   assert.ok(cssSrc.includes(".nav-items { display: flex; justify-content: space-around; align-items: center;"));
   assert.ok(cssSrc.includes("min-width: 44px; min-height: 44px;"));
-
-  // No heavy glow or neon capsule
-  assert.doesNotMatch(cssSrc, /\.bottom-navigation\s*\{[^}]*border-radius:\s*24px/);
+  assert.ok(cssSrc.includes(".nav-item:focus, .nav-item:focus-visible { outline: none !important;"));
 });

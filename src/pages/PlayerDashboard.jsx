@@ -401,6 +401,17 @@ export default function PlayerDashboard({
                 <span className="whitespace-nowrap">Thêm thành viên</span>
               </button>
 
+              {/* Nút Mời QR */}
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+                title="Mời qua QR & Mã Club"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span className="whitespace-nowrap">Mã / QR</span>
+              </button>
+
               <button
                 type="button"
                 aria-label="Xem chi tiết danh sách"
@@ -412,6 +423,55 @@ export default function PlayerDashboard({
             </div>
           </div>
         )}
+
+        {/* CARD MỜI VÀO ĐỘI (MÃ CLUB & QR CODE) */}
+        <div className="w-full bg-white dark:bg-slate-800 rounded-[26px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 dark:border-slate-700 flex items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
+              <QrCode className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MÃ CLUB:</span>
+                <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 tracking-wider">
+                  {inviteCode}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 font-medium truncate mt-0.5">
+                Quét QR hoặc nhập mã để vào đội
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => copyToClipboard(inviteCode, "clubCode")}
+              className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+            >
+              {copiedField === "clubCode" ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-600">Đã chép</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Chép</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowInviteModal(true)}
+              className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-all active:scale-95"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Mã QR</span>
+            </button>
+          </div>
+        </div>
 
         <section aria-label="Thao tác nhanh" className="quick-actions-panel">
           <p className="text-xs text-slate-600 mb-3">

@@ -516,10 +516,47 @@ export function useAuth() {
   useEffect(() => {
     if (authSession?.user?.id && !demoSession) {
       loadDatabaseMemberships();
+      if (authSession.access_token && typeof fetch !== "undefined") {
+        fetch("/api/teams", {
+          headers: { Authorization: `Bearer ${authSession.access_token}` },
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res?.success && res.team) {
+              setTeamSettings(res.team);
+              if (res.data) {
+                setTeams((prev) => ({
+                  ...prev,
+                  [authSession.user.id + "::" + res.team.id]: res.data,
+                }));
+              }
+              if (res.role) {
+                setCurrentUserRole(res.role);
+              }
+              setDbMemberships((prev) => {
+                if (prev.some((m) => m.team_id === res.team.id)) return prev;
+                return [
+                  ...prev,
+                  {
+                    team_id: res.team.id,
+                    role: res.role || "owner",
+                    name: res.team.teamName,
+                  },
+                ];
+              });
+              writeStored("no_offside_team_" + res.team.id, res.team);
+              writeStored("no_offside_workspace_" + authSession.user.id, {
+                user,
+                teamSettings: res.team,
+              });
+            }
+          })
+          .catch(() => {});
+      }
     } else {
       setDbMemberships([]);
     }
-  }, [authSession?.user?.id, demoSession]);
+  }, [authSession?.user?.id, authSession?.access_token, demoSession]);
 
   const teamId = teamSettings.id || "fc-no-offside-99";
   const accountId = demoSession ? "demo" : authSession?.user.id || "anonymous";
@@ -552,6 +589,37 @@ export function useAuth() {
     setTeams(nextTeams);
   };
   const leader = isLeaderRole(currentUserRole);
+
+  // Persist team business data (funds, matches, attendance) to cloud storage
+  useEffect(() => {
+    if (
+      !authSession?.access_token ||
+      demoSession ||
+      !teamSettings?.id ||
+      teamSettings.id.startsWith("workspace_") ||
+      typeof fetch === "undefined"
+    )
+      return;
+    const currentData = teams[dataKey];
+    if (!currentData) return;
+
+    const timer = setTimeout(() => {
+      fetch("/api/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authSession.access_token}`,
+        },
+        body: JSON.stringify({
+          action: "sync-data",
+          teamId: teamSettings.id,
+          data: currentData,
+        }),
+      }).catch(() => {});
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [teams, dataKey, teamSettings?.id, authSession?.access_token, demoSession]);
 
   useEffect(() => {
     setDeletedMatch(null);
@@ -1103,24 +1171,77 @@ export function useAuth() {
       subAdmins: prev.subAdmins.filter((m) => m.id !== id),
     }));
   };
-  const addMember = (member) => {
-    if (leader)
-      setTeamSettings((prev) => ({
-        ...prev,
-        members: [
-          ...prev.members,
-          {
-            ...member,
-            id: member.id || uid(),
-            roleType: "member",
-            joinedDate: "Vừa tham gia",
+  const addMember = async (member) => {
+    if (!leader) throw new Error("Chỉ Ban quản trị mới có quyền thêm thành viên.");
+    if (!member?.name?.trim()) throw new Error("Vui lòng nhập họ và tên thành viên.");
+    const num = Number(member.number);
+    if (!Number.isInteger(num) || num < 1 || num > 99)
+      throw new Error("Số áo phải từ 1 đến 99.");
+    if (
+      teamSettings.members.some(
+        (m) => m.membershipStatus !== "removed" && Number(m.number) === num,
+      )
+    )
+      throw new Error(`Số áo #${num} đã có thành viên sử dụng.`);
+
+    let created = {
+      ...member,
+      id: member.id || uid(),
+      name: member.name.trim(),
+      number: num,
+      role: member.role || "Tiền Đạo (ST)",
+      roleType: "member",
+      customTitle: "Cầu thủ",
+      joinedDate: "Thủ công",
+      isManual: true,
+      linkedUserId: null,
+    };
+
+    if (authSession?.access_token && !demoSession && typeof fetch !== "undefined") {
+      try {
+        const res = await fetch("/api/members", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authSession.access_token}`,
           },
-        ],
-      }));
+          body: JSON.stringify({
+            action: "add-member",
+            teamId: teamSettings.id,
+            member: {
+              name: member.name.trim(),
+              number: num,
+              role: member.role || "Tiền Đạo (ST)",
+              phone: member.phone || "",
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || "Không thể lưu thành viên vào hệ thống.");
+        }
+
+        const data = await res.json();
+        if (data?.member) created = data.member;
+      } catch (err) {
+        if (!err.message?.includes("fetch")) throw err;
+      }
+    }
+
+    setTeamSettings((prev) => ({
+      ...prev,
+      members: [
+        ...prev.members.filter((m) => m.id !== created.id),
+        created,
+      ],
+    }));
+    return created;
   };
-  const createTeam = (team) => {
+
+  const createTeam = async (team) => {
     const id = uid();
-    const settings = {
+    let settings = {
       ...INITIAL_TEAM_SETTINGS,
       id,
       ownerId: user.id,
@@ -1128,7 +1249,7 @@ export function useAuth() {
       teamCategory: team.teamCategory,
       venue: team.stadium,
       logo: team.teamLogo,
-      members: [{ ...user, roleType: "owner", customTitle: "Đội trưởng" }],
+      members: [{ ...user, roleType: "owner", customTitle: "Đội trưởng", isCaptain: true }],
       subAdmins: [],
       pendingAdminRequests: [],
       treasurerQr: {
@@ -1138,11 +1259,49 @@ export function useAuth() {
         accountHolder: "",
       },
     };
+
+    if (authSession?.access_token && !demoSession && typeof fetch !== "undefined") {
+      try {
+        const response = await fetch("/api/teams", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authSession.access_token}`,
+          },
+          body: JSON.stringify({
+            action: "create-team",
+            team: {
+              id,
+              teamName: team.teamName,
+              teamCategory: team.teamCategory,
+              stadium: team.stadium,
+              teamLogo: team.teamLogo,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || "Không thể lưu đội bóng trên hệ thống. Vui lòng thử lại.");
+        }
+
+        const resData = await response.json();
+        if (resData.team) {
+          settings = resData.team;
+        }
+      } catch (err) {
+        if (!err.message?.includes("fetch")) {
+          throw err;
+        }
+      }
+    }
+
     setTeamSettings(settings);
-    writeStored("no_offside_team_" + id, settings);
+    writeStored("no_offside_team_" + settings.id, settings);
+    writeStored("no_offside_workspace_" + accountId, { user, teamSettings: settings });
     setTeams((prev) => ({
       ...prev,
-      [accountId + "::" + id]: {
+      [accountId + "::" + settings.id]: {
         funds: { transactions: [], pendingApprovals: [], debtors: [] },
         matches: [],
         attendance: {},
@@ -1152,12 +1311,14 @@ export function useAuth() {
     }));
     setUser((prev) => ({
       ...prev,
-      teamName: team.teamName,
-      teamCategory: team.teamCategory,
+      teamName: settings.teamName,
+      teamCategory: settings.teamCategory,
       isCaptain: true,
       customTitle: "Đội trưởng",
     }));
     setCurrentUserRole("owner");
+    setDbMemberships([{ team_id: settings.id, role: "owner", name: settings.teamName }]);
+    return settings;
   };
   useEffect(() => {
     writeStored("no_offside_team_" + teamId, teamSettings);

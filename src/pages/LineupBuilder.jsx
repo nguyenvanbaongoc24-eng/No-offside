@@ -51,6 +51,14 @@ export default function LineupBuilder({
                 : "2-3-1",
             )
           : "2-3-1",
+    ),
+  );
+  const [activeFormationId, setActiveFormationId] = usePersistentState(
+    "no_offside_lineup_active_" + accountId + "::" + teamId,
+    () =>
+      readStored(
+        "no_offside_lineup_active_" + accountId + "::" + teamId,
+        readStored("no_offside_lineup_selected_" + accountId + "::" + teamId, "2-3-1"),
       ),
   );
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -424,6 +432,11 @@ export default function LineupBuilder({
       );
       return;
     }
+    setActiveFormationId(selectedFormationId);
+    writeStored(
+      "no_offside_lineup_active_" + accountId + "::" + teamId,
+      selectedFormationId,
+    );
     setSaveError("");
     setSaveSuccessNotice(true);
     setTimeout(() => setSaveSuccessNotice(false), 2500);
@@ -438,16 +451,16 @@ export default function LineupBuilder({
         </button>
         <h1>Chiến thuật</h1>
         <button
-          className="primary-button px-3 text-sm"
+          className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!canEdit}
           onClick={() => setShowCreateFormationModal(true)}
         >
-          <PlusCircle size={18} />
-          Tạo sơ đồ
+          <PlusCircle size={16} />
+          <span>Tạo sơ đồ</span>
         </button>
       </header>
 
-      {/* Control Bar: Hướng dẫn kéo thả & Nút Lưu Đội Hình */}
+      {/* Control Bar: Hướng dẫn kéo thả & Nút Lưu Sơ Đồ */}
       {saveError && (
         <p role="alert" className="mx-4 mt-3 text-sm text-rose-700">
           {saveError}
@@ -459,15 +472,15 @@ export default function LineupBuilder({
           <span>Kéo để xếp, chạm để đổi</span>
         </div>
 
-        {/* NÚT LƯU ĐỘI HÌNH */}
+        {/* NÚT LƯU SƠ ĐỒ */}
         <motion.button
           whileTap={{ scale: 0.98 }}
           disabled={!canEdit}
           onClick={handleSaveLineupCoordinates}
-          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5   cursor-pointer"
+          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50 transition-all"
         >
           <Save className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{saveSuccessNotice ? "Đã lưu" : "Lưu đội hình"}</span>
+          <span>{saveSuccessNotice ? "Đã lưu" : "Lưu sơ đồ"}</span>
         </motion.button>
       </div>
 
@@ -620,27 +633,28 @@ export default function LineupBuilder({
         </div>
       </div>
 
-      {/* 3. Tactics List (Render thành một danh sách có Checkmark) */}
+      {/* 3. Danh sách chiến thuật */}
       <div className="px-4 mt-3">
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-xs font-bold  tracking-wider text-gray-500">
+        <div className="flex items-center justify-between mb-2.5 px-1">
+          <span className="text-xs font-bold tracking-wider text-gray-500">
             DANH SÁCH CHIẾN THUẬT ({formationsList.length})
           </span>
-          <span className="text-xs font-bold text-emerald-600">
-            Chạm để kích hoạt
+          <span className="text-xs font-medium text-gray-400">
+            Chạm để xem và chỉnh sửa
           </span>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {formationsList.map((item) => {
-            const isActive = item.id === selectedFormationId;
+            const isSelected = item.id === selectedFormationId;
+            const isCurrentInUse = item.id === activeFormationId;
+
             return (
-              <motion.div
+              <div
                 key={item.id}
-                whileTap={{ scale: 0.98 }}
                 role="button"
                 tabIndex={0}
-                aria-pressed={isActive}
+                aria-pressed={isSelected}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
@@ -648,43 +662,52 @@ export default function LineupBuilder({
                   }
                 }}
                 onClick={() => setSelectedFormationId(item.id)}
-                className={`p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between ${
-                  isActive
-                    ? "bg-white border-emerald-500 ring-2 ring-emerald-500/20 "
-                    : "bg-white/80 border-gray-200 hover:bg-white"
+                className={`p-3.5 rounded-2xl border transition-all duration-150 cursor-pointer flex items-center justify-between gap-3 ${
+                  isSelected
+                    ? "bg-emerald-50/70 border-emerald-300 text-gray-900 ring-1 ring-emerald-300/40"
+                    : "bg-white border-gray-200 hover:border-gray-300 text-gray-800"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
-                      isActive
-                        ? "bg-emerald-600 text-white "
-                        : "bg-gray-100 text-gray-700"
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
+                      isSelected
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-100 text-slate-600"
                     }`}
                   >
-                    <Network size={20} />
+                    <Network size={18} />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
-                      <span>{item.name}</span>
-                      {isActive && (
-                        <span className="text-xs font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          Đang chọn
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="text-xs font-bold text-gray-900 truncate">
+                        {item.name}
+                      </h4>
+                      {isCurrentInUse && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                          Đang sử dụng
                         </span>
                       )}
-                    </h4>
-                    <p className="text-xs text-gray-400 font-medium">
+                    </div>
+                    <p className="text-[11px] text-gray-500 font-medium truncate mt-0.5">
                       {item.tag}
                     </p>
                   </div>
                 </div>
 
-                {isActive && (
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center ">
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  </div>
-                )}
-              </motion.div>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  {isSelected ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-200">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                      <span>Đang chọn</span>
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-gray-400">
+                      Xem sơ đồ
+                    </span>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>

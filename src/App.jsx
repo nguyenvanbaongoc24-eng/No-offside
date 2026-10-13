@@ -212,8 +212,8 @@ export default function App() {
             />
           ) : activeTab === "create-team" ? (
             <CreateTeam
-              onTeamCreated={(data) => {
-                auth.createTeam(data);
+              onTeamCreated={async (data) => {
+                await auth.createTeam(data);
                 navigate("dashboard");
               }}
               onBack={() => navigate("profile")}
@@ -439,18 +439,44 @@ export default function App() {
             onFocusCapture={revealNav}
           >
             <div className="nav-items">
-              {tabs.map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  aria-label={label}
-                  aria-current={activeTab === id ? "page" : undefined}
-                  onClick={() => navigate(id)}
-                  className="nav-item"
-                >
-                  <Icon size={24} strokeWidth={1.75} />
-                  <span>{label}</span>
-                </button>
-              ))}
+              {tabs.map(({ id, label, Icon }) => {
+                const isActive = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    aria-label={label}
+                    title={label}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={() => navigate(id)}
+                    className="nav-item"
+                  >
+                    {id === "profile" && auth.user?.avatar ? (
+                      <div
+                        className={`w-7 h-7 rounded-full overflow-hidden transition-all duration-150 flex items-center justify-center ${
+                          isActive
+                            ? "ring-2 ring-emerald-600 dark:ring-emerald-400 scale-105"
+                            : "opacity-75"
+                        }`}
+                      >
+                        <img
+                          src={auth.user.avatar}
+                          alt={label}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <Icon
+                        size={24}
+                        className={`transition-all duration-150 ${
+                          isActive
+                            ? "fill-current stroke-[2.2] scale-105 text-emerald-600 dark:text-emerald-400"
+                            : "stroke-[1.8] opacity-75"
+                        }`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </nav>
         )}

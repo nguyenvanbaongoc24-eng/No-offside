@@ -27,6 +27,7 @@ export default function LineupBuilder({
 }) {
   const pitchRef = useRef(null);
   const [draggedPlayer, setDraggedPlayer] = useState(null);
+  const suppressTap = useRef(false);
   useEffect(
     () => () =>
       window.dispatchEvent(
@@ -516,15 +517,21 @@ export default function LineupBuilder({
                 }}
                 drag={canEdit}
                 onTap={() => {
-                  if (canEdit) setSelectedPlayer(player);
+                  if (canEdit && !suppressTap.current)
+                    setSelectedPlayer(player);
+                }}
+                onPointerDownCapture={(e) => {
+                  if (e.isPrimary) suppressTap.current = false;
                 }}
                 onClick={(e) => {
-                  if (canEdit && e.detail === 0) setSelectedPlayer(player);
+                  if (canEdit && e.detail === 0 && !suppressTap.current)
+                    setSelectedPlayer(player);
                 }}
                 dragConstraints={pitchRef}
                 dragElastic={0.05}
                 dragMomentum={false}
                 onDragStart={() => {
+                  suppressTap.current = true;
                   setDraggedPlayer(player.id);
                   window.dispatchEvent(
                     new CustomEvent("lineup-drag", {
@@ -533,6 +540,7 @@ export default function LineupBuilder({
                   );
                 }}
                 onPointerCancel={() => {
+                  suppressTap.current = true;
                   setDraggedPlayer(null);
                   window.dispatchEvent(
                     new CustomEvent("lineup-drag", {
@@ -541,6 +549,7 @@ export default function LineupBuilder({
                   );
                 }}
                 onDragEnd={(_event, info) => {
+                  suppressTap.current = true;
                   setDraggedPlayer(null);
                   window.dispatchEvent(
                     new CustomEvent("lineup-drag", {

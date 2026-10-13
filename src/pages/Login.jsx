@@ -78,6 +78,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
   const [systemDark, setSystemDark] = useState(() => typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-color-scheme: dark)").matches));
   const activeTheme = theme === "system" ? (systemDark ? "dark" : "light") : theme;
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const media = window.matchMedia?.("(prefers-color-scheme: dark)");
     if (!media) return;
     const update = () => setSystemDark(media.matches);
@@ -88,6 +89,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
   const [language, setLanguage] = useState(() => readStored("no_offside_auth_language", "vi") === "en" ? "en" : "vi");
   const t = (text) => authText(text, language);
   useEffect(() => {
+    if (typeof document === "undefined" || !document.documentElement) return;
     const previous = document.documentElement.lang;
     document.documentElement.lang = language;
     return () => { document.documentElement.lang = previous; };

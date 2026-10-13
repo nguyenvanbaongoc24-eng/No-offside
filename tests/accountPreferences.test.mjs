@@ -254,3 +254,27 @@ test("personal preferences save immediately, survive remount, isolate accounts a
   assert.equal(value.value.theme, "dark");
   await act(async () => tree.unmount());
 });
+
+test("demo team identity is stable from first login through reload", async () => {
+  storage.clear();
+  session = null;
+  userCheck = async () => ({ data: { user: null }, error: null });
+  let value;
+  function Harness() {
+    value = useAuth();
+    return null;
+  }
+  let tree;
+  await act(async () => {
+    tree = renderer.create(React.createElement(Harness));
+  });
+  await act(async () => value.login({ demo: true }));
+  const before = value.teamSettings.id;
+  assert.equal(before, "fc-no-offside-99");
+  await act(async () => tree.unmount());
+  await act(async () => {
+    tree = renderer.create(React.createElement(Harness));
+  });
+  assert.equal(value.teamSettings.id, before);
+  await act(async () => tree.unmount());
+});

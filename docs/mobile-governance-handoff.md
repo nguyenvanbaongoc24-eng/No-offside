@@ -29,7 +29,7 @@ Policy mặc định review, đạt N lần tạo task đúng kỳ và chống x
 
 Fixture thay clock_timestamp **chỉ trong database PGlite tạm của test**, không nằm trong migration hoặc project Supabase. Đây là kiểm chứng logic PostgreSQL; chưa thay thế kiểm thử JWT/PostgREST trên Supabase thật.
 
-`npm run build`: Vite/PWA. Kiểm tra browser viewport 320/360/390/430px sẽ ghi trong kết quả preview. Không có thiết bị Safari iOS/Chrome Android thật để xác nhận native date picker, bàn phím và elastic bounce; không gọi viewport test là thử nghiệm thiết bị thật.
+`npm run build`: Vite/PWA. Đã đo form tại viewport 320/360/390/430px: scrollWidth bằng clientWidth, các input nằm trong sheet, datetime 16px và min-width 0, nút xác nhận trong viewport. Đã kiểm tra cuộn xuống/đảo hướng, swipe reveal → confirm → archive → undo, theme/font giữ sau refresh, chuyển tài khoản trở về xác thực và header Chiến thuật một dòng ở 320px. Không có thiết bị Safari iOS/Chrome Android thật để xác nhận native date picker, bàn phím và elastic bounce; không gọi viewport test là thử nghiệm thiết bị thật.
 
 ## Hạ tầng còn thiếu / giới hạn
 
@@ -40,3 +40,7 @@ Fixture thay clock_timestamp **chỉ trong database PGlite tạm của test**, k
 - Logout global chỉ thu hồi các phiên theo Supabase; access JWT đã phát hành có thể còn hợp lệ đến expiry. Không hứa thu hồi tức thì mọi token đã phát hành.
 
 Tham khảo: [Supabase RPC/security definer](https://supabase.com/docs/guides/database/functions), [Sign-out scopes](https://supabase.com/docs/reference/javascript/auth-signout), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
+
+## Kết quả bổ sung
+
+38 kiểm thử tự động qua; Vite/PWA build qua. Kiểm tra browser phát hiện và đã sửa ID đội trải nghiệm thiếu ở lần đầu đăng nhập (làm đổi khóa sơ đồ sau refresh), thêm đọc khóa legacy và ghi đồng bộ khi bấm Lưu. Vùng chạm cầu thủ có kích thước ổn định, chạm mở sheet và drag không mở nhầm sheet; lựa chọn đổi người là nút thật có thể dùng bàn phím. Độ tương phản của các nền trung tính/nhãn trạng thái trong theme tối đã được chỉnh.

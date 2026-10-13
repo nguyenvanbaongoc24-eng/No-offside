@@ -16,7 +16,15 @@ export default function Chat({
       readStored(
         "no_offside_messages_" + accountId + "::" + teamId,
         accountId === "demo"
-          ? readStored("no_offside_messages_" + teamId, [])
+          ? readStored(
+              "no_offside_messages_" + teamId,
+              teamId === "fc-no-offside-99"
+                ? readStored(
+                    "no_offside_messages_demo::undefined",
+                    readStored("no_offside_messages_undefined", []),
+                  )
+                : [],
+            )
           : [],
       ),
   );

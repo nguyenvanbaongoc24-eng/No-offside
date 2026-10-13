@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { readStored } from "../lib/storage";
+import { readStored, writeStored } from "../lib/storage";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -41,7 +41,15 @@ export default function LineupBuilder({
       readStored(
         "no_offside_lineup_selected_" + accountId + "::" + teamId,
         accountId === "demo"
-          ? readStored("no_offside_lineup_selected_" + teamId, "2-3-1")
+          ? readStored(
+              "no_offside_lineup_selected_" + teamId,
+              teamId === "fc-no-offside-99"
+                ? readStored(
+                    "no_offside_lineup_selected_demo::undefined",
+                    readStored("no_offside_lineup_selected_undefined", "2-3-1"),
+                  )
+                : "2-3-1",
+            )
           : "2-3-1",
       ),
   );
@@ -50,6 +58,7 @@ export default function LineupBuilder({
     useState(false);
   const [newFormationName, setNewFormationName] = useState("");
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // Available players pool to swap
   const canEdit = ["owner", "admin"].includes(currentUserRole);
@@ -62,7 +71,15 @@ export default function LineupBuilder({
       readStored(
         "no_offside_lineups_" + accountId + "::" + teamId,
         (accountId === "demo"
-          ? readStored("no_offside_lineups_" + teamId, null)
+          ? readStored(
+              "no_offside_lineups_" + teamId,
+              teamId === "fc-no-offside-99"
+                ? readStored(
+                    "no_offside_lineups_demo::undefined",
+                    readStored("no_offside_lineups_undefined", null),
+                  )
+                : null,
+            )
           : null) ||
           [
             {
@@ -392,6 +409,22 @@ export default function LineupBuilder({
   // Nút Lưu Đội Hình
   const handleSaveLineupCoordinates = () => {
     if (!canEdit) return;
+    if (
+      !writeStored(
+        "no_offside_lineups_" + accountId + "::" + teamId,
+        formationsList,
+      ) ||
+      !writeStored(
+        "no_offside_lineup_selected_" + accountId + "::" + teamId,
+        selectedFormationId,
+      )
+    ) {
+      setSaveError(
+        "Không lưu được sơ đồ. Kiểm tra dung lượng thiết bị rồi thử lại.",
+      );
+      return;
+    }
+    setSaveError("");
     setSaveSuccessNotice(true);
     setTimeout(() => setSaveSuccessNotice(false), 2500);
   };
@@ -415,6 +448,11 @@ export default function LineupBuilder({
       </header>
 
       {/* Control Bar: Hướng dẫn kéo thả & Nút Lưu Đội Hình */}
+      {saveError && (
+        <p role="alert" className="mx-4 mt-3 text-sm text-rose-700">
+          {saveError}
+        </p>
+      )}
       <div className="px-4 mt-2.5 flex flex-wrap gap-2 items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
           <Move className="w-3.5 h-3.5 text-emerald-600" />

@@ -252,6 +252,7 @@ const INITIAL_MEMBERS = [
 ];
 
 const INITIAL_TEAM_SETTINGS = {
+  id: "fc-no-offside-99",
   teamName: "FC No Offside",
   teamCategory: "Sân 7 Sài Gòn",
   logo: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=160&q=80",
@@ -1013,7 +1014,10 @@ export function useAuth() {
     if (profile?.demo) {
       const saved = readStored("no_offside_workspace_demo", null);
       const demoUser = saved?.user || INITIAL_USER;
-      const settings = saved?.teamSettings || INITIAL_TEAM_SETTINGS;
+      const settings = {
+        ...(saved?.teamSettings || INITIAL_TEAM_SETTINGS),
+        id: saved?.teamSettings?.id || INITIAL_TEAM_SETTINGS.id,
+      };
       setUser(demoUser);
       setTeamSettings(settings);
       setDemoSession(true);

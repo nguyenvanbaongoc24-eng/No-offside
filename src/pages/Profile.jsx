@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
   Shield,
@@ -28,16 +28,18 @@ import {
   Tag,
   ArrowRightLeft,
   UserCheck,
-  UserX
-} from 'lucide-react';
-import { imageDataUrl } from '../lib/images';
-import InviteShare from '../components/InviteShare';
+  UserX,
+} from "lucide-react";
+import { imageDataUrl } from "../lib/images";
+import InviteShare from "../components/InviteShare";
 
 export default function Profile({
   user,
-  currentUserRole = 'owner',
+  currentUserRole = "owner",
   onToggleRole,
   onLogout,
+  accountPanel,
+  appearancePanel,
   onNavigate,
   teamSettings,
   onUpdateTeamName,
@@ -49,28 +51,42 @@ export default function Profile({
   onRejectAdminRequest,
   onUpdateProfile,
   onRequestAdmin,
-  demoSession
+  demoSession,
 }) {
   // Personal Info Form State
   const [avatar, setAvatar] = useState(user.avatar);
   const [name, setName] = useState(user.name);
   const [number, setNumber] = useState(user.number || 9);
-  const [role, setRole] = useState(user.role || 'Tiền Đạo (ST)');
+  const [role, setRole] = useState(user.role || "Tiền Đạo (ST)");
   const [height, setHeight] = useState(user.height || 175);
   const [weight, setWeight] = useState(user.weight || 68);
-  const [phone, setPhone] = useState('0987 654 321');
+  const [phone, setPhone] = useState("0987 654 321");
   const [isSaved, setIsSaved] = useState(false);
 
   // Captain Team Name State
-  const isOwner = currentUserRole === 'owner';
-  const isAdmin = currentUserRole === 'admin';
-  const [editingTeamName, setEditingTeamName] = useState(teamSettings?.teamName || user.teamName || 'FC No Offside');
+  const isOwner = currentUserRole === "owner";
+  const isAdmin = currentUserRole === "admin";
+  const [editingTeamName, setEditingTeamName] = useState(
+    teamSettings?.teamName || user.teamName || "FC No Offside",
+  );
   const [teamNameSaved, setTeamNameSaved] = useState(false);
 
   // Sub-Admins list
   const subAdmins = teamSettings?.subAdmins || [
-    { id: 101, name: 'Nguyễn Hoàng Hải', number: 10, customTitle: 'Thủ Quỹ', phone: '0988776655' },
-    { id: 102, name: 'Đặng Văn Lâm', number: 1, customTitle: 'Đội Phó', phone: '0977889900' },
+    {
+      id: 101,
+      name: "Nguyễn Hoàng Hải",
+      number: 10,
+      customTitle: "Thủ Quỹ",
+      phone: "0988776655",
+    },
+    {
+      id: 102,
+      name: "Đặng Văn Lâm",
+      number: 1,
+      customTitle: "Đội Phó",
+      phone: "0977889900",
+    },
   ];
 
   // Pending Admin Nominations
@@ -78,11 +94,11 @@ export default function Profile({
 
   // Title assignment modal / popover
   const [editingSubAdmin, setEditingSubAdmin] = useState(null);
-  const [customTitleInput, setCustomTitleInput] = useState('');
+  const [customTitleInput, setCustomTitleInput] = useState("");
 
   // Admin Delegation Modal
   const [selectedPromotee, setSelectedPromotee] = useState(null);
-  const [promoteTitle, setPromoteTitle] = useState('Đội Phó');
+  const [promoteTitle, setPromoteTitle] = useState("Đội Phó");
   const [showPromoteModal, setShowPromoteModal] = useState(false);
 
   // Removing Admin Double Confirmation Modal
@@ -96,15 +112,35 @@ export default function Profile({
   // Invite QR & Link Modal
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  const titlePresets = ['Thủ Quỹ', 'Đội Phó', 'Bầu Đội', 'HLV', 'Kế Toán'];
+  const titlePresets = ["Thủ Quỹ", "Đội Phó", "Bầu Đội", "HLV", "Kế Toán"];
 
-  const availableMembers = (teamSettings?.members || []).filter(m => m.roleType === 'member');
+  const availableMembers = (teamSettings?.members || []).filter(
+    (m) => m.roleType === "member",
+  );
 
-  const handleAvatarChange = async e => { try { setAvatar(await imageDataUrl(e.target.files?.[0])); } catch (err) { alert(err.message); } };
+  const handleAvatarChange = async (e) => {
+    try {
+      setAvatar(await imageDataUrl(e.target.files?.[0]));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
-    try { onUpdateProfile({name, number, role, height: Number(height), weight: Number(weight), avatar}); } catch (err) { alert(err.message); return; }
+    try {
+      onUpdateProfile({
+        name,
+        number,
+        role,
+        height: Number(height),
+        weight: Number(weight),
+        avatar,
+      });
+    } catch (err) {
+      alert(err.message);
+      return;
+    }
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);
   };
@@ -126,13 +162,17 @@ export default function Profile({
           id: selectedPromotee.id,
           name: selectedPromotee.name,
           number: selectedPromotee.number,
-          customTitle: promoteTitle || 'Đội Phó',
+          customTitle: promoteTitle || "Đội Phó",
         });
       }
-      alert(`Đã cấp quyền Admin với chức danh "${promoteTitle}" cho ${selectedPromotee.name} thành công!`);
+      alert(
+        `Đã cấp quyền Admin với chức danh "${promoteTitle}" cho ${selectedPromotee.name} thành công!`,
+      );
     } else {
       onRequestAdmin({ ...selectedPromotee, customTitle: promoteTitle });
-      alert(`Đã gửi yêu cầu phong Admin (${promoteTitle}) cho ${selectedPromotee.name} tới Chủ đội phê duyệt!`);
+      alert(
+        `Đã gửi yêu cầu phong Admin (${promoteTitle}) cho ${selectedPromotee.name} tới Chủ đội phê duyệt!`,
+      );
     }
     setShowPromoteModal(false);
     setSelectedPromotee(null);
@@ -152,7 +192,9 @@ export default function Profile({
     if (onTransferOwnership) {
       onTransferOwnership(selectedNewOwner.id);
     }
-    alert(`Bạn đã nhường toàn quyền Chủ đội cho ${selectedNewOwner.name}! Vai trò của bạn hiện là Thành Viên.`);
+    alert(
+      `Bạn đã nhường toàn quyền Chủ đội cho ${selectedNewOwner.name}! Vai trò của bạn hiện là Thành Viên.`,
+    );
     setShowTransferOwnerModal(false);
     setSelectedNewOwner(null);
   };
@@ -162,12 +204,11 @@ export default function Profile({
       onUpdateSubAdminTitle(editingSubAdmin.id, customTitleInput.trim());
     }
     setEditingSubAdmin(null);
-    setCustomTitleInput('');
+    setCustomTitleInput("");
   };
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-sans antialiased">
-
       {/* 1. Header Dark Geometric Style */}
       <section className="bg-slate-900 text-white pt-safe-hero pb-8 px-5 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
         <div className="profile-header flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -201,29 +242,31 @@ export default function Profile({
                   #{number}
                 </span>
               </h1>
-              <p className="text-xs text-gray-400 font-semibold">{user.teamName}</p>
+              <p className="text-xs text-gray-400 font-semibold">
+                {user.teamName}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Dev Switcher 3 Cấp bậc: Owner / Admin / Member */}
             <button
-              onClick={onToggleRole} disabled={!demoSession}
+              onClick={onToggleRole}
+              disabled={!demoSession}
               className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap flex-shrink-0 cursor-pointer ${
-                currentUserRole === 'owner'
-                  ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-amber-400/20'
-                  : currentUserRole === 'admin'
-                  ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20'
-                  : 'bg-white/10 text-gray-200 border-white/20 hover:bg-white/20'
+                currentUserRole === "owner"
+                  ? "bg-amber-400 text-slate-950 border-amber-300 shadow-amber-400/20"
+                  : currentUserRole === "admin"
+                    ? "bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/20"
+                    : "bg-white/10 text-gray-200 border-white/20 hover:bg-white/20"
               }`}
               title="Đổi vai trò trải nghiệm: chủ đội, quản trị viên, thành viên"
             >
-              {currentUserRole === 'owner' ? (
+              {currentUserRole === "owner" ? (
                 <>
-
                   <span> Đội Trưởng</span>
                 </>
-              ) : currentUserRole === 'admin' ? (
+              ) : currentUserRole === "admin" ? (
                 <>
                   <Shield className="w-3.5 h-3.5" />
                   <span> Admin Phụ</span>
@@ -235,11 +278,20 @@ export default function Profile({
 
             {/* Logout button */}
             <button
-              onClick={onLogout}
+              onClick={async () => {
+                try {
+                  await onLogout("local");
+                } catch {
+                  alert(
+                    "Đăng xuất chưa thành công. Kiểm tra kết nối rồi thử lại.",
+                  );
+                }
+              }}
               className="p-2 rounded-full bg-white/10 hover:bg-rose-500/20 text-gray-300 hover:text-rose-400 border border-white/10 transition-all active:scale-95 cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center justify-center"
               title="Đăng xuất"
             >
               <LogOut className="w-4 h-4" />
+              <span className="text-xs ml-1">Đăng xuất</span>
             </button>
           </div>
         </div>
@@ -249,12 +301,14 @@ export default function Profile({
           <div className="mt-2 pt-2 border-t border-white/10 flex flex-wrap gap-3 items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              <span className="text-xs text-amber-300 font-semibold">Quyền Đội Trưởng Tối Cao</span>
+              <span className="text-xs text-amber-300 font-semibold">
+                Quyền Đội Trưởng Tối Cao
+              </span>
             </div>
 
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => onNavigate && onNavigate('team-settings')}
+              onClick={() => onNavigate && onNavigate("team-settings")}
               className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 whitespace-nowrap flex-shrink-0 cursor-pointer"
             >
               <Settings className="w-3.5 h-3.5" />
@@ -263,20 +317,36 @@ export default function Profile({
           </div>
         )}
       </section>
+      <div className="p-4 space-y-3">
+        {accountPanel}
+        {appearancePanel}
+        <button
+          className="choice-button w-full"
+          onClick={() => onNavigate("governance")}
+        >
+          Nội quy & lịch sử vi phạm
+        </button>
+      </div>
 
       {/* 2. FORM CẬP NHẬT THÔNG TIN CÁ NHÂN */}
       <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 mx-3.5 -mt-4 relative z-10 border border-gray-100">
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-xs font-bold  tracking-wider text-gray-800">Hồ sơ cá nhân</h3>
+            <h3 className="text-xs font-bold  tracking-wider text-gray-800">
+              Hồ sơ cá nhân
+            </h3>
           </div>
-          <span className="text-xs text-gray-400 font-bold">Chỉnh sửa & Cập nhật</span>
+          <span className="text-xs text-gray-400 font-bold">
+            Chỉnh sửa & Cập nhật
+          </span>
         </div>
 
         <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
           <div>
-            <label className="text-gray-600 block mb-1 font-bold">Họ và tên</label>
+            <label className="text-gray-600 block mb-1 font-bold">
+              Họ và tên
+            </label>
             <input
               type="text"
               value={name}
@@ -287,7 +357,9 @@ export default function Profile({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-gray-600 block mb-1 font-bold">Số áo thi đấu</label>
+              <label className="text-gray-600 block mb-1 font-bold">
+                Số áo thi đấu
+              </label>
               <input
                 type="number"
                 value={number}
@@ -296,7 +368,9 @@ export default function Profile({
               />
             </div>
             <div>
-              <label className="text-gray-600 block mb-1 font-bold">Vị trí sở trường</label>
+              <label className="text-gray-600 block mb-1 font-bold">
+                Vị trí sở trường
+              </label>
               <input
                 type="text"
                 value={role}
@@ -308,7 +382,9 @@ export default function Profile({
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-gray-600 block mb-1 font-bold">Chiều cao (cm)</label>
+              <label className="text-gray-600 block mb-1 font-bold">
+                Chiều cao (cm)
+              </label>
               <input
                 type="number"
                 value={height}
@@ -317,7 +393,9 @@ export default function Profile({
               />
             </div>
             <div>
-              <label className="text-gray-600 block mb-1 font-bold">Cân nặng (kg)</label>
+              <label className="text-gray-600 block mb-1 font-bold">
+                Cân nặng (kg)
+              </label>
               <input
                 type="number"
                 value={weight}
@@ -332,7 +410,7 @@ export default function Profile({
             type="submit"
             className="w-full h-11 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs shadow-lg shadow-green-500/30 flex items-center justify-center whitespace-nowrap cursor-pointer mt-1"
           >
-            {isSaved ? ' Đã Lưu Thông Tin' : 'Lưu Hồ Sơ Thành viên'}
+            {isSaved ? " Đã Lưu Thông Tin" : "Lưu Hồ Sơ Thành viên"}
           </motion.button>
         </form>
       </section>
@@ -354,15 +432,30 @@ export default function Profile({
 
           <div className="space-y-2">
             {pendingRequests.map((req) => (
-              <div key={req.id} className="p-3 bg-white rounded-2xl border border-amber-200 flex items-center justify-between shadow-xs">
+              <div
+                key={req.id}
+                className="p-3 bg-white rounded-2xl border border-amber-200 flex items-center justify-between shadow-xs"
+              >
                 <div className="flex items-center gap-2.5">
-                  <img src={req.avatar} alt={req.name} className="w-9 h-9 rounded-full object-cover ring-1 ring-amber-300" />
+                  <img
+                    src={req.avatar}
+                    alt={req.name}
+                    className="w-9 h-9 rounded-full object-cover ring-1 ring-amber-300"
+                  />
                   <div>
                     <p className="text-xs font-bold text-gray-900">
-                      {req.name} <span className="text-amber-700 font-bold">#{req.number}</span>
+                      {req.name}{" "}
+                      <span className="text-amber-700 font-bold">
+                        #{req.number}
+                      </span>
                     </p>
                     <p className="text-xs text-gray-500">
-                      Đề xuất làm: <strong className="text-amber-800 font-bold"> {req.requestedTitle}</strong> • Bởi: {req.requestedBy}
+                      Đề xuất làm:{" "}
+                      <strong className="text-amber-800 font-bold">
+                        {" "}
+                        {req.requestedTitle}
+                      </strong>{" "}
+                      • Bởi: {req.requestedBy}
                     </p>
                   </div>
                 </div>
@@ -372,7 +465,9 @@ export default function Profile({
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       if (onApproveAdminRequest) onApproveAdminRequest(req.id);
-                      alert(`Đã chấp thuận phong chức ${req.requestedTitle} cho ${req.name}!`);
+                      alert(
+                        `Đã chấp thuận phong chức ${req.requestedTitle} cho ${req.name}!`,
+                      );
                     }}
                     className="px-2.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1 cursor-pointer whitespace-nowrap"
                   >
@@ -402,13 +497,12 @@ export default function Profile({
         <section className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 mx-3.5 mt-3 border border-gray-100">
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="flex items-center gap-2">
-
               <h3 className="text-xs font-bold  tracking-wider text-gray-900">
-                {isOwner ? 'Quản trị đội bóng' : 'Quản trị đội bóng'}
+                {isOwner ? "Quản trị đội bóng" : "Quản trị đội bóng"}
               </h3>
             </div>
             <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
-              {isOwner ? 'Chủ đội' : 'Quản trị viên'}
+              {isOwner ? "Chủ đội" : "Quản trị viên"}
             </span>
           </div>
 
@@ -420,12 +514,17 @@ export default function Profile({
                 <span>Tên Đội Bóng (FC):</span>
               </span>
               {!isOwner && (
-                <span className="text-xs text-gray-400 font-medium">Chỉ Đội Trưởng mới đổi được</span>
+                <span className="text-xs text-gray-400 font-medium">
+                  Chỉ Đội Trưởng mới đổi được
+                </span>
               )}
             </div>
 
             {isOwner ? (
-              <form onSubmit={handleSaveTeamName} className="flex items-center gap-2">
+              <form
+                onSubmit={handleSaveTeamName}
+                className="flex items-center gap-2"
+              >
                 <input
                   type="text"
                   value={editingTeamName}
@@ -437,7 +536,7 @@ export default function Profile({
                   type="submit"
                   className="h-10 px-3.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shrink-0 cursor-pointer whitespace-nowrap flex items-center justify-center"
                 >
-                  {teamNameSaved ? ' Đã Lưu' : 'Đổi Tên'}
+                  {teamNameSaved ? " Đã Lưu" : "Đổi Tên"}
                 </motion.button>
               </form>
             ) : (
@@ -463,7 +562,10 @@ export default function Profile({
 
             <div className="space-y-2 mb-3">
               {subAdmins.map((admin) => (
-                <div key={admin.id} className="p-3 rounded-2xl bg-slate-50 border border-gray-100 flex items-center justify-between">
+                <div
+                  key={admin.id}
+                  className="p-3 rounded-2xl bg-slate-50 border border-gray-100 flex items-center justify-between"
+                >
                   <div className="flex items-center gap-2.5">
                     <span className="w-7 h-7 rounded-full bg-slate-900 text-white tabular-nums text-xs font-bold flex items-center justify-center shrink-0">
                       #{admin.number}
@@ -473,10 +575,12 @@ export default function Profile({
                         <span>{admin.name}</span>
                         {/* BADGE CHỨC DANH MÀU VÀNG GOLD */}
                         <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400/25 to-yellow-500/20 text-amber-900 border border-amber-300 font-bold text-xs inline-flex items-center gap-1 shadow-xs whitespace-nowrap">
-                           {admin.customTitle || 'Admin Phụ'}
+                          {admin.customTitle || "Admin Phụ"}
                         </span>
                       </p>
-                      <p className="text-xs text-gray-400">{admin.phone || 'Admin'}</p>
+                      <p className="text-xs text-gray-400">
+                        {admin.phone || "Admin"}
+                      </p>
                     </div>
                   </div>
 
@@ -486,7 +590,7 @@ export default function Profile({
                       <button
                         onClick={() => {
                           setEditingSubAdmin(admin);
-                          setCustomTitleInput(admin.customTitle || '');
+                          setCustomTitleInput(admin.customTitle || "");
                         }}
                         className="px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 font-bold text-xs border border-amber-200/80 active:scale-95 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap"
                         title="Đổi chức danh"
@@ -514,27 +618,34 @@ export default function Profile({
             {/* Nút Cấp quyền Admin cho thành viên mới */}
             <div className="pt-2 border-t border-gray-100">
               <span className="text-xs font-bold text-gray-500 block mb-2">
-                {isOwner ? 'Cấp Quyền Admin Cho Thành Viên:' : 'Đề Xuất Phong Admin Cho Thành Viên:'}
+                {isOwner
+                  ? "Cấp Quyền Admin Cho Thành Viên:"
+                  : "Đề Xuất Phong Admin Cho Thành Viên:"}
               </span>
 
               <div className="space-y-1.5">
                 {availableMembers.map((member) => (
-                  <div key={member.id} className="p-2 rounded-xl bg-gray-50/80 border border-gray-100 flex items-center justify-between">
+                  <div
+                    key={member.id}
+                    className="p-2 rounded-xl bg-gray-50/80 border border-gray-100 flex items-center justify-between"
+                  >
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold flex items-center justify-center shrink-0">
                         #{member.number}
                       </span>
-                      <span className="text-xs font-bold text-gray-800">{member.name}</span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {member.name}
+                      </span>
                     </div>
                     <button
                       onClick={() => {
                         setSelectedPromotee(member);
-                        setPromoteTitle('Đội Phó');
+                        setPromoteTitle("Đội Phó");
                         setShowPromoteModal(true);
                       }}
                       className="px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 active:scale-95 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center"
                     >
-                      {isOwner ? '+ Cấp Quyền Admin' : '+ Đề Xuất Admin'}
+                      {isOwner ? "+ Cấp Quyền Admin" : "+ Đề Xuất Admin"}
                     </button>
                   </div>
                 ))}
@@ -566,7 +677,9 @@ export default function Profile({
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-xs font-bold  tracking-wider text-gray-800">Gia nhập & mời thành viên</h3>
+            <h3 className="text-xs font-bold  tracking-wider text-gray-800">
+              Gia nhập & mời thành viên
+            </h3>
           </div>
           <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
             QR / Link
@@ -586,7 +699,11 @@ export default function Profile({
 
       {/* MODAL SỬA CHỨC DANH / BIỆT DANH CHO ADMIN PHỤ */}
       {editingSubAdmin && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+        >
           <div className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
@@ -595,7 +712,10 @@ export default function Profile({
                   Cấp Chức Danh Cho {editingSubAdmin.name}
                 </h3>
               </div>
-              <button onClick={() => setEditingSubAdmin(null)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400 cursor-pointer">
+              <button
+                onClick={() => setEditingSubAdmin(null)}
+                className="p-1 hover:bg-gray-100 rounded-full text-gray-400 cursor-pointer"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -613,8 +733,8 @@ export default function Profile({
                       onClick={() => setCustomTitleInput(t)}
                       className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         customTitleInput === t
-                          ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-400/50 shadow-sm'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? "bg-amber-400 text-slate-950 ring-2 ring-amber-400/50 shadow-sm"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                     >
                       {t}
@@ -651,22 +771,34 @@ export default function Profile({
 
       {/* DOUBLE CONFIRMATION MODAL KHI CẤP QUYỀN ADMIN CHO THÀNH VIÊN */}
       {showPromoteModal && selectedPromotee && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm animate-in fade-in duration-200"
+        >
           <div className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100 text-center">
-
             <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-3">
               <AlertTriangle className="w-7 h-7" />
             </div>
 
             <h3 className="font-bold text-base text-gray-900">
-              {isOwner ? 'Xác Nhận Cấp Quyền Admin' : 'Đề Xuất Phong Admin'}
+              {isOwner ? "Xác Nhận Cấp Quyền Admin" : "Đề Xuất Phong Admin"}
             </h3>
 
             <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
               {isOwner ? (
-                <>Bạn có chắc chắn muốn cấp quyền Admin cho <strong>{selectedPromotee.name} (#{selectedPromotee.number})</strong>?</>
+                <>
+                  Bạn có chắc chắn muốn cấp quyền Admin cho{" "}
+                  <strong>
+                    {selectedPromotee.name} (#{selectedPromotee.number})
+                  </strong>
+                  ?
+                </>
               ) : (
-                <>Gửi đề xuất phong Admin cho <strong>{selectedPromotee.name}</strong> tới Đội Trưởng?</>
+                <>
+                  Gửi đề xuất phong Admin cho{" "}
+                  <strong>{selectedPromotee.name}</strong> tới Đội Trưởng?
+                </>
               )}
             </p>
 
@@ -682,7 +814,9 @@ export default function Profile({
                     type="button"
                     onClick={() => setPromoteTitle(tp)}
                     className={`px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer whitespace-nowrap ${
-                      promoteTitle === tp ? 'bg-amber-400 text-slate-950' : 'bg-gray-100 text-gray-600'
+                      promoteTitle === tp
+                        ? "bg-amber-400 text-slate-950"
+                        : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {tp}
@@ -697,34 +831,45 @@ export default function Profile({
                 onClick={handleConfirmPromote}
                 className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer whitespace-nowrap flex items-center justify-center"
               >
-                {isOwner ? 'Xác Nhận Cấp Quyền Admin' : 'Gửi Yêu Cầu Cho Đội Trưởng'}
+                {isOwner
+                  ? "Xác Nhận Cấp Quyền Admin"
+                  : "Gửi Yêu Cầu Cho Đội Trưởng"}
               </motion.button>
 
               <button
-                onClick={() => { setShowPromoteModal(false); setSelectedPromotee(null); }}
+                onClick={() => {
+                  setShowPromoteModal(false);
+                  setSelectedPromotee(null);
+                }}
                 className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
               </button>
             </div>
-
           </div>
         </div>
       )}
 
       {/* DOUBLE CONFIRMATION MODAL KHI GIÁNG CHỨC / GỠ QUYỀN ADMIN */}
       {showRemoveAdminModal && adminToRemove && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm animate-in fade-in duration-200"
+        >
           <div className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100 text-center">
-
             <div className="w-14 h-14 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto mb-3">
               <AlertTriangle className="w-7 h-7" />
             </div>
 
-            <h3 className="font-bold text-base text-gray-900">Giáng chức admin</h3>
+            <h3 className="font-bold text-base text-gray-900">
+              Giáng chức admin
+            </h3>
 
             <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
-              Bạn có chắc chắn muốn xóa quyền Admin của <strong>{adminToRemove.name}</strong>? Người này sẽ bị giáng xuống thành Cầu thủ (Member).
+              Bạn có chắc chắn muốn xóa quyền Admin của{" "}
+              <strong>{adminToRemove.name}</strong>? Người này sẽ bị giáng xuống
+              thành Cầu thủ (Member).
             </p>
 
             <div className="mt-5 space-y-2">
@@ -737,30 +882,36 @@ export default function Profile({
               </motion.button>
 
               <button
-                onClick={() => { setShowRemoveAdminModal(false); setAdminToRemove(null); }}
+                onClick={() => {
+                  setShowRemoveAdminModal(false);
+                  setAdminToRemove(null);
+                }}
                 className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
               </button>
             </div>
-
           </div>
         </div>
       )}
 
       {/* YÊU CẦU 2: DOUBLE CONFIRMATION MODAL TỪ CHỨC & NHƯỜNG QUYỀN OWNER */}
       {showTransferOwnerModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
           <div className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-2xl border border-gray-100 text-center">
+            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-300 text-amber-600 flex items-center justify-center mx-auto mb-3"></div>
 
-            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-300 text-amber-600 flex items-center justify-center mx-auto mb-3">
-
-            </div>
-
-            <h3 className="font-bold text-base text-gray-900">Nhường quyền đội trưởng</h3>
+            <h3 className="font-bold text-base text-gray-900">
+              Nhường quyền đội trưởng
+            </h3>
 
             <p className="text-xs text-rose-600 mt-2 leading-relaxed font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
-               LƯU Ý QUAN TRỌNG: Bạn sẽ mất toàn quyền kiểm soát đội bóng và tự giáng cấp mình xuống làm Cầu thủ (Member)!
+              LƯU Ý QUAN TRỌNG: Bạn sẽ mất toàn quyền kiểm soát đội bóng và tự
+              giáng cấp mình xuống làm Cầu thủ (Member)!
             </p>
 
             <div className="my-4 text-left">
@@ -774,8 +925,8 @@ export default function Profile({
                     onClick={() => setSelectedNewOwner(sa)}
                     className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                       selectedNewOwner?.id === sa.id
-                        ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/20'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        ? "bg-amber-50 border-amber-400 ring-2 ring-amber-400/20"
+                        : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -783,8 +934,12 @@ export default function Profile({
                         #{sa.number}
                       </span>
                       <div>
-                        <p className="text-xs font-bold text-gray-900">{sa.name}</p>
-                        <p className="text-xs text-amber-800 font-semibold">{sa.customTitle}</p>
+                        <p className="text-xs font-bold text-gray-900">
+                          {sa.name}
+                        </p>
+                        <p className="text-xs text-amber-800 font-semibold">
+                          {sa.customTitle}
+                        </p>
                       </div>
                     </div>
                     {selectedNewOwner?.id === sa.id && (
@@ -797,7 +952,8 @@ export default function Profile({
 
             {selectedNewOwner && (
               <p className="text-xs text-gray-700 font-semibold mb-3">
-                Bạn có chắc chắn muốn nhường quyền Đội trưởng cho <strong>{selectedNewOwner.name}</strong>?
+                Bạn có chắc chắn muốn nhường quyền Đội trưởng cho{" "}
+                <strong>{selectedNewOwner.name}</strong>?
               </p>
             )}
 
@@ -808,21 +964,23 @@ export default function Profile({
                 onClick={handleConfirmTransferOwner}
                 className={`w-full py-3.5 rounded-full font-bold text-xs shadow-md transition-all whitespace-nowrap flex items-center justify-center ${
                   selectedNewOwner
-                    ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-rose-500/25 cursor-pointer'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    ? "bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-rose-500/25 cursor-pointer"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
               >
                 Xác Nhận Nhường Quyền Đội Trưởng
               </motion.button>
 
               <button
-                onClick={() => { setShowTransferOwnerModal(false); setSelectedNewOwner(null); }}
+                onClick={() => {
+                  setShowTransferOwnerModal(false);
+                  setSelectedNewOwner(null);
+                }}
                 className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
               </button>
             </div>
-
           </div>
         </div>
       )}
@@ -831,14 +989,13 @@ export default function Profile({
       <InviteShare
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        teamName={teamSettings?.teamName || user.teamName || 'FC No Offside'}
+        teamName={teamSettings?.teamName || user.teamName || "FC No Offside"}
         teamCode="fc-no-offside-888"
         onPreviewLanding={() => {
           setShowInviteModal(false);
-          if (onNavigate) onNavigate('invite-landing');
+          if (onNavigate) onNavigate("invite-landing");
         }}
       />
-
     </div>
   );
 }

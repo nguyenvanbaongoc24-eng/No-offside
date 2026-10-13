@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Home,
   Network,
@@ -24,6 +24,13 @@ import { useAppearance } from "./hooks/useAppearance";
 import { useDialogAccessibility } from "./hooks/useDialogAccessibility";
 import { readStored } from "./lib/storage";
 import { monthKey } from "./lib/teamModel";
+import { usePersonalAppearance } from "./hooks/usePersonalAppearance";
+import { useScrollNavigation } from "./hooks/useScrollNavigation";
+import AppearanceSettings from "./components/AppearanceSettings";
+import AccountControls from "./components/AccountControls";
+import Governance from "./pages/Governance";
+import { useGovernance } from "./hooks/useGovernance";
+import GovernanceNotice from "./components/GovernanceNotice";
 
 export default function App() {
   const auth = useAuth();
@@ -33,7 +40,56 @@ export default function App() {
       : "dashboard",
   );
   const [showNotices, setShowNotices] = useState(false);
-  useAppearance(auth.teamSettings.appearance);
+  const preferences = usePersonalAppearance(
+    auth.authLoading
+      ? readStored("no_offside_appearance_account", "anonymous")
+      : auth.accountId,
+  );
+  useAppearance(preferences.value);
+  const [navVisible, revealNav] = useScrollNavigation(tab);
+  const governance = useGovernance(
+    auth.accountId,
+    auth.teamSettings.id,
+    auth.demoSession || auth.authLoading || !auth.isLoggedIn,
+  );
+  const saveRequest = useRef(null);
+  const saveMatch = async (form, editId) => {
+    const signature = JSON.stringify([
+      auth.accountId,
+      auth.teamSettings.id,
+      form,
+      editId,
+    ]);
+    if (saveRequest.current?.signature !== signature)
+      saveRequest.current = {
+        signature,
+        id: crypto.randomUUID(),
+        key: crypto.randomUUID(),
+      };
+    const match = auth.saveMatch(form, editId, {
+      persist: false,
+      id: saveRequest.current.id,
+    });
+    if (governance.snapshot)
+      await governance.mutate(
+        "match",
+        {
+          id: match.id,
+          title: match.title,
+          kickoff: new Date(match.datetime).toISOString(),
+          deadline: new Date(match.deadline).toISOString(),
+          ...match.lateConfig,
+        },
+        saveRequest.current.key,
+      );
+    auth.saveMatch(form, editId, { id: match.id });
+    saveRequest.current = null;
+  };
+  const deleteMatch = async (id) => {
+    if (governance.snapshot)
+      await governance.mutate("archive_match", { matchId: id });
+    auth.deleteMatch(id);
+  };
   useDialogAccessibility();
   useVisualViewport();
   const leader = ["owner", "admin"].includes(auth.currentUserRole);
@@ -105,7 +161,7 @@ export default function App() {
   };
   const tabs = [
     { id: "dashboard", label: "Trang chủ", Icon: Home },
-    { id: "lineup", label: "Đội hình", Icon: Network },
+    { id: "lineup", label: "Chiến thuật", Icon: Network },
     { id: "fund", label: "Quỹ đội", Icon: Wallet },
     { id: "chat", label: "Tin nhắn", Icon: MessageSquare },
     { id: "profile", label: "Cá nhân", Icon: User },
@@ -124,6 +180,12 @@ export default function App() {
             : "Dữ liệu đội đang lưu trên thiết bị này"}
         </div>
         <main>
+          {activeTab === "dashboard" && (
+            <GovernanceNotice
+              governance={governance}
+              onOpen={() => navigate("governance")}
+            />
+          )}
           {activeTab === "create-team" ? (
             <CreateTeam
               onTeamCreated={(data) => {
@@ -170,17 +232,25 @@ export default function App() {
                 </button>
               </div>
             )
+          ) : activeTab === "governance" ? (
+            <Governance
+              key={auth.accountId + auth.teamSettings.id}
+              governance={governance}
+              onBack={() => navigate("dashboard")}
+            />
           ) : activeTab === "team-settings" ? (
             <TeamSettings
               teamSettings={auth.teamSettings}
               onUpdateTeamSettings={auth.updateTeamSettings}
               onBack={() => navigate("profile")}
               currentUserRole={auth.currentUserRole}
+              preferences={preferences}
             />
           ) : activeTab === "lineup" ? (
             <LineupBuilder
-              key={auth.teamSettings.id}
+              key={auth.accountId + auth.teamSettings.id}
               teamId={auth.teamSettings.id}
+              accountId={auth.accountId}
               currentUserRole={auth.currentUserRole}
               members={auth.teamSettings.members}
               onBack={() => navigate("dashboard")}
@@ -203,8 +273,9 @@ export default function App() {
             )
           ) : activeTab === "chat" ? (
             <Chat
-              key={auth.teamSettings.id}
+              key={auth.accountId + auth.teamSettings.id}
               teamId={auth.teamSettings.id}
+              accountId={auth.accountId}
               user={auth.user}
               members={auth.teamSettings.members}
               birthdayEnabled={
@@ -212,26 +283,40 @@ export default function App() {
               }
             />
           ) : activeTab === "profile" ? (
-            <Profile
-              {...shared}
-              teamSettings={auth.teamSettings}
-              onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
-              onLogout={auth.logout}
-              onUpdateProfile={auth.updateProfile}
-              onUpdateTeamName={auth.updateTeamName}
-              onUpdateSubAdminTitle={auth.updateSubAdminTitle}
-              onAddSubAdmin={auth.addSubAdmin}
-              onRequestAdmin={auth.requestAdmin}
-              onRemoveSubAdmin={auth.removeSubAdmin}
-              onTransferOwnership={auth.transferOwnership}
-              onApproveAdminRequest={auth.approveAdminRequest}
-              onRejectAdminRequest={auth.rejectAdminRequest}
-            />
+            <React.Fragment key={auth.accountId + auth.teamSettings.id}>
+              <Profile
+                {...shared}
+                teamSettings={auth.teamSettings}
+                onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
+                onLogout={auth.logout}
+                accountPanel={
+                  <AccountControls
+                    user={auth.user}
+                    accountId={auth.accountId}
+                    session={auth.demoSession ? null : auth.authSession}
+                    onLogout={auth.logout}
+                    onNavigate={navigate}
+                  />
+                }
+                appearancePanel={
+                  <AppearanceSettings preferences={preferences} />
+                }
+                onUpdateProfile={auth.updateProfile}
+                onUpdateTeamName={auth.updateTeamName}
+                onUpdateSubAdminTitle={auth.updateSubAdminTitle}
+                onAddSubAdmin={auth.addSubAdmin}
+                onRequestAdmin={auth.requestAdmin}
+                onRemoveSubAdmin={auth.removeSubAdmin}
+                onTransferOwnership={auth.transferOwnership}
+                onApproveAdminRequest={auth.approveAdminRequest}
+                onRejectAdminRequest={auth.rejectAdminRequest}
+              />
+            </React.Fragment>
           ) : !auth.activeMatch ? (
             <EmptyTeam
               teamSettings={auth.teamSettings}
               leader={leader}
-              onSaveMatch={auth.saveMatch}
+              onSaveMatch={saveMatch}
               onNavigate={navigate}
             />
           ) : (
@@ -246,27 +331,81 @@ export default function App() {
               matches={auth.matches}
               attendance={auth.attendance}
               reports={auth.reports}
-              onSaveMatch={auth.saveMatch}
+              onSaveMatch={saveMatch}
               onSetMatchStatus={auth.setMatchStatus}
               onSelectMatch={auth.selectMatch}
-              onDeleteMatch={auth.deleteMatch}
+              onDeleteMatch={deleteMatch}
+              governance={governance}
               onAddNotice={auth.addNotice}
               onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
-              onAttendanceChange={auth.setAttendance}
+              onAttendanceChange={async (status) => {
+                try {
+                  if (governance.snapshot)
+                    await governance.mutate("attendance", {
+                      matchId: auth.activeMatch.id,
+                      status,
+                    });
+                  auth.setAttendance(status);
+                } catch {
+                  alert(
+                    "Server từ chối điểm danh. Kiểm tra hạn, quyền và bản ghi đã chốt.",
+                  );
+                }
+              }}
               onMarkPaid={auth.markFundPaid}
               onResetPaid={auth.resetFund}
               onOpenNotifications={() => setShowNotices(true)}
               treasurerQr={auth.teamSettings.treasurerQr}
               onUpdateMatchStats={auth.updateMatchStats}
-              onRemoveMember={auth.removeMember}
+              onRemoveMember={() => navigate("governance")}
               onAddMember={auth.addMember}
             />
           )}
         </main>
+        {activeTab === "dashboard" && auth.archivedMatches.length > 0 && (
+          <details className="mx-4 my-5 settings-card">
+            <summary className="text-sm font-semibold">
+              Trận đã lưu trữ ({auth.archivedMatches.length})
+            </summary>
+            {auth.archivedMatches.map((match) => (
+              <article key={match.id} className="border-t py-3 mt-3">
+                <p className="text-sm font-medium">{match.title}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {new Date(match.datetime).toLocaleString("vi-VN")} · Điểm danh
+                  và báo cáo được bảo toàn
+                </p>
+                {leader && (
+                  <button
+                    className="choice-button mt-3"
+                    onClick={async () => {
+                      try {
+                        if (governance.snapshot)
+                          await governance.mutate("restore_match", {
+                            matchId: match.id,
+                          });
+                        auth.restoreArchivedMatch(match.id);
+                      } catch {
+                        alert(
+                          "Không khôi phục được. Kiểm tra quyền và kết nối.",
+                        );
+                      }
+                    }}
+                  >
+                    Khôi phục trận
+                  </button>
+                )}
+              </article>
+            ))}
+          </details>
+        )}
         {!["create-team", "invite-landing", "team-settings"].includes(
           activeTab,
         ) && (
-          <nav className="bottom-navigation" aria-label="Điều hướng chính">
+          <nav
+            className={"bottom-navigation" + (navVisible ? "" : " nav-hidden")}
+            aria-label="Điều hướng chính"
+            onFocusCapture={revealNav}
+          >
             <div className="nav-items">
               {tabs.map(({ id, label, Icon }) => (
                 <button
@@ -285,8 +424,23 @@ export default function App() {
         )}
         {auth.deletedMatch && leader && (
           <div className="match-undo" role="status">
-            <span className="flex-1 text-sm">Đã xóa trận đấu</span>
-            <button onClick={auth.undoDeleteMatch}>Hoàn tác</button>
+            <span className="flex-1 text-sm">Đã lưu trữ trận đấu</span>
+            <button
+              onClick={async () => {
+                const snapshot = auth.deletedMatch;
+                try {
+                  if (governance.snapshot)
+                    await governance.mutate("restore_match", {
+                      matchId: snapshot.match.id,
+                    });
+                  auth.undoDeleteMatch(snapshot);
+                } catch {
+                  alert("Không hoàn tác được. Kiểm tra quyền và kết nối.");
+                }
+              }}
+            >
+              Hoàn tác
+            </button>
           </div>
         )}
         {showNotices && (

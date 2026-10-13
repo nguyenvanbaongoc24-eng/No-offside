@@ -1,16 +1,105 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Check, Sun, Moon, Smartphone } from 'lucide-react';
-import { imageDataUrl } from '../lib/images';
-export default function TeamSettings({teamSettings,onUpdateTeamSettings,onBack,currentUserRole}) {
-  const [draft,setDraft]=useState({...teamSettings,appearance:{...teamSettings.appearance,fontFamily:teamSettings.appearance.fontFamily==='Be Vietnam Pro'?'Be Vietnam Pro':'system'}});
-  const [saved,setSaved]=useState(false);
-  const update=(key,value)=>{setSaved(false);setDraft(p=>({...p,[key]:value}));};
-  const appearance=(key,value)=>{setSaved(false);setDraft(p=>({...p,appearance:{...p.appearance,[key]:value}}));};
-  const save=e=>{e.preventDefault();if(currentUserRole!=='owner')return;onUpdateTeamSettings({...draft,appearance:{...draft.appearance,language:'vi'}});setSaved(true);};
-  return <div className="settings-page pb-8"><header className="bg-slate-900 text-white p-5 pt-safe-hero rounded-b-3xl"><button onClick={onBack} className="flex gap-2 items-center text-sm"><ArrowLeft size={18}/>Quay lại</button><h1 className="text-2xl font-bold mt-4">Cài đặt đội bóng</h1><p className="text-slate-300 mt-2 text-sm">Thông tin đội và tùy chọn hiển thị.</p></header><form onSubmit={save} className="p-4 space-y-4">
-    <section className="settings-card"><h2>Thông tin đội</h2><label className="block text-sm font-medium mt-4">Logo đội<img src={draft.logo} alt="Logo đội" className="w-16 h-16 object-cover rounded-2xl mt-2"/><input type="file" accept="image/png,image/jpeg,image/webp" className="mt-3 w-full" onChange={async e=>{try{update('logo',await imageDataUrl(e.target.files?.[0]));}catch(err){alert(err.message);}}}/></label>{[['teamName','Tên đội bóng'],['teamCategory','Thể loại thi đấu'],['venue','Sân nhà'],['schedule','Lịch sinh hoạt']].map(([key,label])=><label key={key} className="block mt-4 text-sm font-medium">{label}<input className="mt-2 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 py-3" required value={draft[key]||''} onChange={e=>update(key,e.target.value)}/></label>)}</section>
-    <section className="settings-card"><h2>Giao diện</h2><p className="text-sm text-slate-500 mt-2">Lựa chọn được áp dụng khi lưu.</p><div className="grid grid-cols-3 gap-2 mt-4">{[['light','Sáng',Sun],['dark','Tối',Moon],['system','Hệ thống',Smartphone]].map(([value,label,Icon])=><button type="button" className="choice-button flex-col" key={value} aria-pressed={draft.appearance.theme===value} onClick={()=>appearance('theme',value)}><Icon size={20}/>{label}</button>)}</div><h3 className="text-sm font-medium mt-5 mb-2">Font chữ</h3><div className="grid grid-cols-2 gap-2">{[['system','Hệ thống / iPhone'],['Be Vietnam Pro','Be Vietnam Pro']].map(([value,label])=><button key={value} type="button" className="choice-button" aria-pressed={draft.appearance.fontFamily===value} onClick={()=>appearance('fontFamily',value)}>{label}</button>)}</div><h3 className="text-sm font-medium mt-5 mb-2">Định dạng giờ</h3><div className="grid grid-cols-2 gap-2">{[['24h','24 giờ · 18:30'],['12h','12 giờ · 06:30 PM']].map(([value,label])=><button key={value} type="button" className="choice-button" aria-pressed={draft.appearance.timeFormat===value} onClick={()=>appearance('timeFormat',value)}>{label}</button>)}</div><p className="text-sm text-slate-500 mt-4">Ngôn ngữ: Tiếng Việt.</p></section>
-    <section className="settings-card"><h2>Sinh nhật đồng đội</h2><label className="mt-4 flex items-center justify-between gap-3 text-sm">Hiển thị lời chúc khi có sinh nhật<input type="checkbox" checked={draft.appearance.birthdayReportEnabled!==false} onChange={e=>appearance('birthdayReportEnabled',e.target.checked)}/></label><p className="text-sm text-slate-500 mt-3">Thông báo SMS, Zalo và push tự động chưa được kết nối.</p></section>
-    <button type="submit" className="primary-button w-full" disabled={currentUserRole!=='owner'}>{saved?<Check size={18}/>:null}{saved?'Đã lưu cài đặt':'Lưu cài đặt'}</button>{saved&&<p role="status" className="text-sm text-emerald-700 text-center">Thay đổi đã được áp dụng.</p>}
-  </form></div>;
+import React, { useState } from "react";
+import { ArrowLeft, Check } from "lucide-react";
+import { imageDataUrl } from "../lib/images";
+import AppearanceSettings from "../components/AppearanceSettings";
+export default function TeamSettings({
+  teamSettings,
+  onUpdateTeamSettings,
+  onBack,
+  currentUserRole,
+  preferences,
+}) {
+  const [draft, setDraft] = useState(teamSettings),
+    [saved, setSaved] = useState(false),
+    [error, setError] = useState("");
+  const update = (key, value) => {
+    setSaved(false);
+    setDraft((p) => ({ ...p, [key]: value }));
+  };
+  const save = (e) => {
+    e.preventDefault();
+    if (currentUserRole !== "owner") return;
+    onUpdateTeamSettings(
+      Object.fromEntries(
+        ["teamName", "teamCategory", "venue", "schedule", "logo"].map((k) => [
+          k,
+          draft[k],
+        ]),
+      ),
+    );
+    setSaved(true);
+  };
+  return (
+    <div className="settings-page pb-8">
+      <header className="bg-slate-900 text-white p-5 pt-safe-hero rounded-b-3xl">
+        <button onClick={onBack} className="flex gap-2 items-center text-sm">
+          <ArrowLeft size={18} />
+          Quay lại
+        </button>
+        <h1 className="text-2xl font-bold mt-4">Cài đặt đội bóng</h1>
+      </header>
+      <div className="p-4">
+        <AppearanceSettings preferences={preferences} />
+      </div>
+      <form onSubmit={save} className="p-4 space-y-4">
+        <section className="settings-card">
+          <h2>Thông tin đội</h2>
+          <label className="block text-sm font-medium mt-4">
+            Logo đội
+            <img
+              src={draft.logo}
+              alt="Logo đội"
+              className="w-16 h-16 object-cover rounded-2xl mt-2"
+            />
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="mt-3 w-full"
+              onChange={async (e) => {
+                try {
+                  update("logo", await imageDataUrl(e.target.files?.[0]));
+                } catch (err) {
+                  setError(err.message);
+                }
+              }}
+            />
+          </label>
+          {[
+            ["teamName", "Tên đội bóng"],
+            ["teamCategory", "Thể loại thi đấu"],
+            ["venue", "Sân nhà"],
+            ["schedule", "Lịch sinh hoạt"],
+          ].map(([key, label]) => (
+            <label key={key} className="block mt-4 text-sm font-medium">
+              {label}
+              <input
+                className="mt-2 w-full rounded-xl bg-slate-50 border border-slate-200 px-3 py-3"
+                required
+                value={draft[key] || ""}
+                onChange={(e) => update(key, e.target.value)}
+              />
+            </label>
+          ))}
+        </section>
+        <button
+          type="submit"
+          className="primary-button w-full"
+          disabled={currentUserRole !== "owner"}
+        >
+          {saved ? <Check size={18} /> : null}
+          {saved ? "Đã lưu thông tin đội" : "Lưu thông tin đội"}
+        </button>
+        {saved && (
+          <p role="status" className="text-sm text-emerald-700 text-center">
+            Thông tin đội đã được lưu.
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-rose-700">
+            {error}
+          </p>
+        )}
+      </form>
+    </div>
+  );
 }

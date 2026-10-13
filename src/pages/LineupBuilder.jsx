@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { usePersistentState } from '../hooks/usePersistentState';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect } from "react";
+import { readStored } from "../lib/storage";
+import { usePersistentState } from "../hooks/usePersistentState";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Network,
   Users,
@@ -14,89 +15,296 @@ import {
   Sparkles,
   Save,
   RotateCcw,
-  Move
-} from 'lucide-react';
+  Move,
+} from "lucide-react";
 
-export default function LineupBuilder({ onBack, teamId, members = [], currentUserRole }) {
+export default function LineupBuilder({
+  onBack,
+  teamId,
+  accountId = "demo",
+  members = [],
+  currentUserRole,
+}) {
   const pitchRef = useRef(null);
-  const [selectedFormationId, setSelectedFormationId] = usePersistentState('no_offside_lineup_selected_' + teamId, '2-3-1');
+  const dragUntil = useRef(0);
+  useEffect(
+    () => () =>
+      window.dispatchEvent(
+        new CustomEvent("lineup-drag", { detail: { active: false } }),
+      ),
+    [],
+  );
+  const [selectedFormationId, setSelectedFormationId] = usePersistentState(
+    "no_offside_lineup_selected_" + accountId + "::" + teamId,
+    () =>
+      readStored(
+        "no_offside_lineup_selected_" + accountId + "::" + teamId,
+        accountId === "demo"
+          ? readStored("no_offside_lineup_selected_" + teamId, "2-3-1")
+          : "2-3-1",
+      ),
+  );
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [showCreateFormationModal, setShowCreateFormationModal] = useState(false);
-  const [newFormationName, setNewFormationName] = useState('');
+  const [showCreateFormationModal, setShowCreateFormationModal] =
+    useState(false);
+  const [newFormationName, setNewFormationName] = useState("");
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
 
   // Available players pool to swap
-  const canEdit = ['owner','admin'].includes(currentUserRole);
-  const teamRoster = members.map(m => ({...m, name: m.name, role: m.role }));
+  const canEdit = ["owner", "admin"].includes(currentUserRole);
+  const teamRoster = members.map((m) => ({ ...m, name: m.name, role: m.role }));
 
   // Formations state (Each player has top/left % and drag support)
-  const [formationsList, setFormationsList] = usePersistentState('no_offside_lineups_' + teamId, [
-    {
-      id: '2-3-1',
-      name: 'Sơ đồ 2-3-1 (Tấn công trung lộ)',
-      tag: 'Phổ biến nhất Sân 7',
-      players: [
-        { id: 'gk', role: 'GK', name: 'Văn Lâm', number: 1, top: '88%', left: '50%' },
-        { id: 'cb1', role: 'LCB', name: 'Ngọc Hải', number: 3, top: '70%', left: '26%' },
-        { id: 'cb2', role: 'RCB', name: 'Duy Mạnh', number: 28, top: '70%', left: '74%' },
-        { id: 'lm', role: 'LM', name: 'Văn Thanh', number: 17, top: '48%', left: '18%' },
-        { id: 'cm', role: 'CM', name: 'Hoàng Đức', number: 14, top: '50%', left: '50%' },
-        { id: 'rm', role: 'RM', name: 'Quang Hải', number: 19, top: '48%', left: '82%' },
-        { id: 'st', role: 'ST', name: 'Tuấn Hưng (Bạn)', number: 9, top: '22%', left: '50%', isUser: true },
-      ]
-    },
-    {
-      id: '3-2-1',
-      name: 'Sơ đồ 3-2-1 (Phòng ngự phản công)',
-      tag: 'Chắc chắn',
-      players: [
-        { id: 'gk', role: 'GK', name: 'Văn Lâm', number: 1, top: '88%', left: '50%' },
-        { id: 'lb', role: 'LB', name: 'Văn Hậu', number: 5, top: '72%', left: '18%' },
-        { id: 'cb', role: 'CB', name: 'Ngọc Hải', number: 3, top: '75%', left: '50%' },
-        { id: 'rb', role: 'RB', name: 'Trọng Hoàng', number: 8, top: '72%', left: '82%' },
-        { id: 'cm1', role: 'LCM', name: 'Tuấn Anh', number: 11, top: '48%', left: '35%' },
-        { id: 'cm2', role: 'RCM', name: 'Hoàng Đức', number: 14, top: '48%', left: '65%' },
-        { id: 'st', role: 'ST', name: 'Tuấn Hưng (Bạn)', number: 9, top: '22%', left: '50%', isUser: true },
-      ]
-    },
-    {
-      id: '2-1-2-1',
-      name: 'Sơ đồ 2-1-2-1 (Kim cương ảo)',
-      tag: 'Kiểm soát bóng',
-      players: [
-        { id: 'gk', role: 'GK', name: 'Văn Lâm', number: 1, top: '88%', left: '50%' },
-        { id: 'cb1', role: 'LCB', name: 'Ngọc Hải', number: 3, top: '72%', left: '28%' },
-        { id: 'cb2', role: 'RCB', name: 'Duy Mạnh', number: 28, top: '72%', left: '72%' },
-        { id: 'dm', role: 'DM', name: 'Hoàng Đức', number: 14, top: '56%', left: '50%' },
-        { id: 'am1', role: 'LAM', name: 'Tuấn Anh', number: 11, top: '38%', left: '32%' },
-        { id: 'am2', role: 'RAM', name: 'Quang Hải', number: 19, top: '38%', left: '68%' },
-        { id: 'st', role: 'ST', name: 'Tuấn Hưng (Bạn)', number: 9, top: '18%', left: '50%', isUser: true },
-      ]
-    }
-  ].map(f=>({...f,players:f.players.map((p,i)=>{const member=members.find(m=>m.number===p.number);return {...p,name:member?.name || 'Chưa xếp',number:member?.number || '—',memberId:member?.id};})})));
+  const [formationsList, setFormationsList] = usePersistentState(
+    "no_offside_lineups_" + accountId + "::" + teamId,
+    () =>
+      readStored(
+        "no_offside_lineups_" + accountId + "::" + teamId,
+        (accountId === "demo"
+          ? readStored("no_offside_lineups_" + teamId, null)
+          : null) ||
+          [
+            {
+              id: "2-3-1",
+              name: "Sơ đồ 2-3-1 (Tấn công trung lộ)",
+              tag: "Phổ biến nhất Sân 7",
+              players: [
+                {
+                  id: "gk",
+                  role: "GK",
+                  name: "Văn Lâm",
+                  number: 1,
+                  top: "88%",
+                  left: "50%",
+                },
+                {
+                  id: "cb1",
+                  role: "LCB",
+                  name: "Ngọc Hải",
+                  number: 3,
+                  top: "70%",
+                  left: "26%",
+                },
+                {
+                  id: "cb2",
+                  role: "RCB",
+                  name: "Duy Mạnh",
+                  number: 28,
+                  top: "70%",
+                  left: "74%",
+                },
+                {
+                  id: "lm",
+                  role: "LM",
+                  name: "Văn Thanh",
+                  number: 17,
+                  top: "48%",
+                  left: "18%",
+                },
+                {
+                  id: "cm",
+                  role: "CM",
+                  name: "Hoàng Đức",
+                  number: 14,
+                  top: "50%",
+                  left: "50%",
+                },
+                {
+                  id: "rm",
+                  role: "RM",
+                  name: "Quang Hải",
+                  number: 19,
+                  top: "48%",
+                  left: "82%",
+                },
+                {
+                  id: "st",
+                  role: "ST",
+                  name: "Tuấn Hưng (Bạn)",
+                  number: 9,
+                  top: "22%",
+                  left: "50%",
+                  isUser: true,
+                },
+              ],
+            },
+            {
+              id: "3-2-1",
+              name: "Sơ đồ 3-2-1 (Phòng ngự phản công)",
+              tag: "Chắc chắn",
+              players: [
+                {
+                  id: "gk",
+                  role: "GK",
+                  name: "Văn Lâm",
+                  number: 1,
+                  top: "88%",
+                  left: "50%",
+                },
+                {
+                  id: "lb",
+                  role: "LB",
+                  name: "Văn Hậu",
+                  number: 5,
+                  top: "72%",
+                  left: "18%",
+                },
+                {
+                  id: "cb",
+                  role: "CB",
+                  name: "Ngọc Hải",
+                  number: 3,
+                  top: "75%",
+                  left: "50%",
+                },
+                {
+                  id: "rb",
+                  role: "RB",
+                  name: "Trọng Hoàng",
+                  number: 8,
+                  top: "72%",
+                  left: "82%",
+                },
+                {
+                  id: "cm1",
+                  role: "LCM",
+                  name: "Tuấn Anh",
+                  number: 11,
+                  top: "48%",
+                  left: "35%",
+                },
+                {
+                  id: "cm2",
+                  role: "RCM",
+                  name: "Hoàng Đức",
+                  number: 14,
+                  top: "48%",
+                  left: "65%",
+                },
+                {
+                  id: "st",
+                  role: "ST",
+                  name: "Tuấn Hưng (Bạn)",
+                  number: 9,
+                  top: "22%",
+                  left: "50%",
+                  isUser: true,
+                },
+              ],
+            },
+            {
+              id: "2-1-2-1",
+              name: "Sơ đồ 2-1-2-1 (Kim cương ảo)",
+              tag: "Kiểm soát bóng",
+              players: [
+                {
+                  id: "gk",
+                  role: "GK",
+                  name: "Văn Lâm",
+                  number: 1,
+                  top: "88%",
+                  left: "50%",
+                },
+                {
+                  id: "cb1",
+                  role: "LCB",
+                  name: "Ngọc Hải",
+                  number: 3,
+                  top: "72%",
+                  left: "28%",
+                },
+                {
+                  id: "cb2",
+                  role: "RCB",
+                  name: "Duy Mạnh",
+                  number: 28,
+                  top: "72%",
+                  left: "72%",
+                },
+                {
+                  id: "dm",
+                  role: "DM",
+                  name: "Hoàng Đức",
+                  number: 14,
+                  top: "56%",
+                  left: "50%",
+                },
+                {
+                  id: "am1",
+                  role: "LAM",
+                  name: "Tuấn Anh",
+                  number: 11,
+                  top: "38%",
+                  left: "32%",
+                },
+                {
+                  id: "am2",
+                  role: "RAM",
+                  name: "Quang Hải",
+                  number: 19,
+                  top: "38%",
+                  left: "68%",
+                },
+                {
+                  id: "st",
+                  role: "ST",
+                  name: "Tuấn Hưng (Bạn)",
+                  number: 9,
+                  top: "18%",
+                  left: "50%",
+                  isUser: true,
+                },
+              ],
+            },
+          ].map((f) => ({
+            ...f,
+            players: f.players.map((p, i) => {
+              const member = members.find((m) => m.number === p.number);
+              return {
+                ...p,
+                name: member?.name || "Chưa xếp",
+                number: member?.number || "—",
+                memberId: member?.id,
+              };
+            }),
+          })),
+      ),
+  );
 
-  const currentFormation = formationsList.find(f => f.id === selectedFormationId) || formationsList[0];
+  const currentFormation =
+    formationsList.find((f) => f.id === selectedFormationId) ||
+    formationsList[0];
 
   const handleSwapPlayer = (newPlayer) => {
     if (!canEdit || !selectedPlayer) return;
-    if (currentFormation.players.some(p => p.id !== selectedPlayer.id && p.number === newPlayer.number)) { alert('Cầu thủ này đã ở trong đội hình.'); return; }
-    setFormationsList(prev => prev.map(f => {
-      if (f.id !== selectedFormationId) return f;
-      return {
-        ...f,
-        players: f.players.map(p => {
-          if (p.id === selectedPlayer.id) {
-            return {
-              ...p,
-              name: newPlayer.name,
-              number: newPlayer.number, memberId: newPlayer.id,
-              isUser: newPlayer.name.includes('Bạn'),
-            };
-          }
-          return p;
-        })
-      };
-    }));
+    if (
+      currentFormation.players.some(
+        (p) => p.id !== selectedPlayer.id && p.number === newPlayer.number,
+      )
+    ) {
+      alert("Cầu thủ này đã ở trong đội hình.");
+      return;
+    }
+    setFormationsList((prev) =>
+      prev.map((f) => {
+        if (f.id !== selectedFormationId) return f;
+        return {
+          ...f,
+          players: f.players.map((p) => {
+            if (p.id === selectedPlayer.id) {
+              return {
+                ...p,
+                name: newPlayer.name,
+                number: newPlayer.number,
+                memberId: newPlayer.id,
+                isUser: newPlayer.name.includes("Bạn"),
+              };
+            }
+            return p;
+          }),
+        };
+      }),
+    );
     setSelectedPlayer(null);
   };
 
@@ -107,21 +315,76 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
     const newForm = {
       id: newId,
       name: newFormationName.trim(),
-      tag: 'Tùy chỉnh Kéo Thả',
+      tag: "Tùy chỉnh Kéo Thả",
       players: [
-        { id: 'p1', role: 'GK', name: 'Văn Lâm', number: 1, top: '92%', left: '15%' },
-        { id: 'p2', role: 'CB', name: 'Ngọc Hải', number: 3, top: '92%', left: '26%' },
-        { id: 'p3', role: 'CB', name: 'Duy Mạnh', number: 28, top: '92%', left: '38%' },
-        { id: 'p4', role: 'MF', name: 'Hoàng Đức', number: 14, top: '92%', left: '50%' },
-        { id: 'p5', role: 'MF', name: 'Quang Hải', number: 19, top: '92%', left: '62%' },
-        { id: 'p6', role: 'MF', name: 'Tuấn Anh', number: 11, top: '92%', left: '74%' },
-        { id: 'p7', role: 'ST', name: 'Tuấn Hưng (Bạn)', number: 9, top: '92%', left: '85%', isUser: true },
-      ]
+        {
+          id: "p1",
+          role: "GK",
+          name: "Văn Lâm",
+          number: 1,
+          top: "92%",
+          left: "15%",
+        },
+        {
+          id: "p2",
+          role: "CB",
+          name: "Ngọc Hải",
+          number: 3,
+          top: "92%",
+          left: "26%",
+        },
+        {
+          id: "p3",
+          role: "CB",
+          name: "Duy Mạnh",
+          number: 28,
+          top: "92%",
+          left: "38%",
+        },
+        {
+          id: "p4",
+          role: "MF",
+          name: "Hoàng Đức",
+          number: 14,
+          top: "92%",
+          left: "50%",
+        },
+        {
+          id: "p5",
+          role: "MF",
+          name: "Quang Hải",
+          number: 19,
+          top: "92%",
+          left: "62%",
+        },
+        {
+          id: "p6",
+          role: "MF",
+          name: "Tuấn Anh",
+          number: 11,
+          top: "92%",
+          left: "74%",
+        },
+        {
+          id: "p7",
+          role: "ST",
+          name: "Tuấn Hưng (Bạn)",
+          number: 9,
+          top: "92%",
+          left: "85%",
+          isUser: true,
+        },
+      ],
     };
-    newForm.players = newForm.players.map((p,i)=>({...p,name:teamRoster[i]?.name || 'Chưa xếp',number:teamRoster[i]?.number || '—',memberId:teamRoster[i]?.id}));
-    setFormationsList(prev => [...prev, newForm]);
+    newForm.players = newForm.players.map((p, i) => ({
+      ...p,
+      name: teamRoster[i]?.name || "Chưa xếp",
+      number: teamRoster[i]?.number || "—",
+      memberId: teamRoster[i]?.id,
+    }));
+    setFormationsList((prev) => [...prev, newForm]);
     setSelectedFormationId(newId);
-    setNewFormationName('');
+    setNewFormationName("");
     setShowCreateFormationModal(false);
   };
 
@@ -134,33 +397,21 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-sans antialiased">
-
       {/* 1. Header Dark Geometric Style */}
-      <section className="bg-slate-900 text-white pt-safe-hero pb-4 px-5 rounded-b-[32px] shadow-lg bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
-        <div className="flex items-center justify-between">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 rounded-full bg-white/10 cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" /> Quay lại
-          </motion.button>
-
-          <h1 className="text-sm font-bold text-white flex items-center gap-1.5">
-            <Network className="w-4 h-4 text-emerald-400" />
-            <span>Đội hình chiến thuật</span>
-          </h1>
-
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            disabled={!canEdit} onClick={() => setShowCreateFormationModal(true)}
-            className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-emerald-600/20 cursor-pointer"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Tạo sơ đồ</span>
-          </motion.button>
-        </div>
-      </section>
+      <header className="tactics-header">
+        <button aria-label="Quay lại" onClick={onBack}>
+          <ChevronLeft size={22} />
+        </button>
+        <h1>Chiến thuật</h1>
+        <button
+          className="primary-button px-3 text-sm"
+          disabled={!canEdit}
+          onClick={() => setShowCreateFormationModal(true)}
+        >
+          <PlusCircle size={18} />
+          Tạo sơ đồ
+        </button>
+      </header>
 
       {/* Control Bar: Hướng dẫn kéo thả & Nút Lưu Đội Hình */}
       <div className="px-4 mt-2.5 flex flex-wrap gap-2 items-center justify-between">
@@ -172,11 +423,12 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
         {/* NÚT LƯU ĐỘI HÌNH */}
         <motion.button
           whileTap={{ scale: 0.95 }}
-          disabled={!canEdit} onClick={handleSaveLineupCoordinates}
-          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer"
+          disabled={!canEdit}
+          onClick={handleSaveLineupCoordinates}
+          className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5   cursor-pointer"
         >
           <Save className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{saveSuccessNotice ? 'Đã lưu' : 'Lưu đội hình'}</span>
+          <span>{saveSuccessNotice ? "Đã lưu" : "Lưu đội hình"}</span>
         </motion.button>
       </div>
 
@@ -184,7 +436,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
       <div className="px-4 mt-2">
         <div
           ref={pitchRef}
-          className="relative w-full aspect-[9/13] rounded-[32px] overflow-hidden border-2 border-emerald-950/40 shadow-2xl bg-gradient-to-b from-[#064e3b] via-[#022c22] to-[#011c16]"
+          className="relative w-full aspect-[9/13] rounded-[32px] overflow-hidden border-2 border-emerald-950/40 bg-emerald-950"
         >
           {/* Turf lines pattern */}
           <div className="absolute inset-0 opacity-30 pointer-events-none">
@@ -197,7 +449,9 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
 
             {/* Sideline Touchline indicator */}
             <div className="absolute bottom-1 left-2 right-2 h-7 border-t border-dashed border-emerald-300/40 flex items-center justify-center">
-              <span className="text-xs text-emerald-300/60 font-bold  tracking-wider">Băng Ghế / Mép Sân Kéo Vào</span>
+              <span className="text-xs text-emerald-300/60 font-bold  tracking-wider">
+                Băng Ghế / Mép Sân Kéo Vào
+              </span>
             </div>
           </div>
 
@@ -205,19 +459,67 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
           {currentFormation.players.map((player) => (
             <motion.div
               key={player.id + player.top + player.left}
-              role={canEdit ? 'button' : undefined}
+              role={canEdit ? "button" : undefined}
               tabIndex={canEdit ? 0 : undefined}
               aria-label={`Đổi cầu thủ ${player.name}`}
-              onKeyDown={e => { if (canEdit && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelectedPlayer(player); } }}
+              onKeyDown={(e) => {
+                if (canEdit && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  setSelectedPlayer(player);
+                }
+              }}
               drag={canEdit}
               dragConstraints={pitchRef}
               dragElastic={0.05}
               dragMomentum={false}
+              onDragStart={() => {
+                dragUntil.current = Infinity;
+                window.dispatchEvent(
+                  new CustomEvent("lineup-drag", { detail: { active: true } }),
+                );
+              }}
+              onPointerCancel={() => {
+                dragUntil.current = Date.now() + 350;
+                window.dispatchEvent(
+                  new CustomEvent("lineup-drag", { detail: { active: false } }),
+                );
+              }}
               onDragEnd={(_event, info) => {
+                dragUntil.current = Date.now() + 350;
+                window.dispatchEvent(
+                  new CustomEvent("lineup-drag", { detail: { active: false } }),
+                );
                 const rect = pitchRef.current.getBoundingClientRect();
-                const left = Math.max(5,Math.min(95,parseFloat(player.left) + info.offset.x/rect.width*100));
-                const top = Math.max(5,Math.min(95,parseFloat(player.top) + info.offset.y/rect.height*100));
-                setFormationsList(prev=>prev.map(f=>f.id===selectedFormationId?{...f,players:f.players.map(p=>p.id===player.id?{...p,left:left+'%',top:top+'%'}:p)}:f));
+                const left = Math.max(
+                  5,
+                  Math.min(
+                    95,
+                    parseFloat(player.left) +
+                      (info.offset.x / rect.width) * 100,
+                  ),
+                );
+                const top = Math.max(
+                  5,
+                  Math.min(
+                    95,
+                    parseFloat(player.top) +
+                      (info.offset.y / rect.height) * 100,
+                  ),
+                );
+                setFormationsList((prev) =>
+                  prev.map((f) =>
+                    f.id === selectedFormationId
+                      ? {
+                          ...f,
+                          players: f.players.map((p) =>
+                            p.id === player.id
+                              ? { ...p, left: left + "%", top: top + "%" }
+                              : p,
+                          ),
+                        }
+                      : f,
+                  ),
+                );
               }}
               whileDrag={{ scale: 1.2, zIndex: 50 }}
               style={{ top: player.top, left: player.left }}
@@ -227,14 +529,15 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
               <div
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (canEdit) setSelectedPlayer(player);
+                  if (canEdit && Date.now() > dragUntil.current)
+                    setSelectedPlayer(player);
                 }}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 shadow-2xl transition-all cursor-pointer ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2  transition-all cursor-pointer ${
                   player.isUser
-                    ? 'bg-emerald-400 text-slate-950 border-white ring-4 ring-emerald-400/50 shadow-[0_0_20px_rgba(52,211,153,0.8)]'
-                    : player.role === 'GK'
-                    ? 'bg-amber-400 text-slate-950 border-amber-100 ring-2 ring-amber-400/50'
-                    : 'bg-slate-900 text-white border-white/80 ring-2 ring-black/40'
+                    ? "bg-emerald-400 text-slate-950 border-white ring-4 ring-emerald-400/50"
+                    : player.role === "GK"
+                      ? "bg-amber-400 text-slate-950 border-amber-100 ring-2 ring-amber-400/50"
+                      : "bg-slate-900 text-white border-white/80 ring-2 ring-black/40"
                 }`}
                 title="Kéo để di chuyển, click để đổi người"
               >
@@ -242,7 +545,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
               </div>
 
               {/* High-Contrast White Name Badge */}
-              <div className="mt-1 px-2.5 py-0.5 rounded-full bg-slate-900/95 border border-white/25 shadow-lg text-xs font-bold text-white whitespace-nowrap text-center drop-shadow-md">
+              <div className="mt-1 px-2.5 py-0.5 rounded-full bg-slate-900/95 border border-white/25  text-xs font-bold text-white whitespace-nowrap text-center drop-">
                 {player.name}
               </div>
             </motion.div>
@@ -250,7 +553,7 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
 
           {/* Hint Overlay */}
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-emerald-200/90 font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
-             Kéo thả vị trí tùy ý • Chạm để đổi người
+            Kéo thả vị trí tùy ý • Chạm để đổi người
           </div>
         </div>
       </div>
@@ -273,17 +576,32 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
               <motion.div
                 key={item.id}
                 whileTap={{ scale: 0.98 }}
-                role="button" tabIndex={0} aria-pressed={isActive} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelectedFormationId(item.id);}}} onClick={() => setSelectedFormationId(item.id)}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isActive}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedFormationId(item.id);
+                  }
+                }}
+                onClick={() => setSelectedFormationId(item.id)}
                 className={`p-3 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between ${
                   isActive
-                    ? 'bg-white border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
-                    : 'bg-white/80 border-gray-200 hover:bg-white'
+                    ? "bg-white border-emerald-500 ring-2 ring-emerald-500/20 "
+                    : "bg-white/80 border-gray-200 hover:bg-white"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
-                    isActive ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700'
-                  }`}><Network size={20}/></div>
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                      isActive
+                        ? "bg-emerald-600 text-white "
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    <Network size={20} />
+                  </div>
                   <div>
                     <h4 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                       <span>{item.name}</span>
@@ -293,12 +611,14 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
                         </span>
                       )}
                     </h4>
-                    <p className="text-xs text-gray-400 font-medium">{item.tag}</p>
+                    <p className="text-xs text-gray-400 font-medium">
+                      {item.tag}
+                    </p>
                   </div>
                 </div>
 
                 {isActive && (
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center ">
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                   </div>
                 )}
@@ -310,14 +630,20 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
 
       {/* MODAL ĐỔI CẦU THỦ KHI CHẠM VÀO PIN */}
       {selectedPlayer && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-5 max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-100 animate-in slide-in-from-bottom duration-300">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div className="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-5 max-h-[80vh] overflow-y-auto  border border-gray-100 animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div>
                 <h3 className="font-bold text-base text-gray-900">
                   Đổi Cầu Thủ: {selectedPlayer.name} (#{selectedPlayer.number})
                 </h3>
-                <p className="text-xs text-gray-400">Chọn cầu thủ từ đội hình để thay thế vào vị trí này</p>
+                <p className="text-xs text-gray-400">
+                  Chọn cầu thủ từ đội hình để thay thế vào vị trí này
+                </p>
               </div>
               <button
                 onClick={() => setSelectedPlayer(null)}
@@ -339,8 +665,12 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
                       #{rosterPlayer.number}
                     </span>
                     <div>
-                      <p className="text-xs font-bold text-gray-900">{rosterPlayer.name}</p>
-                      <p className="text-xs text-gray-400">Vị trí: {rosterPlayer.role}</p>
+                      <p className="text-xs font-bold text-gray-900">
+                        {rosterPlayer.name}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Vị trí: {rosterPlayer.role}
+                      </p>
                     </div>
                   </div>
 
@@ -356,21 +686,33 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
 
       {/* MODAL TẠO SƠ ĐỒ MỚI */}
       {showCreateFormationModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl border border-gray-100 text-gray-900">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div className="w-full max-w-sm rounded-[32px] bg-white p-5  border border-gray-100 text-gray-900">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <PlusCircle className="w-4 h-4 text-emerald-600" />
-                <h3 className="font-bold text-base text-gray-900">Tạo sơ đồ tự xếp mới</h3>
+                <h3 className="font-bold text-base text-gray-900">
+                  Tạo sơ đồ tự xếp mới
+                </h3>
               </div>
-              <button aria-label="Đóng" onClick={() => setShowCreateFormationModal(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+              <button
+                aria-label="Đóng"
+                onClick={() => setShowCreateFormationModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-full text-gray-400"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="mt-3.5 space-y-3 text-xs">
               <div>
-                <label className="text-gray-600 block mb-1 font-bold">Tên Sơ Đồ Chiến Thuật</label>
+                <label className="text-gray-600 block mb-1 font-bold">
+                  Tên Sơ Đồ Chiến Thuật
+                </label>
                 <input
                   type="text"
                   required
@@ -381,7 +723,9 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
                 />
               </div>
               <p className="text-xs text-gray-400 leading-relaxed">
-                 Khi tạo xong, các cầu thủ sẽ xuất hiện ở mép sân. Bạn có thể dùng tay kéo thả họ tự do vào bất kỳ vị trí chiến thuật nào trên sân!
+                Khi tạo xong, các cầu thủ sẽ xuất hiện ở mép sân. Bạn có thể
+                dùng tay kéo thả họ tự do vào bất kỳ vị trí chiến thuật nào trên
+                sân!
               </p>
 
               <div className="pt-2">
@@ -389,16 +733,15 @@ export default function LineupBuilder({ onBack, teamId, members = [], currentUse
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={handleCreateNewFormation}
-                  className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 cursor-pointer"
+                  className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs   cursor-pointer"
                 >
-                  Tạo Sơ Đồ & Bắt Đầu Kéo Thả
+                  Tạo sơ đồ
                 </motion.button>
               </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

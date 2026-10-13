@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 export function useAppearance(appearance = {}) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const media = matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
       const dark = appearance.theme === 'dark' || (appearance.theme === 'system' && media.matches);

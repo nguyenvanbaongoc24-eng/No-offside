@@ -55,10 +55,10 @@ export default function EmptyTeam({
           onChange={setForm}
           error={error}
           onClose={() => setOpen(false)}
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             try {
-              onSaveMatch(form);
+              await onSaveMatch(form);
               setOpen(false);
             } catch (err) {
               setError(err.message);

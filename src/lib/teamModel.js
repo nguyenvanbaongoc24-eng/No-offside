@@ -54,21 +54,16 @@ export function transferOwner(settings, from, to) {
   return { ...settings, ownerId: to, members, subAdmins: members.filter(m => m.roleType === 'admin') };
 }
 
-export function deleteTeamMatch(data, matchId) {
+export function deleteTeamMatch(data, matchId, actor = '', now = new Date().toISOString()) {
   if (!data.matches.some(match => match.id === matchId)) return data;
-  const matches = data.matches.filter(match => match.id !== matchId);
-  const attendance = { ...data.attendance };
-  delete attendance[matchId];
-  const reports = Object.fromEntries(Object.entries(data.reports).map(([playerId, playerReports]) => {
-    const remaining = { ...playerReports };
-    delete remaining[matchId];
-    return [playerId, remaining];
-  }));
-  return { ...data, matches, attendance, reports, activeMatchId: data.activeMatchId === matchId ? matches[0]?.id : data.activeMatchId };
+  const matches = data.matches.map(match => match.id === matchId && !match.archivedAt ? { ...match, archivedAt: now, archivedBy: actor, archiveReason: 'Xóa khỏi lịch thi đấu' } : match);
+  return { ...data, matches, activeMatchId: data.activeMatchId === matchId ? matches.find(m => !m.archivedAt)?.id : data.activeMatchId };
 }
 
 export function restoreTeamMatch(data, snapshot) {
-  if (data.matches.some(match => match.id === snapshot.match.id)) return data;
+  const existing = data.matches.find(match => match.id === snapshot.match.id);
+  if (existing && !existing.archivedAt) return data;
+  if (existing) return { ...data, matches: data.matches.map(match => match.id === snapshot.match.id ? snapshot.match : match), activeMatchId: snapshot.match.id };
   const matches = [...data.matches];
   matches.splice(Math.min(snapshot.index, matches.length), 0, snapshot.match);
   const reports = { ...data.reports };

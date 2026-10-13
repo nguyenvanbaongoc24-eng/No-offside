@@ -15,7 +15,10 @@ const result = await build({
     import PersonalFund from './src/pages/PersonalFund.jsx';
     import MatchForm from './src/components/MatchFormSheet.jsx';
     import EmptyTeam from './src/pages/EmptyTeam.jsx';
-    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam}[name],props));
+    import Governance from './src/pages/Governance.jsx';
+    import AppearanceSettings from './src/components/AppearanceSettings.jsx';
+    import SwipeMatchCard from './src/components/SwipeMatchCard.jsx';
+    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam,Governance,AppearanceSettings,SwipeMatchCard}[name],props));
   ` },
   bundle: true, platform: 'node', format: 'cjs', write: false,
 });
@@ -57,4 +60,20 @@ test('empty home keeps the long form closed and hides creation for members', () 
   assert.match(owner,/Tạo trận/);
   assert.doesNotMatch(member,/Tạo trận/);
   assert.match(member,/Chưa có trận sắp tới/);
+});
+
+test('governance views use verified server role and gate all actions when backend is absent',()=>{
+ const snapshot={me:{role:'member',status:'active',user_id:'u'},team:{timezone:'Asia/Ho_Chi_Minh',policy:{period:'month',threshold:3,types:['late'],mode:'review',action:'warning'}},rules:[],events:[],members:[],matches:[],periodStart:'2026-09-30T17:00Z',periodEnd:'2026-10-31T17:00Z'};
+ const html=render('Governance',{governance:{snapshot,loading:false,refresh:noop},onBack:noop});
+ assert.doesNotMatch(html,/Sửa nội quy|Xác nhận giờ đến|Duyệt xử lý|Xử lý thành viên/);
+ const gated=render('Governance',{governance:{snapshot:null,loading:false,error:'Team not provisioned',refresh:noop},onBack:noop});
+ assert.match(gated,/Chưa kết nối nghiệp vụ/);assert.doesNotMatch(gated,/<form/);
+});
+test('personal appearance has immediate controls and no Save button',()=>{
+ const html=render('AppearanceSettings',{preferences:{value:{theme:'dark',fontFamily:'system'},update:noop,error:''}});
+ assert.match(html,/Tự lưu|tự lưu/);assert.match(html,/aria-pressed="true"/);assert.doesNotMatch(html,/Lưu cài đặt|type="submit"/);
+});
+test('large match card starts with hidden swipe action and has accessible menu alternative',()=>{
+ const html=render('SwipeMatchCard',{match:{id:'m',title:'Large match'},canDelete:true,onDelete:noop,children:'Content'});
+ assert.match(html,/Thao tác trận đấu/);assert.match(html,/tabindex="-1" aria-hidden="true"/);assert.doesNotMatch(html,/role="dialog"/);
 });

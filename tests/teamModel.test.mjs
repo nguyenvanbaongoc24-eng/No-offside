@@ -2,17 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { approvePayment, fundBalance, upsertReport, reportTotals, rosterFor, qrUrl, promoteMember, transferOwner, deleteTeamMatch, restoreTeamMatch } from '../src/lib/teamModel.js';
 
-test('deleting a match selects the remaining match and removes only its attendance and reports', () => {
+test('archiving a match selects another match and preserves attendance, reports and funds', () => {
   const data = { matches: [{id:'a'}, {id:'b'}], activeMatchId:'a', attendance:{a:{u:'attending'},b:{u:'absent'}}, reports:{u:{a:{goals:2,assists:1},b:{goals:1,assists:0}}}, funds:{transactions:[{id:'payment'}]} };
   const deleted = deleteTeamMatch(data, 'a');
   assert.equal(deleted.activeMatchId, 'b');
-  assert.deepEqual(deleted.attendance, {b:{u:'absent'}});
-  assert.deepEqual(deleted.reports.u, {b:{goals:1,assists:0}});
+  assert.equal(deleted.attendance,data.attendance);
+  assert.ok(deleted.matches.find(m=>m.id==='a').archivedAt);
+  assert.equal(deleted.reports,data.reports);
   assert.equal(deleted.funds, data.funds);
   assert.equal(data.matches.length, 2);
   assert.equal(deleteTeamMatch(deleted, 'missing'), deleted);
   const empty = deleteTeamMatch(deleted, 'b');
-  assert.equal(empty.matches.length, 0);
+  assert.equal(empty.matches.filter(m=>!m.archivedAt).length, 0);
   assert.equal(empty.activeMatchId, undefined);
 });
 

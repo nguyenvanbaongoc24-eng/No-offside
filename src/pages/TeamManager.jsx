@@ -239,7 +239,7 @@ export default function TeamManager({
                           {/* Role Badge */}
                           {isMemberOwner ? (
                             <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-400/25 to-yellow-500/20 text-amber-900 border border-amber-300 font-bold text-xs inline-flex items-center gap-0.5 shadow-xs whitespace-nowrap">
-                              
+
                               <span>Đội Trưởng</span>
                             </span>
                           ) : isMemberAdmin ? (

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
   ShieldCheck,
+  Sun,
+  Moon,
   Loader2,
   Sparkles,
   AlertCircle,
@@ -16,6 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { readStored, writeStored } from "../lib/storage";
+import { authText } from "../lib/authCopy";
 import { getPendingJoin } from "../lib/pendingJoin";
 
 function GoogleIcon() {
@@ -66,7 +69,28 @@ function translateAuthError(msg) {
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,20}$/;
 const PASSWORD_6_DIGITS = /^\d{6}$/;
 
-export default function Login({ onLoginSuccess, initialMode }) {
+export default function Login({ onLoginSuccess, initialMode, theme = "system", onThemeChange }) {
+  const [systemDark, setSystemDark] = useState(() => typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-color-scheme: dark)").matches));
+  const activeTheme = theme === "system" ? (systemDark ? "dark" : "light") : theme;
+  useEffect(() => {
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (!media) return;
+    const update = () => setSystemDark(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const [language, setLanguage] = useState(() => readStored("no_offside_auth_language", "vi") === "en" ? "en" : "vi");
+  const t = (text) => authText(text, language);
+  useEffect(() => {
+    const previous = document.documentElement.lang;
+    document.documentElement.lang = language;
+    return () => { document.documentElement.lang = previous; };
+  }, [language, theme]);
+  const changeLanguage = (next) => {
+    setLanguage(next);
+    writeStored("no_offside_auth_language", next);
+  };
   const [pendingJoin] = useState(() => getPendingJoin());
   const [mode, setMode] = useState(() => initialMode || (getPendingJoin() ? "signup" : "signin")); // 'signin' | 'signup' | 'forgot' | 'reset_password' | 'google_username'
   const [username, setUsername] = useState("");
@@ -552,9 +576,19 @@ export default function Login({ onLoginSuccess, initialMode }) {
   };
 
   return (
-    <div className="auth-page min-h-screen flex flex-col justify-center px-4 py-8 font-sans antialiased relative">
+    <div lang={language} className="auth-page min-h-screen flex flex-col justify-center px-4 py-8 font-sans antialiased relative">
 
       <div className="max-w-sm mx-auto w-full relative z-10">
+        <div className="auth-preferences">
+          <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Color theme" : "Giao diện"}>
+            <button type="button" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={16} aria-hidden="true" /> Light</button>
+            <button type="button" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={16} aria-hidden="true" /> Dark</button>
+          </div>
+          <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Language" : "Ngôn ngữ"}>
+            <button type="button" lang="vi" aria-pressed={language === "vi"} onClick={() => changeLanguage("vi")}>Việt</button>
+            <button type="button" lang="en" aria-pressed={language === "en"} onClick={() => changeLanguage("en")}>English</button>
+          </div>
+        </div>
         {/* App Branding */}
         <div className="auth-brand text-center mb-6">
           <div className="brand-mark inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3">
@@ -564,7 +598,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
             NO OFFSIDE
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Nền tảng quản lý đội bóng phong trào số 1
+            {t("Nền tảng quản lý đội bóng phong trào số 1")}
           </p>
         </div>
 
@@ -577,10 +611,10 @@ export default function Login({ onLoginSuccess, initialMode }) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-emerald-300 truncate">
-                  Gia nhập: {pendingJoin.teamName || "Đội bóng"}
+                  {t("Gia nhập:")} {pendingJoin.teamName || t("Đội bóng")}
                 </p>
                 <p className="text-[11px] text-slate-300 truncate">
-                  Cầu thủ: {pendingJoin.name} · Số áo #{pendingJoin.number}
+                  {t("Cầu thủ:")} {pendingJoin.name} · {t("Số áo")} #{pendingJoin.number}
                 </p>
               </div>
             </div>
@@ -602,7 +636,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Đăng nhập
+                {t("Đăng nhập")}
               </button>
               <button
                 type="button"
@@ -617,7 +651,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Tạo tài khoản
+                {t("Tạo tài khoản")}
               </button>
             </div>
           )}
@@ -629,7 +663,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
               className="mb-4 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in"
             >
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
-              <div className="flex-1 font-medium">{error}</div>
+              <div className="flex-1 font-medium">{t(error)}</div>
             </div>
           )}
 
@@ -639,7 +673,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
               className="mb-4 p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2.5 animate-in fade-in"
             >
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-              <div className="flex-1 font-medium">{success}</div>
+              <div className="flex-1 font-medium">{t(success)}</div>
             </div>
           )}
 
@@ -650,7 +684,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
               {rememberedAccounts.length > 0 && (
                 <div className="mb-4 pb-3 border-b border-slate-700/40">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 mb-2">
-                    <span>Tài khoản trên thiết bị này:</span>
+                    <span>{t("Tài khoản trên thiết bị này:")}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {rememberedAccounts.map((acc) => (
@@ -667,8 +701,8 @@ export default function Login({ onLoginSuccess, initialMode }) {
                         <span>{acc.username}</span>
                         <button
                           type="button"
-                          title="Xóa khỏi thiết bị"
-                          aria-label={`Xóa tài khoản ${acc.username} khỏi máy`}
+                          title={t("Xóa khỏi thiết bị")}
+                          aria-label={language === "en" ? `Remove account ${acc.username} from this device` : `Xóa tài khoản ${acc.username} khỏi máy`}
                           onClick={(e) => removeRememberedAccount(e, acc.username)}
                           className="text-slate-500 hover:text-rose-400 transition-colors ml-0.5 p-0.5"
                         >
@@ -687,7 +721,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="login-username"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Tên đăng nhập
+                    {t("Tên đăng nhập")}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -700,12 +734,12 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       spellCheck="false"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Ví dụ: Ngocnguyen566"
+                      placeholder={t("Ví dụ: Ngocnguyen566")}
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2.5 pl-10 pr-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all font-medium"
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    3–20 ký tự (chữ cái, chữ số, _ hoặc -); không phân biệt hoa/thường.
+                    {t("3–20 ký tự (chữ cái, chữ số, _ hoặc -); không phân biệt hoa/thường.")}
                   </p>
                 </div>
 
@@ -716,7 +750,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       htmlFor="login-password"
                       className="block text-xs font-semibold text-slate-300"
                     >
-                      Mật khẩu 6 số
+                      {t("Mật khẩu 6 số")}
                     </label>
                     <button
                       type="button"
@@ -727,7 +761,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       }}
                       className="text-[11px] text-emerald-400 hover:underline"
                     >
-                      Quên mật khẩu?
+                      {t("Quên mật khẩu?")}
                     </button>
                   </div>
                   <div className="relative">
@@ -748,7 +782,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      aria-label={showPassword ? t("Ẩn mật khẩu") : t("Hiện mật khẩu")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
                     >
                       {showPassword ? (
@@ -759,7 +793,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Mật khẩu gồm đúng 6 chữ số từ 0–9.
+                    {t("Mật khẩu gồm đúng 6 chữ số từ 0–9.")}
                   </p>
                 </div>
 
@@ -772,10 +806,10 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   {busy ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang kiểm tra...</span>
+                      <span>{t("Đang kiểm tra...")}</span>
                     </>
                   ) : (
-                    <span>Đăng nhập</span>
+                    <span>{t("Đăng nhập")}</span>
                   )}
                 </button>
               </form>
@@ -787,7 +821,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                 </div>
                 <div className="relative flex justify-center text-[10px] uppercase">
                   <span className="bg-slate-800 px-2 text-slate-400 font-semibold tracking-wider">
-                    Hoặc
+                    {t("Hoặc")}
                   </span>
                 </div>
               </div>
@@ -801,7 +835,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                 className="w-full py-2.5 bg-white hover:bg-slate-100 active:scale-[0.98] disabled:opacity-60 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <GoogleIcon />
-                <span>Tiếp tục với Google</span>
+                <span>{t("Tiếp tục với Google")}</span>
               </button>
             </div>
           )}
@@ -816,7 +850,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="signup-name"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Họ và tên
+                    {t("Họ và tên")}
                   </label>
                   <input
                     id="signup-name"
@@ -824,7 +858,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Nguyễn Văn A"
+                    placeholder={t("Nguyễn Văn A")}
                     className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all font-medium"
                   />
                 </div>
@@ -845,7 +879,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="vidu@gmail.com"
+                      placeholder={t("vidu@gmail.com")}
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2 pl-9 pr-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all font-medium"
                     />
                   </div>
@@ -857,7 +891,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="signup-username"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Tên đăng nhập
+                    {t("Tên đăng nhập")}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -875,7 +909,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    3–20 ký tự (chữ cái, chữ số, _ hoặc -); không phân biệt hoa/thường.
+                    {t("3–20 ký tự (chữ cái, chữ số, _ hoặc -); không phân biệt hoa/thường.")}
                   </p>
                 </div>
 
@@ -885,7 +919,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="signup-password"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Mật khẩu 6 số
+                    {t("Mật khẩu 6 số")}
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -904,7 +938,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      aria-label={showPassword ? t("Ẩn mật khẩu") : t("Hiện mật khẩu")}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
                     >
                       {showPassword ? (
@@ -915,7 +949,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Mật khẩu gồm đúng 6 chữ số từ 0–9.
+                    {t("Mật khẩu gồm đúng 6 chữ số từ 0–9.")}
                   </p>
                 </div>
 
@@ -925,7 +959,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="signup-confirm-password"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Xác nhận mật khẩu
+                    {t("Xác nhận mật khẩu")}
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -944,7 +978,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      aria-label={showConfirmPassword ? t("Ẩn mật khẩu") : t("Hiện mật khẩu")}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
                     >
                       {showConfirmPassword ? (
@@ -965,10 +999,10 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   {busy ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang tạo tài khoản...</span>
+                      <span>{t("Đang tạo tài khoản...")}</span>
                     </>
                   ) : (
-                    <span>Đăng ký</span>
+                    <span>{t("Đăng ký")}</span>
                   )}
                 </button>
               </form>
@@ -980,7 +1014,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                 </div>
                 <div className="relative flex justify-center text-[10px] uppercase">
                   <span className="bg-slate-800 px-2 text-slate-400 font-semibold tracking-wider">
-                    Hoặc
+                    {t("Hoặc")}
                   </span>
                 </div>
               </div>
@@ -993,7 +1027,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                 className="w-full py-2.5 bg-white hover:bg-slate-100 active:scale-[0.98] disabled:opacity-60 text-slate-900 font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <GoogleIcon />
-                <span>Đăng ký bằng Google</span>
+                <span>{t("Đăng ký bằng Google")}</span>
               </button>
             </div>
           )}
@@ -1013,7 +1047,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h2 className="text-sm font-bold text-white">Khôi phục mật khẩu</h2>
+                <h2 className="text-sm font-bold text-white">{t("Khôi phục mật khẩu")}</h2>
               </div>
 
               <form onSubmit={handleForgotPassword} className="space-y-3.5">
@@ -1022,7 +1056,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="forgot-email"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Địa chỉ Gmail đã đăng ký
+                    {t("Địa chỉ Gmail đã đăng ký")}
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1032,12 +1066,12 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="vidu@gmail.com"
+                      placeholder={t("vidu@gmail.com")}
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2.5 pl-10 pr-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all font-medium"
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
-                    Hệ thống sẽ gửi liên kết bảo mật để bạn thiết lập lại mật khẩu 6 số mới.
+                    {t("Hệ thống sẽ gửi liên kết bảo mật để bạn thiết lập lại mật khẩu 6 số mới.")}
                   </p>
                 </div>
 
@@ -1049,12 +1083,12 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   {busy ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang gửi liên kết...</span>
+                      <span>{t("Đang gửi liên kết...")}</span>
                     </>
                   ) : forgotCooldown > 0 ? (
-                    <span>Gửi lại sau ({forgotCooldown}s)</span>
+                    <span>{t("Gửi lại sau")} ({forgotCooldown}s)</span>
                   ) : (
-                    <span>Gửi liên kết đặt lại mật khẩu</span>
+                    <span>{t("Gửi liên kết đặt lại mật khẩu")}</span>
                   )}
                 </button>
               </form>
@@ -1069,7 +1103,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   }}
                   className="text-xs text-slate-400 hover:text-emerald-400 transition-colors font-medium"
                 >
-                  Quay lại đăng nhập
+                  {t("Quay lại đăng nhập")}
                 </button>
               </div>
             </div>
@@ -1080,10 +1114,10 @@ export default function Login({ onLoginSuccess, initialMode }) {
             <div>
               <div className="mb-4">
                 <h2 className="text-sm font-bold text-white">
-                  Đặt lại mật khẩu 6 số mới
+                  {t("Đặt lại mật khẩu 6 số mới")}
                 </h2>
                 <p className="text-xs text-slate-400 mt-1">
-                  Nhập mật khẩu 6 chữ số mới để tiếp tục sử dụng No Offside.
+                  {t("Nhập mật khẩu 6 chữ số mới để tiếp tục sử dụng No Offside.")}
                 </p>
               </div>
 
@@ -1093,7 +1127,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="reset-password-input"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Mật khẩu 6 số mới
+                    {t("Mật khẩu 6 số mới")}
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1112,7 +1146,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      aria-label={showPassword ? t("Ẩn mật khẩu") : t("Hiện mật khẩu")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
                     >
                       {showPassword ? (
@@ -1129,7 +1163,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="reset-confirm-password"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Xác nhận mật khẩu 6 số
+                    {t("Xác nhận mật khẩu 6 số")}
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1148,7 +1182,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      aria-label={showConfirmPassword ? t("Ẩn mật khẩu") : t("Hiện mật khẩu")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
                     >
                       {showConfirmPassword ? (
@@ -1168,10 +1202,10 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   {busy ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang cập nhật...</span>
+                      <span>{t("Đang cập nhật...")}</span>
                     </>
                   ) : (
-                    <span>Lưu mật khẩu mới</span>
+                    <span>{t("Lưu mật khẩu mới")}</span>
                   )}
                 </button>
               </form>
@@ -1183,13 +1217,13 @@ export default function Login({ onLoginSuccess, initialMode }) {
             <div>
               <div className="mb-4">
                 <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                  Xác nhận tài khoản Google
+                  {t("Xác nhận tài khoản Google")}
                 </span>
                 <h2 className="text-sm font-bold text-white mt-2">
-                  Chọn Tên đăng nhập của bạn
+                  {t("Chọn Tên đăng nhập của bạn")}
                 </h2>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Đồng đội sẽ tìm kiếm và gắn thẻ bạn bằng tên đăng nhập này.
+                  {t("Đồng đội sẽ tìm kiếm và gắn thẻ bạn bằng tên đăng nhập này.")}
                 </p>
               </div>
 
@@ -1199,7 +1233,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     htmlFor="google-username-input"
                     className="block text-xs font-semibold text-slate-300 mb-1"
                   >
-                    Tên đăng nhập
+                    {t("Tên đăng nhập")}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1217,7 +1251,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    3–20 ký tự (chữ cái, chữ số, _ hoặc -); không phân biệt hoa/thường.
+                    {t("3–20 ký tự (chữ cái, chữ số, _ hoặc -); không phân biệt hoa/thường.")}
                   </p>
                 </div>
 
@@ -1229,10 +1263,10 @@ export default function Login({ onLoginSuccess, initialMode }) {
                   {busy ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Đang lưu...</span>
+                      <span>{t("Đang lưu...")}</span>
                     </>
                   ) : (
-                    <span>Hoàn tất & Về đăng nhập</span>
+                    <span>{t("Hoàn tất & Về đăng nhập")}</span>
                   )}
                 </button>
               </form>
@@ -1244,7 +1278,7 @@ export default function Login({ onLoginSuccess, initialMode }) {
 
         {/* Footer */}
         <p className="text-[11px] text-center text-slate-500 mt-4 font-medium">
-          © No Offside — Bảo mật và quản lý bóng đá phong trào
+          {t("© No Offside — Bảo mật và quản lý bóng đá phong trào")}
         </p>
       </div>
     </div>

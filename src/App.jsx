@@ -133,6 +133,8 @@ export default function App() {
   if (!auth.isLoggedIn && tab !== "invite-landing")
     return (
       <Login
+        theme={preferences.value.theme}
+        onThemeChange={(theme) => preferences.update({ theme })}
         initialMode={loginInitialMode}
         onLoginSuccess={(profile) => {
           auth.login(profile);

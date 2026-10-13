@@ -318,20 +318,24 @@ export default function Login({ onLoginSuccess, initialMode }) {
 
       if (signInError) {
         // Record failed attempt for rate limiting
-        await supabase.rpc("no_auth_record_login_result", {
-          p_username: cleanUsername,
-          p_success: false,
-          p_client_id: "web",
-        }).catch(() => {});
+        try {
+          await supabase.rpc("no_auth_record_login_result", {
+            p_username: cleanUsername,
+            p_success: false,
+            p_client_id: "web",
+          });
+        } catch {}
         throw signInError;
       }
 
       // Record successful login (clears failed attempts)
-      await supabase.rpc("no_auth_record_login_result", {
-        p_username: cleanUsername,
-        p_success: true,
-        p_client_id: "web",
-      }).catch(() => {});
+      try {
+        await supabase.rpc("no_auth_record_login_result", {
+          p_username: cleanUsername,
+          p_success: true,
+          p_client_id: "web",
+        });
+      } catch {}
 
       // Remember account on device with email
       if (data?.user) {

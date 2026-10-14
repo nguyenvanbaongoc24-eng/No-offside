@@ -66,7 +66,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
   };
 
   return (
-    <div className="create-team-page relative min-h-screen bg-slate-50 text-gray-900 pb-20 font-sans antialiased">
+    <div className="create-team-page relative bg-slate-50 text-gray-900 pb-4 font-sans antialiased">
 
       {/* Top Header */}
       <section className="bg-slate-900 text-white pt-safe-hero pb-8 px-5 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">

@@ -204,7 +204,7 @@ export default function InviteLanding({
   }
 
   return (
-    <div className="invite-page min-h-screen bg-slate-50 pb-safe-nav font-sans">
+    <div className="invite-page bg-slate-50 font-sans">
       <header className="bg-slate-900 text-white p-5 pt-safe-hero rounded-b-[36px] shadow-md">
         <button
           onClick={onBackToApp}

@@ -11,9 +11,21 @@
         const dark = appearance.theme === 'dark' || ((!appearance.theme || appearance.theme === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
         document.documentElement.dataset.font = appearance.fontFamily === 'Be Vietnam Pro' ? 'vietnam' : 'system';
-        document.querySelector('meta[name="theme-color"]').content = dark ? '#0f172a' : '#f8fafc';
+        document.querySelector('meta[name="theme-color"]').content = dark ? '#0B1210' : '#FAFBF8';
       } catch {}
     </script>
+    <style>
+      /* First paint while the application bundle loads. React replaces this markup. */
+      .boot-placeholder{box-sizing:border-box;min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));background:linear-gradient(165deg,#DCEEDC,#FAFBF8 45%,#FAFBF8);color:#14201A;font-family:system-ui,sans-serif;text-align:center}
+      [data-theme=dark] .boot-placeholder{background:linear-gradient(165deg,#163C26,#0B1210 45%,#0B1210);color:#F2F6F3}
+      [data-font=vietnam] .boot-placeholder{font-family:'Be Vietnam Pro',system-ui,sans-serif}
+      .boot-placeholder img{display:block;box-sizing:border-box;width:96px;height:96px;margin:0 auto 24px;padding:4px;border-radius:24px;object-fit:contain;background:#fff}
+      .boot-placeholder h1{font-size:clamp(24px,6vw,30px);line-height:1.2;letter-spacing:-.02em;margin:0;font-weight:700}
+      .boot-placeholder p{font-size:16px;line-height:1.5;margin:8px 0 0;color:#59665F}
+      [data-theme=dark] .boot-placeholder p{color:#B3BFB7}
+      .boot-placeholder .boot-indicator{display:block;width:20px;height:20px;box-sizing:border-box;margin:28px auto 0;border:2px solid #829087;border-top-color:#137C34;border-radius:50%}
+      .boot-placeholder button{min-height:44px;padding:10px 20px;margin-top:16px;border:0;border-radius:12px;background:#17843B;color:#fff;font:inherit;cursor:pointer}
+    </style>
 
     <!-- Dành riêng cho iPhone/iPad (iOS) để icon hiển thị mượt mà -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -37,7 +49,17 @@
     <title>No Offside — Quản Lý Đội Bóng</title>
   </head>
   <body class="bg-slate-50 text-gray-900 antialiased">
-    <div id="root"></div>
+    <div id="root"><section class="boot-placeholder" aria-label="Khởi động No Offside"><div><img src="/pwa-512x512.png" width="96" height="96" alt="Logo No Offside"><h1>NO OFFSIDE</h1><p>Hẹn nhau ra sân.</p><span class="boot-indicator" role="status" aria-label="Đang khởi động"></span></div></section></div>
+    <script>
+      window.noOffsideBootTimer=setTimeout(() => {
+        const boot=document.querySelector('#root > .boot-placeholder');
+        if(!boot)return;
+        boot.querySelector('.boot-indicator')?.remove();
+        const error=document.createElement('p');error.setAttribute('role','alert');error.textContent='Không tải được ứng dụng. Kiểm tra kết nối rồi thử lại.';
+        const retry=document.createElement('button');retry.type='button';retry.textContent='Thử lại';retry.onclick=()=>location.reload();
+        boot.firstElementChild.append(error,retry);
+      },15000);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

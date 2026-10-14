@@ -9,6 +9,8 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {Home,Network,Wallet,MessageSquare,User} from 'lucide-react';
 import Login from './src/pages/Login.jsx';
+import SplashScreen from './src/components/SplashScreen.jsx';
+import InviteShare from './src/components/InviteShare.jsx';
 import FloatingBottomNavigation from './src/components/FloatingBottomNavigation.jsx';
 import TeamOnboarding from './src/pages/TeamOnboarding.jsx';
 import ClubCodeModal from './src/components/ClubCodeModal.jsx';
@@ -39,6 +41,11 @@ const preferences={value:{theme:'system',fontFamily:'system',fontSize:'medium'},
 const common={onCreateInvite:noop,preferences,user,currentUserRole:'owner',demoSession:false,teamSettings:team,members,onNavigate:noop,onBack:noop,onLogout:noop,onUpdateProfile:noop};
 const gov={snapshot:null,loading:false,error:'Chưa kết nối nghiệp vụ cho đội này.',serverNow:Date.now(),mutate:noop};
 const cases={
+ splash:<SplashScreen/>,
+ splasherror:<SplashScreen error="Không tải được thông tin đội. Kiểm tra kết nối rồi thử lại." onRetry={noop}/>,
+ inviteshare:<InviteShare teamName={team.teamName} teamCode="UI1234" currentUserRole="owner" onClose={noop} onCreateInvite={noop} onRevokeInvite={noop}/>,
+ inviteerror:<InviteShare teamName={team.teamName} error="Server từ chối quyền tạo mã mời." onClose={noop} onRetry={noop}/>,
+ invitepending:<InviteShare teamName={team.teamName} loading onClose={noop}/>,
  login:<Login/>,
  signup:<Login initialMode="signup"/>,
  memberform:<AddMemberModal isOpen onClose={noop} members={members} onAddMember={noop}/>,
@@ -87,7 +94,7 @@ const cases=compiled.exports.render();
 const cssName=(await readdir(root+'dist/assets')).find(name=>name.endsWith('.css'));
 const css=await readFile(root+'dist/assets/'+cssName,'utf8');
 const nav=compiled.exports.renderNav();
-const html='<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>No Offside — Kiểm chứng UI</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"><style>'+css+'[hidden]{display:none!important;} [data-screen] [style*="opacity:0"]{opacity:1!important;transform:none!important;}</style></head><body><div class="app-frame max-w-md mx-auto"><div class="session-banner">Kiểm chứng UI · dữ liệu minh họa · nghiệp vụ không hoạt động</div>'+Object.entries(cases).map(([key,markup])=>'<main data-screen="'+key+'" hidden>'+markup+'</main>').join('')+'<div id="review-nav">'+nav+'</div></div><script>const p=new URLSearchParams(location.search);const screen=p.get("screen")||"home";document.documentElement.dataset.theme=p.get("theme")||"light";document.documentElement.dataset.font=p.get("font")||"vietnam";document.documentElement.dataset.fontSize=p.get("size")||"medium";document.querySelectorAll("[data-screen]").forEach(el=>el.hidden=el.dataset.screen!==screen);if(!["home","tactics","fund","chat","profile"].includes(screen))document.getElementById("review-nav").hidden=true;document.addEventListener("submit",e=>e.preventDefault());document.querySelectorAll("button[data-target]").forEach(el=>{if(el.dataset.target===screen)el.setAttribute("aria-current","page");else el.removeAttribute("aria-current")});document.querySelectorAll("button[data-target]").forEach(el=>el.onclick=()=>{p.set("screen",el.dataset.target);location.search=p.toString()});</script></body></html>';
+const html='<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>No Offside — Kiểm chứng UI</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"><style>'+css+'[hidden]{display:none!important;} [data-screen] [style*="opacity:0"]{opacity:1!important;transform:none!important;}</style></head><body><div class="app-frame app-scroll-frame app-has-navigation max-w-md mx-auto"><div class="session-banner">Kiểm chứng UI · dữ liệu minh họa · nghiệp vụ không hoạt động</div>'+Object.entries(cases).map(([key,markup])=>'<main data-screen="'+key+'" hidden>'+markup+'</main>').join('')+'<div id="review-nav">'+nav+'</div></div><script>const p=new URLSearchParams(location.search);const screen=p.get("screen")||"home";document.documentElement.dataset.theme=p.get("theme")||"light";document.documentElement.dataset.font=p.get("font")||"vietnam";document.documentElement.dataset.fontSize=p.get("size")||"medium";document.querySelectorAll("[data-screen]").forEach(el=>el.hidden=el.dataset.screen!==screen);if(screen.startsWith("splash")){const frame=document.querySelector(".app-frame");frame.classList.remove("app-has-navigation");frame.classList.add("app-chat-frame");document.querySelector(".session-banner").hidden=true;}if(!["home","tactics","fund","chat","profile"].includes(screen))document.getElementById("review-nav").hidden=true;document.addEventListener("submit",e=>e.preventDefault());document.querySelectorAll("button[data-target]").forEach(el=>{if(el.dataset.target===screen)el.setAttribute("aria-current","page");else el.removeAttribute("aria-current")});document.querySelectorAll("button[data-target]").forEach(el=>el.onclick=()=>{p.set("screen",el.dataset.target);location.search=p.toString()});</script></body></html>';
 const target = process.argv[2] ? path.resolve(root, process.argv[2]) : root+'.ui-review/ui-review.html';
 await mkdir(path.dirname(target),{recursive:true});
 await writeFile(target,html);

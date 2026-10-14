@@ -6,12 +6,14 @@ export function useScrollNavigation(route) {
   useEffect(() => {
     let state = { last: Math.max(0, window.scrollY), travel: 0, visible: true };
     let frame = 0,
-      dragging = false;
+      dragging = false, keyboardWasOpen = false;
     reveal.current = () => {
       state = { ...state, visible: true, travel: 0 };
       setVisible(true);
     };
     setVisible(true);
+    // Chat owns its stream and keyboard navigation; document scroll must not drive it.
+    if (route === "chat") return;
     const update = () => {
       frame = 0;
       const keyboard =
@@ -20,6 +22,16 @@ export function useScrollNavigation(route) {
             "--keyboard-inset",
           ),
         ) > 80;
+      if (keyboard) {
+        keyboardWasOpen = true;
+        setVisible(false);
+        return;
+      }
+      if (keyboardWasOpen) {
+        keyboardWasOpen = false;
+        state = {...state, last:Math.max(0,window.scrollY),travel:0,visible:true};
+        setVisible(true);
+      }
       state = scrollNavigation(
         state,
         window.scrollY,
@@ -29,7 +41,7 @@ export function useScrollNavigation(route) {
           Boolean(document.activeElement?.matches(':focus-visible') && document.activeElement?.closest('.bottom-navigation')) ||
           Boolean(document.querySelector('[role="dialog"]')),
       );
-      setVisible(state.visible);
+      setVisible(previous => previous === state.visible ? previous : state.visible);
     };
     const scroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
@@ -39,17 +51,21 @@ export function useScrollNavigation(route) {
       state = { ...state, last: Math.max(0, window.scrollY), travel: 0 };
     };
     const key = (e) => {
-      if (e.key === "Tab") {
+      if (e.key === "Tab" && !keyboardWasOpen) {
         state = { ...state, visible: true, travel: 0 };
         setVisible(true);
       }
     };
     window.addEventListener("scroll", scroll, { passive: true });
+    window.visualViewport?.addEventListener("resize", scroll);
+    window.addEventListener("resize", scroll);
     window.addEventListener("lineup-drag", drag);
     window.addEventListener("keydown", key, true);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", scroll);
+      window.visualViewport?.removeEventListener("resize", scroll);
+      window.removeEventListener("resize", scroll);
       window.removeEventListener("lineup-drag", drag);
       window.removeEventListener("keydown", key, true);
     };

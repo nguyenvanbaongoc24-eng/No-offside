@@ -1,5 +1,6 @@
 import { personalText } from "../lib/personalCopy";
-import React, { useState } from "react";
+import {useTeamInvite} from "../hooks/useTeamInvite";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   Palette,
   Bell,
@@ -20,6 +21,7 @@ import {
 import InviteShare from "../components/InviteShare";
 import Avatar from "../components/Avatar";
 import ProfileDetails from "./ProfileDetails";
+const useProfileLayoutEffect=typeof document!=="undefined" && typeof document.createElement==="function" ? useLayoutEffect : useEffect;
 function Row({ icon: Icon, children, onClick }) {
   return (
     <button type="button" className="menu-row" onClick={onClick}>
@@ -46,14 +48,19 @@ export default function ProfileMenu(props) {
     onUpdateUsername,
     onOpenJoinCode,
     onCreateInvite,
+    onReadInvite,
     onRevokeInvite,
   } = props;
-  const [detail, setDetail] = useState(props.initialDetail || null),
+  const [detail, setDetailState] = useState(props.initialDetail || null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [username, setUsername] = useState(user.username || "");
-  const [inviteCode, setInviteCode] = useState(teamSettings?.inviteCode || "");
-  const [inviteStatus, setInviteStatus] = useState(teamSettings?.inviteStatus || "active");
+  const [detailDirection,setDetailDirection]=useState(1);
+  const homeScroll=useRef(0),previousDetail=useRef(detail);
+  const setDetail=next=>{if(!detail)homeScroll.current=window.scrollY || 0;setDetailDirection(1);setDetailState(next);};
+  useProfileLayoutEffect(()=>{if(previousDetail.current===detail)return;window.scrollTo?.({top:detail ? 0 : homeScroll.current,behavior:"instant"});previousDetail.current=detail;},[detail]);
+  const [inviteOpen,setInviteOpen]=useState(false);
+  const invite=useTeamInvite(teamSettings,currentUserRole,onCreateInvite,onRevokeInvite,onReadInvite);
   const owner = currentUserRole === "owner",
     leader = owner || currentUserRole === "admin";
   const titles = {
@@ -83,24 +90,19 @@ export default function ProfileMenu(props) {
     }
   };
   const openInvite = async () => {
-    if (!leader || !onCreateInvite || busy) return;
-    setBusy(true); setError("");
-    try {
-      const code = teamSettings?.inviteCode || (await onCreateInvite(teamSettings.id))?.code;
-      if (!code) throw new Error("Chưa tạo được mã mời.");
-      setInviteCode(code); setDetail("invite");
-    } catch (err) { setError(err.message || "Không tạo được lời mời."); }
-    finally { setBusy(false); }
+    setInviteOpen(true);
+    await invite.load().catch(() => {});
   };
+  const inviteSheet=<InviteShare isOpen={inviteOpen} onClose={()=>setInviteOpen(false)} teamName={teamSettings?.teamName} teamLogo={teamSettings?.logo} teamCode={invite.code} inviteStatus={invite.status} currentUserRole={currentUserRole} loading={invite.loading} error={invite.error} onRetry={()=>invite.load()} onCreateInvite={()=>invite.load(true)} onRevokeInvite={invite.revoke}/>;
   if (detail)
     return (
-      <div lang={props.preferences?.value.language || "vi"} className="profile-detail">
+      <div lang={props.preferences?.value.language || "vi"} key={detail} className={"profile-detail" + (detailDirection<0 ? " profile-back" : "")}>
         <header className="compact-header">
           <button
             type="button"
             aria-label="Quay lại Cá nhân"
             onClick={() => {
-              setDetail(["admin", "requests"].includes(detail) ? "management" : null);
+              setDetailDirection(-1);setDetailState(["admin", "requests"].includes(detail) ? "management" : null);
               setError("");
             }}
           >
@@ -108,7 +110,7 @@ export default function ProfileMenu(props) {
           </button>
           <h1>{t(titles[detail])}</h1>
         </header>
-        {detail === "invite" && leader ? (<InviteShare teamName={teamSettings?.teamName} teamLogo={teamSettings?.logo} teamCode={inviteCode} inviteStatus={inviteStatus} currentUserRole={currentUserRole} onClose={() => setDetail(null)} onCreateInvite={async () => { const invite = await onCreateInvite(teamSettings.id); if (!invite?.code) throw new Error("Không tạo được mã mời."); setInviteCode(invite.code); setInviteStatus("active"); return invite; }} onRevokeInvite={onRevokeInvite ? async () => { const result = await onRevokeInvite(teamSettings.id); setInviteStatus("revoked"); return result; } : undefined} />) : detail === "management" && leader ? (
+        {detail === "management" && leader ? (
           <section className="profile-group profile-management">
             {owner && onNavigate && <Row icon={Settings} onClick={() => onNavigate("team-settings")}>{t("Cấu hình đội")}</Row>}
             <Row icon={Shield} onClick={() => setDetail("admin")}>{t("Phân quyền và quản trị")}</Row>
@@ -191,7 +193,7 @@ export default function ProfileMenu(props) {
       </div>
     );
   return (
-    <div lang={props.preferences?.value.language || "vi"} className="profile-home">
+    <div lang={props.preferences?.value.language || "vi"} className={"profile-home" + (detailDirection<0 ? " profile-return" : "")}>
       <header className="personal-header">
         <p className="personal-eyebrow">{t("Cá nhân")}</p>
         <section className="profile-hero" aria-label="Hồ sơ">
@@ -274,6 +276,7 @@ export default function ProfileMenu(props) {
           </span>
         </button>
       </section>
+      {inviteSheet}
       {error && (
         <p role="alert" className="form-error">
           {error}

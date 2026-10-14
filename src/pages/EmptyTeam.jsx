@@ -1,3 +1,4 @@
+import {useTeamInvite} from "../hooks/useTeamInvite";
 import React, { useState, useEffect } from "react";
 import {
   CalendarDays,
@@ -24,6 +25,7 @@ export default function EmptyTeam({
   currentUserRole = "player",
   user,
   onCreateInvite,
+  onReadInvite,
   onRevokeInvite,
   onSaveMatch,
   onNavigate,
@@ -34,6 +36,7 @@ export default function EmptyTeam({
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copyError,setCopyError]=useState("");
 
   const [form, setForm] = useState({
     opponent: "",
@@ -49,33 +52,26 @@ export default function EmptyTeam({
     currentUserRole === "owner" ||
     currentUserRole === "admin";
 
-  // Format short clean invite code if none set
-  const inviteCode =
-    teamSettings?.inviteCode ||
-    (teamSettings?.id && teamSettings.id.length > 12
-      ? `NO${teamSettings.id.replace(/-/g, "").slice(0, 5).toUpperCase()}`
-      : teamSettings?.id) ||
-    "NO-FC99";
-
+  const invite = useTeamInvite(teamSettings, currentUserRole, onCreateInvite, onRevokeInvite, onReadInvite);
+  const inviteCode = invite.code;
+  const openInvite = () => {setShowInviteModal(true); invite.load().catch(() => {});};
   const activeMembers = members.filter(
     (m) => m.membershipStatus !== "removed",
   );
 
   const handleCopyCode = async () => {
+    if (!inviteCode) {openInvite(); return;}
+    setCopyError("");
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(inviteCode);
-      }
+      const valid=await invite.load();
+      if (!navigator.clipboard?.writeText) throw Error("Trình duyệt chưa hỗ trợ sao chép.");
+      await navigator.clipboard.writeText(valid.code);
       setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
-    } catch {
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
-    }
+    } catch(err) {setCopyError(err.message || "Không sao chép được mã. Mở Mã / QR để chọn và sao chép thủ công.");}
   };
-
+  useEffect(() => {if(!copiedCode)return;const timer=setTimeout(()=>setCopiedCode(false),2000);return ()=>clearTimeout(timer);},[copiedCode]);
   return (
-    <section className="empty-team p-4 pb-safe-nav max-w-lg mx-auto space-y-4">
+    <section className="empty-team p-4 max-w-lg mx-auto space-y-4">
       {/* HEADER ĐỘI BÓNG */}
       <div className="pt-2">
         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase">
@@ -231,7 +227,7 @@ export default function EmptyTeam({
               MÃ CLUB
             </span>
             <span className="text-base font-extrabold font-mono tracking-wider text-slate-900 dark:text-white select-all block truncate">
-              {inviteCode}
+              {inviteCode || "Chưa có mã mời"}
             </span>
           </div>
 
@@ -256,7 +252,7 @@ export default function EmptyTeam({
 
             <button
               type="button"
-              onClick={() => setShowInviteModal(true)}
+              onClick={openInvite}
               className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all outline-none"
               title="Mở mã QR và link chia sẻ"
             >
@@ -267,6 +263,7 @@ export default function EmptyTeam({
         </div>
       </div>
 
+      {copyError && <p role="alert" className="form-error">{copyError}</p>}
       {/* FOOTER LINK XEM PROFILE */}
       <button
         className="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 w-full py-2 cursor-pointer transition-colors outline-none"
@@ -310,13 +307,14 @@ export default function EmptyTeam({
         teamLogo={teamSettings?.logo || ""}
         teamCode={inviteCode}
         clubCode={inviteCode}
-        inviteStatus="active"
+        inviteStatus={invite.status}
+        loading={invite.loading} error={invite.error} onRetry={() => invite.load()}
         currentUserRole={currentUserRole}
-        onCreateInvite={onCreateInvite}
-        onRevokeInvite={onRevokeInvite}
+        onCreateInvite={() => invite.load(true)}
+        onRevokeInvite={invite.revoke}
         onPreviewLanding={() => {
           setShowInviteModal(false);
-          if (onNavigate) onNavigate("invite-landing");
+          if (inviteCode) window.open(`/invite/${encodeURIComponent(inviteCode)}`, "_blank", "noopener,noreferrer");
         }}
       />
 
@@ -330,7 +328,7 @@ export default function EmptyTeam({
           onRemoveMember={onRemoveMember}
           onOpenInvite={() => {
             setShowTeamManagerModal(false);
-            setShowInviteModal(true);
+            openInvite();
           }}
           onOpenAddMember={() => {
             setShowTeamManagerModal(false);

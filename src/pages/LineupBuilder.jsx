@@ -439,11 +439,12 @@ export default function LineupBuilder({
     );
     setSaveError("");
     setSaveSuccessNotice(true);
-    setTimeout(() => setSaveSuccessNotice(false), 2500);
+
   };
 
+  useEffect(()=>{if(!saveSuccessNotice)return;const timer=setTimeout(()=>setSaveSuccessNotice(false),2500);return ()=>clearTimeout(timer);},[saveSuccessNotice]);
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-28 font-sans antialiased">
+    <div className="tactics-page relative bg-slate-50 text-gray-900 font-sans antialiased">
       {/* 1. Header Dark Geometric Style */}
       <header className="tactics-header">
         <button aria-label="Quay lại" onClick={onBack}>

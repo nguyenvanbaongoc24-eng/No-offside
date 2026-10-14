@@ -152,7 +152,7 @@ test('InviteShare displays Club code, QR, copy actions, status, and hides manage
   assert.ok(leaderJson.includes('CB99XX'));
   assert.ok(leaderJson.includes('Đang hoạt động'));
   assert.ok(leaderJson.includes('Sao chép mã'));
-  assert.ok(leaderJson.includes('Chép link'));
+  assert.ok(leaderJson.includes('Sao chép liên kết mời'));
   assert.ok(leaderJson.includes('Tạo mã mới'));
   assert.ok(leaderJson.includes('Thu hồi'));
 

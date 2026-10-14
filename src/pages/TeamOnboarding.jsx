@@ -16,7 +16,7 @@ export default function TeamOnboarding({
   onOpenScanQr,
 }) {
   return (
-    <div className="team-onboarding min-h-screen bg-slate-50 flex flex-col justify-between p-5 pt-8 pb-safe-nav font-sans">
+    <div className="team-onboarding bg-slate-50 flex flex-col justify-between p-5 pt-8 font-sans">
       <div className="max-w-md mx-auto w-full space-y-6">
         {/* Welcome Header */}
         <div className="text-center space-y-2 pt-4">

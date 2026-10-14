@@ -9,9 +9,9 @@ const storage=new Map(), listeners={}; let deny=false;
 globalThis.localStorage={getItem:key=>storage.get(key)||null,setItem:(key,value)=>{if(deny)throw Error('Quota');storage.set(key,value);}};
 globalThis.document={body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){}};
 globalThis.window={innerHeight:844,location:{origin:'http://fixture.local'},addEventListener:(key,fn)=>listeners[key]=fn,removeEventListener:(key)=>delete listeners[key],dispatchEvent:()=>{}};
-const built=await build({stdin:{contents:"export {default as Chat} from './src/pages/Chat.jsx';export {default as Profile} from './src/pages/ProfileMenu.jsx';export {default as Details} from './src/pages/ProfileDetails.jsx';export {default as Avatar} from './src/components/Avatar.jsx';",resolveDir:process.cwd(),loader:'jsx'},bundle:true,platform:'node',format:'cjs',write:false,external:['react']});
+const built=await build({stdin:{contents:"export {default as Chat} from './src/pages/Chat.jsx';export {default as Profile} from './src/pages/ProfileMenu.jsx';export {default as Details} from './src/pages/ProfileDetails.jsx';export {default as Avatar} from './src/components/Avatar.jsx';export {default as InviteShare} from './src/components/InviteShare.jsx';export {useScrollNavigation} from './src/hooks/useScrollNavigation.js';",resolveDir:process.cwd(),loader:'jsx'},bundle:true,platform:'node',format:'cjs',write:false,external:['react']});
 const mod={exports:{}};new Function('require','module','exports',built.outputFiles[0].text)(createRequire(import.meta.url),mod,mod.exports);
-const {Chat,Profile,Details,Avatar}=mod.exports;
+const {Chat,Profile,Details,Avatar,InviteShare,useScrollNavigation}=mod.exports;
 const user={id:'u1',name:'Minh Anh',number:9,role:'ST',height:175,weight:68,avatar:'',stats:{matches:2,goals:1,assists:0}};
 const props={user,members:[user],teamId:'team-one',accountId:'account-one',birthdayEnabled:false};
 const texts=tree=>JSON.stringify(tree.toJSON());
@@ -64,7 +64,64 @@ test('profile save stays pending until its callback succeeds',async()=>{
 });
 
 test('personal invite status updates only after revoke/regenerate callback acknowledgement',async()=>{
- let tree;act(()=>tree=renderer.create(React.createElement(Profile,{user,teamSettings:{id:'team-one',teamName:'FC',inviteCode:'QA1234'},currentUserRole:'owner',hasTeam:true,initialDetail:'invite',onCreateInvite:async()=>({code:'QA5678'}),onRevokeInvite:async()=>({success:true}),onLogout(){}})));
+ let tree;act(()=>tree=renderer.create(React.createElement(Profile,{user,teamSettings:{id:'team-one',teamName:'FC',inviteCode:'QA1234'},currentUserRole:'owner',hasTeam:true,onCreateInvite:async()=>({code:'QA5678'}),onRevokeInvite:async()=>({success:true}),onLogout(){}})));
  await act(async()=>await tree.root.findByProps({teamCode:'QA1234'}).props.onRevokeInvite());assert.equal(tree.root.findByProps({teamCode:'QA1234'}).props.inviteStatus,'revoked');
  await act(async()=>await tree.root.findByProps({teamCode:'QA1234'}).props.onCreateInvite());assert.equal(tree.root.findByProps({teamCode:'QA5678'}).props.inviteStatus,'active');act(()=>tree.unmount());
+});
+
+test('personal invitation opens immediately, reports denied server permission in sheet, and retries without fake code',async()=>{
+ let tree, rejectRequest, calls=0;
+ const request=new Promise((_,reject)=>rejectRequest=reject);
+ const create=()=>{calls++;return calls===1 ? request : Promise.resolve({code:'SERVER42',teamId:'team-one'});};
+ act(()=>tree=renderer.create(React.createElement(Profile,{user,teamSettings:{id:'team-one',teamName:'FC'},currentUserRole:'owner',onNavigate(){},onCreateInvite:create})));
+ let pending;act(()=>pending=tree.root.findByProps({className:'profile-quick-grid'}).findAllByType('button')[1].props.onClick());
+ assert.equal(tree.root.findByType(InviteShare).props.isOpen,true);assert.equal(tree.root.findByType(InviteShare).props.loading,true);assert.equal(tree.root.findAllByProps({className:'invite-qr'}).length,0);
+ await act(async()=>{rejectRequest(Error('Chỉ quản trị viên có quyền'));await pending;});
+ assert.match(texts(tree),/Chỉ quản trị viên có quyền/);assert.equal(tree.root.findByType(InviteShare).props.loading,false);
+ await act(async()=>await tree.root.findByType(InviteShare).props.onRetry());assert.equal(tree.root.findByType(InviteShare).props.teamCode,'SERVER42');assert.equal(calls,2);act(()=>tree.unmount());
+});
+test('late invitation for previous team never becomes the code of the next team',async()=>{
+ let tree,finish;const request=new Promise(resolve=>finish=resolve);
+ const common={user,currentUserRole:'owner',onNavigate(){},onCreateInvite:()=>request};
+ act(()=>tree=renderer.create(React.createElement(Profile,{...common,teamSettings:{id:'one',teamName:'One'}})));
+ let pending;act(()=>pending=tree.root.findByProps({className:'profile-quick-grid'}).findAllByType('button')[1].props.onClick());
+ act(()=>tree.update(React.createElement(Profile,{...common,teamSettings:{id:'two',teamName:'Two'}})));
+ await act(async()=>{finish({code:'OLD123',teamId:'one'});await pending;});assert.equal(tree.root.findByType(InviteShare).props.teamCode,'');assert.equal(tree.root.findByType(InviteShare).props.teamName,'Two');act(()=>tree.unmount());
+});
+test('clipboard failure never reports copied; share fallback copies the exact team link and does not open another app',async()=>{
+ let copied='', opened=false,tree;
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText:async()=>{throw Error('denied');}}}});
+ window.open=()=>opened=true;
+ act(()=>tree=renderer.create(React.createElement(InviteShare,{teamName:'FC',teamCode:'REAL42',onClose(){}})));
+ await act(async()=>await tree.root.findByProps({'aria-label':'Sao chép liên kết mời'}).props.onClick());assert.match(texts(tree),/Không sao chép được/);assert.doesNotMatch(texts(tree),/Đã sao chép liên kết/);
+ navigator.clipboard.writeText=async value=>copied=value;
+ const shareButton=tree.root.findAllByType('button').find(b=>b.props.className==='primary-button invite-share-action');
+ await act(async()=>await shareButton.props.onClick());assert.equal(copied,'http://fixture.local/invite/REAL42');assert.equal(opened,false);assert.match(texts(tree),/Đã sao chép liên kết để chia sẻ/);act(()=>tree.unmount());
+});
+
+test('cached invitation is checked against the selected team and cannot share a revoked or wrong-team link',async()=>{
+ let tree,checks=0;
+ act(()=>tree=renderer.create(React.createElement(Profile,{user,teamSettings:{id:'right',teamName:'Right',inviteCode:'STALE'},currentUserRole:'owner',onNavigate(){},onCreateInvite:async()=>({code:'NEW',teamId:'right'}),onReadInvite:async(code,id)=>{checks++;assert.equal(id,'right');return {valid:true,teamId:'other',code};}})));
+ await act(async()=>await tree.root.findByProps({className:'profile-quick-grid'}).findAllByType('button')[1].props.onClick());
+ assert.equal(checks,1);assert.equal(tree.root.findByType(InviteShare).props.inviteStatus,'revoked');assert.equal(tree.root.findAllByProps({className:'invite-qr'}).length,0);assert.ok(tree.root.findByProps({'aria-label':'Sao chép liên kết mời'}).props.disabled);act(()=>tree.unmount());
+});
+test('repeated invitation taps share one pending request and server code must match team',async()=>{
+ let tree,finish,calls=0;const request=new Promise(resolve=>finish=resolve);
+ act(()=>tree=renderer.create(React.createElement(Profile,{user,teamSettings:{id:'right',teamName:'Right'},currentUserRole:'owner',onNavigate(){},onCreateInvite:()=>{calls++;return request;}})));
+ const button=tree.root.findByProps({className:'profile-quick-grid'}).findAllByType('button')[1];let first,second;
+ act(()=>{first=button.props.onClick();second=button.props.onClick();});assert.equal(calls,1);
+ await act(async()=>{finish({code:'BAD',teamId:'other'});await Promise.all([first,second]);});assert.equal(tree.root.findByType(InviteShare).props.teamCode,'');assert.match(texts(tree),/không thuộc đội đang chọn/);act(()=>tree.unmount());
+});
+
+test('document navigation hides for keyboard, restores without scroll jump, cleans listeners and does not listen to chat stream',()=>{
+ let keyboard=0,tree;const resizeListeners=new Map(),frames=[];
+ globalThis.getComputedStyle=()=>({getPropertyValue:()=>String(keyboard)});
+ globalThis.requestAnimationFrame=fn=>{frames.push(fn);return frames.length;};globalThis.cancelAnimationFrame=()=>{};
+ document.documentElement={scrollHeight:2000};document.querySelector=()=>null;
+ window.scrollY=240;window.visualViewport={addEventListener:(name,fn)=>resizeListeners.set(name,fn),removeEventListener:name=>resizeListeners.delete(name)};
+ function Demo({route}){const [visible]=useScrollNavigation(route);return React.createElement('span',{'data-visible':visible});}
+ act(()=>tree=renderer.create(React.createElement(Demo,{route:'profile'})));
+ keyboard=300;act(()=>{resizeListeners.get('resize')();frames.shift()();});assert.equal(tree.root.findByType('span').props['data-visible'],false);assert.equal(window.scrollY,240);
+ keyboard=0;act(()=>{resizeListeners.get('resize')();frames.shift()();});assert.equal(tree.root.findByType('span').props['data-visible'],true);
+ act(()=>tree.update(React.createElement(Demo,{route:'chat'})));assert.equal(resizeListeners.size,0);assert.equal(listeners.scroll,undefined);act(()=>tree.unmount());delete window.visualViewport;
 });

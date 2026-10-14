@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { readStored, writeStored } from "../lib/storage";
 import { usePersistentState } from "./usePersistentState";
 import { supabase } from "../lib/supabase";
@@ -471,6 +471,8 @@ export function useAuth() {
     () => readStored("no_offside_user", INITIAL_USER).id,
   );
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
+  const [startupError,setStartupError]=useState("");
+  const [workspaceBoot,setWorkspaceBoot]=useState({account:"",status:"ready",error:""});
   const [storageError, setStorageError] = useState("");
   const [deletedMatch, setDeletedMatch] = useState(null);
   const [user, setUser] = usePersistentState("no_offside_user", INITIAL_USER);
@@ -514,14 +516,19 @@ export function useAuth() {
   };
 
   useEffect(() => {
+    let live=true;
     if (authSession?.user?.id && !demoSession) {
       loadDatabaseMemberships();
       if (authSession.access_token && typeof fetch !== "undefined") {
+        const bootAccount=authSession.user.id;
+        setWorkspaceBoot(prev=>prev.account===bootAccount && prev.status==="ready" ? prev : {account:bootAccount,status:"pending",error:""});
         fetch("/api/teams", {
           headers: { Authorization: `Bearer ${authSession.access_token}` },
         })
-          .then((r) => r.json())
+          .then(async r=>{if(r.ok===false)throw Error("Không tải được thông tin đội.");return r.json();})
           .then((res) => {
+            if(!live)return;
+            if(res?.success===false || res?.error)throw Error("Không tải được thông tin đội. Vui lòng thử lại.");
             if (res?.success && res.team) {
               setTeamSettings(res.team);
               if (res.data) {
@@ -550,16 +557,19 @@ export function useAuth() {
                 teamSettings: res.team,
               });
             }
+            setWorkspaceBoot({account:bootAccount,status:"ready",error:""});
           })
-          .catch(() => {});
+          .catch(() => {if(live)setWorkspaceBoot(prev=>prev.account===bootAccount && prev.status==="ready" ? prev : {account:bootAccount,status:"error",error:"Không tải được thông tin đội. Kiểm tra kết nối rồi thử lại."});});
       }
     } else {
       setDbMemberships([]);
     }
+    return ()=>{live=false;};
   }, [authSession?.user?.id, authSession?.access_token, demoSession]);
 
   const teamId = teamSettings.id || "fc-no-offside-99";
   const accountId = demoSession ? "demo" : authSession?.user.id || "anonymous";
+  const inviteAccountRef=useRef(accountId);inviteAccountRef.current=accountId;
   const dataKey = accountId + "::" + teamId;
   const data = teams[dataKey] ||
     (demoSession ||
@@ -679,7 +689,8 @@ export function useAuth() {
     let live = true;
     supabase.auth
       .getSession()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if(error)throw error;
         if (live) {
           const session = data.session;
           if (session) {
@@ -742,7 +753,7 @@ export function useAuth() {
         }
       })
       .catch(() => {
-        if (live) setAuthLoading(false);
+        if (live) {setStartupError("Không khôi phục được phiên đăng nhập. Kiểm tra kết nối rồi thử lại.");setAuthLoading(false);}
       });
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -1371,31 +1382,38 @@ export function useAuth() {
 
   const createInvite = async (targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
-    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id) {
+    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id && !demoSession) {
       const { data, error } = await supabase.rpc("no_gov_create_invite", {
         p_team_id: tId,
       });
       if (error) throw new Error(error.message);
       if (data?.code) {
-        setTeamSettings((prev) => ({ ...prev, inviteCode: data.code }));
+        setTeamSettings((prev) => prev.id === tId && inviteAccountRef.current===accountId ? ({ ...prev, inviteCode: data.code, inviteStatus: "active" }) : prev);
       }
       return data;
     }
-    const code = "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
-    setTeamSettings((prev) => ({ ...prev, inviteCode: code }));
-    return { success: true, code, status: "active" };
+    throw new Error("Mời thành viên cần phiên đăng nhập và kết nối server. Bản trải nghiệm không tạo mã mời.");
+  };
+
+  const readInvite = async (code, targetTeamId) => {
+    if (!supabase || !authSession?.user?.id || demoSession) throw new Error("Cần đăng nhập để kiểm tra mã mời của đội.");
+    const { data, error } = await supabase.rpc("no_gov_get_invite", {p_code: code});
+    if (error) throw new Error(error.message);
+    if (data?.valid && data.teamId !== targetTeamId) throw new Error("Mã mời không thuộc đội đang chọn.");
+    return data;
   };
 
   const revokeInvite = async (targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
-    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id) {
+    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id && !demoSession) {
       const { data, error } = await supabase.rpc("no_gov_revoke_invite", {
         p_team_id: tId,
       });
       if (error) throw new Error(error.message);
+      if (data?.success) setTeamSettings(prev => prev.id === tId && inviteAccountRef.current===accountId ? {...prev,inviteStatus:"revoked"} : prev);
       return data;
     }
-    return { success: true, revoked: true };
+    throw new Error("Cần phiên đăng nhập và kết nối server để thu hồi mã mời.");
   };
 
   const joinTeamViaInvite = async (code, memberProfile) => {
@@ -1687,6 +1705,8 @@ export function useAuth() {
         Boolean(authSession) &&
         (verifiedAccount !== authSession.user.id ||
           user.id !== authSession.user.id)),
+    startupPending: Boolean(!demoSession && authSession?.access_token && (workspaceBoot.account!==authSession.user.id || workspaceBoot.status==="pending")),
+    startupError: startupError || (!demoSession && workspaceBoot.account===authSession?.user?.id ? workspaceBoot.error : ""),
     demoSession,
     storageError,
     setAttendance,
@@ -1717,6 +1737,7 @@ export function useAuth() {
     joinTeam,
     joinTeamViaInvite,
     createInvite,
+    readInvite,
     revokeInvite,
     dbMemberships,
     loadDatabaseMemberships,

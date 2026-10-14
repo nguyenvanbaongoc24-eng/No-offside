@@ -1,4 +1,5 @@
-import React, { useRef, useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
+import StartupGate from "./components/StartupGate";
 import {
   Home,
   Network,
@@ -37,6 +38,10 @@ import { useGovernance } from "./hooks/useGovernance";
 import GovernanceNotice from "./components/GovernanceNotice";
 
 export default function App() {
+  const [startupAttempt,setStartupAttempt]=useState(0);
+  return <Application key={startupAttempt} onRetryStartup={()=>setStartupAttempt(attempt=>attempt+1)}/>;
+}
+function Application({onRetryStartup}) {
   const auth = useAuth();
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
   const [tab, setTab] = useState(
@@ -110,9 +115,18 @@ export default function App() {
       : !auth.hasTeam && tab === "dashboard"
         ? "onboarding"
         : tab;
+  const navigationAvailable = !["create-team", "invite-landing", "team-settings"].includes(activeTab);
+  const scrollPositions = useRef(new Map());
+  const scrollRoute = useRef(null);
+  const scrollKey = auth.accountId + "::" + auth.teamSettings.id + "::" + activeTab;
+  useLayoutEffect(() => {
+    if (!auth.isLoggedIn || auth.authLoading) return;
+    window.scrollTo({top: scrollPositions.current.get(scrollKey) || 0, behavior:"instant"});
+    scrollRoute.current = scrollKey;
+  }, [scrollKey, auth.isLoggedIn, auth.authLoading]);
   const navigate = (target) => {
+    if (activeTab !== "chat" && scrollRoute.current) scrollPositions.current.set(scrollRoute.current, window.scrollY);
     setTab(target);
-    window.scrollTo({ top: 0, behavior: "instant" });
   };
   let inviteCode =
     window.location.pathname.split("/invite/")[1]?.split("/")[0] ||
@@ -125,17 +139,20 @@ export default function App() {
   const inviteTeam =
     readStored("no_offside_team_" + inviteCode, null) ||
     (inviteCode === auth.teamSettings.id ? auth.teamSettings : null);
-  if (auth.authLoading)
+  if (auth.authLoading || auth.startupPending || auth.startupError)
     return (
+      <StartupGate pending={auth.authLoading || auth.startupPending} error={auth.startupError} onRetry={onRetryStartup}>
       <div className="min-h-screen grid place-items-center bg-slate-50">
         <Loader2
           className="animate-spin text-emerald-600"
           aria-label="Đang kiểm tra phiên đăng nhập"
         />
       </div>
+      </StartupGate>
     );
   if (!auth.isLoggedIn && tab !== "invite-landing")
     return (
+      <StartupGate onRetry={onRetryStartup}>
       <Login
         theme={preferences.value.theme}
         onThemeChange={(theme) => preferences.update({ theme })}
@@ -145,6 +162,7 @@ export default function App() {
           navigate("dashboard");
         }}
       />
+      </StartupGate>
     );
   const fundProps = {
     funds: auth.funds,
@@ -183,19 +201,16 @@ export default function App() {
     { id: "profile", label: "Cá nhân", Icon: User },
   ];
   return (
+    <StartupGate onRetry={onRetryStartup}>
     <div className="app-shell bg-slate-100 min-h-screen text-gray-900 flex justify-center antialiased">
-      <div className={"app-frame w-full max-w-md min-h-screen bg-slate-50 relative" + (["chat", "profile"].includes(activeTab) ? "" : " pb-safe-nav")}>
+      <div className={"app-frame app-scroll-frame w-full max-w-md bg-slate-50 relative" + (navigationAvailable ? " app-has-navigation" : "") + (activeTab === "chat" ? " app-chat-frame" : "")}>
         {auth.storageError && (
           <div role="alert" className="p-3 bg-rose-50 text-rose-700">
             {auth.storageError}
           </div>
         )}
-        <div className="session-banner">
-          {auth.demoSession
-            ? "Bản trải nghiệm • dữ liệu lưu trên thiết bị"
-            : "Dữ liệu đội đang lưu trên thiết bị này"}
-        </div>
-        <main>
+        {auth.demoSession && <div className="session-banner">Bản trải nghiệm • dữ liệu lưu trên thiết bị</div>}
+        <main key={scrollKey} className={activeTab === "chat" ? "" : "app-page-transition"}>
           {activeTab === "dashboard" && (
             <GovernanceNotice
               governance={governance}
@@ -318,6 +333,7 @@ export default function App() {
                 hasTeam={auth.hasTeam}
                 preferences={preferences}
                 onCreateInvite={auth.createInvite}
+                onReadInvite={auth.readInvite}
                 onRevokeInvite={auth.revokeInvite}
                 onUpdateUsername={auth.updateUsername}
                 onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
@@ -360,6 +376,7 @@ export default function App() {
               currentUserRole={auth.currentUserRole}
               user={shared.user}
               onCreateInvite={auth.createInvite}
+              onReadInvite={auth.readInvite}
               onRevokeInvite={auth.revokeInvite}
               onSaveMatch={saveMatch}
               onNavigate={navigate}
@@ -405,6 +422,7 @@ export default function App() {
               onRemoveMember={() => navigate("governance")}
               onAddMember={auth.addMember}
               onCreateInvite={auth.createInvite}
+              onReadInvite={auth.readInvite}
               onRevokeInvite={auth.revokeInvite}
             />
           )}
@@ -545,5 +563,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </StartupGate>
   );
 }

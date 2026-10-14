@@ -12,8 +12,8 @@ export default defineConfig({
         name: 'No Offside',
         short_name: 'No Offside',
         description: 'Quản lý đội bóng nội bộ',
-        theme_color: '#f8fafc',
-        background_color: '#f8fafc',
+        theme_color: '#F5F7F6',
+        background_color: '#FAFBF8',
         display: 'standalone',
         icons: [
           {

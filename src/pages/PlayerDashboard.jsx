@@ -1,3 +1,5 @@
+import MatchCountdown from "../components/MatchCountdown";
+import {useTeamInvite} from "../hooks/useTeamInvite";
 import LateArrivalPanel from "../components/LateArrivalPanel";
 import SwipeMatchCard from "../components/SwipeMatchCard";
 import QrPreview from "../components/QrPreview";
@@ -72,6 +74,7 @@ export default function PlayerDashboard({
   teamSettings,
   demoSession,
   onCreateInvite,
+  onReadInvite,
   onRevokeInvite,
 }) {
   // Modal states
@@ -84,10 +87,9 @@ export default function PlayerDashboard({
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteCode, setInviteCode] = useState(
-    teamSettings?.inviteCode || teamSettings?.id || "NO-FC99",
-  );
-  const [inviteStatus, setInviteStatus] = useState("active");
+  const invite = useTeamInvite(teamSettings, currentUserRole, onCreateInvite, onRevokeInvite, onReadInvite);
+  const inviteCode = invite.code;
+  const openInvite = () => { setShowInviteModal(true); invite.load().catch(() => {}); };
   const [attendanceActiveTab, setAttendanceActiveTab] = useState("attending"); // 'attending' | 'maybe' | 'absent' | 'unvoted'
   const [copiedField, setCopiedField] = useState("");
 
@@ -139,30 +141,9 @@ export default function PlayerDashboard({
       onUpdateMatchStats(goalsReported, assistsReported);
     }
     setStatsSaved(true);
-    setTimeout(() => setStatsSaved(false), 3000);
+
   };
 
-  // Real-time countdown state (Requirement: Real-time countdown like "Còn 02:15:30 để chốt danh sách")
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  const formatCountdown = () => {
-    const seconds = Math.max(
-      0,
-      Math.floor((new Date(activeMatch.deadline).getTime() - now) / 1000),
-    );
-    const pad = (n) => String(n).padStart(2, "0");
-    return (
-      (seconds >= 86400 ? Math.floor(seconds / 86400) + " ngày " : "") +
-      pad(Math.floor(seconds / 3600) % 24) +
-      ":" +
-      pad(Math.floor(seconds / 60) % 60) +
-      ":" +
-      pad(seconds % 60)
-    );
-  };
   // Mock Attendance Roster with 4 tabs: [Có mặt] - [Chưa chắc] - [Báo vắng] - [Chưa điểm danh (Mới)]
   const roster = rosterFor(members, attendance, user);
   const rosterCount = members.length;
@@ -211,11 +192,13 @@ export default function PlayerDashboard({
     ),
   };
 
+  useEffect(() => {if(!statsSaved)return;const timer=setTimeout(()=>setStatsSaved(false),3000);return ()=>clearTimeout(timer);},[statsSaved]);
+  useEffect(() => {if(!copiedField)return;const timer=setTimeout(()=>setCopiedField(""),2000);return ()=>clearTimeout(timer);},[copiedField]);
   const copyToClipboard = async (text, field) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
-      setTimeout(() => setCopiedField(""), 2000);
+
     } catch {
       alert(
         "Không sao chép được. Vui lòng chọn nội dung để sao chép thủ công.",
@@ -281,7 +264,7 @@ export default function PlayerDashboard({
   const isLeader = isOwner || isAdmin;
 
   return (
-    <div className="relative min-h-screen bg-slate-50 text-gray-900 pb-safe pb-32 font-sans antialiased">
+    <div className="dashboard-page relative bg-slate-50 text-gray-900 font-sans antialiased">
       {/* =========================================================
           YÊU CẦU 1: BẢNG TIN CHÀO MỪNG (WELCOME POPUP / ANNOUNCEMENT)
           - Hiển thị ngay sau khi vào Dashboard
@@ -434,7 +417,7 @@ export default function PlayerDashboard({
                   matchStatus === "upcoming" && (
                     <div className="hidden sm:flex items-center gap-1 bg-rose-50 border border-rose-200/80 text-rose-700 px-2 py-0.5 rounded-full tabular-nums font-bold text-xs">
                       <Clock className="w-3 h-3 text-rose-600 animate-pulse" />
-                      <span>{formatCountdown()}</span>
+                      <MatchCountdown deadline={activeMatch.deadline} />
                     </div>
                   )
                 )}
@@ -468,7 +451,7 @@ export default function PlayerDashboard({
                     Hạn chốt điểm danh
                   </p>
                   <p className="text-xs font-bold text-amber-700 tabular-nums tracking-tight">
-                    Còn {formatCountdown()} để chốt danh sách
+                    Còn <MatchCountdown deadline={activeMatch.deadline} /> để chốt danh sách
                   </p>
                 </div>
               </div>
@@ -865,7 +848,7 @@ export default function PlayerDashboard({
               {/* Nút Mời QR */}
               <button
                 type="button"
-                onClick={() => setShowInviteModal(true)}
+                onClick={openInvite}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
                 title="Mời qua QR & Mã Club"
               >
@@ -886,7 +869,7 @@ export default function PlayerDashboard({
         )}
 
         {/* CARD MỜI VÀO ĐỘI (MÃ CLUB & QR CODE) */}
-        <div className="w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-left">
+        <div className="dashboard-invite-panel w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-left">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
               <QrCode className="w-5 h-5" />
@@ -895,7 +878,7 @@ export default function PlayerDashboard({
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MÃ CLUB:</span>
                 <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 tracking-wider truncate block max-w-[160px] sm:max-w-[200px]">
-                  {inviteCode}
+                  {inviteCode || "Chưa có mã mời"}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
@@ -907,7 +890,7 @@ export default function PlayerDashboard({
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={() => copyToClipboard(inviteCode, "clubCode")}
+              onClick={async () => {if(!inviteCode){openInvite();return;}try{const valid=await invite.load();await copyToClipboard(valid.code,"clubCode");}catch{setShowInviteModal(true);}}}
               className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 outline-none"
             >
               {copiedField === "clubCode" ? (
@@ -925,7 +908,7 @@ export default function PlayerDashboard({
 
             <button
               type="button"
-              onClick={() => setShowInviteModal(true)}
+              onClick={openInvite}
               className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-all active:scale-95"
             >
               <QrCode className="w-3.5 h-3.5" />
@@ -1586,7 +1569,7 @@ export default function PlayerDashboard({
         onRemoveMember={onRemoveMember}
         onOpenInvite={() => {
           setShowTeamManagerModal(false);
-          setShowInviteModal(true);
+          openInvite();
         }}
         onOpenAddMember={() => setShowAddMemberModal(true)}
       />
@@ -1606,24 +1589,14 @@ export default function PlayerDashboard({
         teamName={teamSettings?.teamName || user?.teamName || "FC No Offside"}
         teamLogo={teamSettings?.logo || ""}
         teamCode={inviteCode}
-        inviteStatus={inviteStatus}
+        inviteStatus={invite.status}
+        loading={invite.loading} error={invite.error} onRetry={() => invite.load()}
         isLeader={["owner", "admin"].includes(currentUserRole)}
-        onRegenerateCode={async () => {
-          if (onCreateInvite) {
-            const res = await onCreateInvite(teamSettings?.id);
-            if (res?.code) setInviteCode(res.code);
-            setInviteStatus("active");
-          }
-        }}
-        onRevokeCode={async () => {
-          if (onRevokeInvite) {
-            await onRevokeInvite(teamSettings?.id);
-            setInviteStatus("revoked");
-          }
-        }}
+        onRegenerateCode={() => invite.load(true)}
+        onRevokeCode={invite.revoke}
         onPreviewLanding={() => {
           setShowInviteModal(false);
-          if (onNavigate) onNavigate("invite-landing");
+          if (inviteCode) window.open(`/invite/${encodeURIComponent(inviteCode)}`, "_blank", "noopener,noreferrer");
         }}
       />
     </div>

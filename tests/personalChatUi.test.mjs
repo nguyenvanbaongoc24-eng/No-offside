@@ -62,3 +62,9 @@ test('profile save stays pending until its callback succeeds',async()=>{
  let submission;act(()=>submission=tree.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.equal(tree.root.findAllByProps({role:'status'}).length,0);assert.ok(tree.root.findAllByType('button').some(b=>b.props.disabled));
  await act(async()=>{finish();await submission;});assert.equal(tree.root.findAllByProps({role:'status'}).length,1);assert.equal(tree.root.findAllByType('form').length,1);act(()=>tree.unmount());
 });
+
+test('personal invite status updates only after revoke/regenerate callback acknowledgement',async()=>{
+ let tree;act(()=>tree=renderer.create(React.createElement(Profile,{user,teamSettings:{id:'team-one',teamName:'FC',inviteCode:'QA1234'},currentUserRole:'owner',hasTeam:true,initialDetail:'invite',onCreateInvite:async()=>({code:'QA5678'}),onRevokeInvite:async()=>({success:true}),onLogout(){}})));
+ await act(async()=>await tree.root.findByProps({teamCode:'QA1234'}).props.onRevokeInvite());assert.equal(tree.root.findByProps({teamCode:'QA1234'}).props.inviteStatus,'revoked');
+ await act(async()=>await tree.root.findByProps({teamCode:'QA1234'}).props.onCreateInvite());assert.equal(tree.root.findByProps({teamCode:'QA5678'}).props.inviteStatus,'active');act(()=>tree.unmount());
+});

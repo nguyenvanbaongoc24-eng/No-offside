@@ -53,6 +53,7 @@ export default function ProfileMenu(props) {
     [busy, setBusy] = useState(false),
     [username, setUsername] = useState(user.username || "");
   const [inviteCode, setInviteCode] = useState(teamSettings?.inviteCode || "");
+  const [inviteStatus, setInviteStatus] = useState(teamSettings?.inviteStatus || "active");
   const owner = currentUserRole === "owner",
     leader = owner || currentUserRole === "admin";
   const titles = {
@@ -107,7 +108,7 @@ export default function ProfileMenu(props) {
           </button>
           <h1>{t(titles[detail])}</h1>
         </header>
-        {detail === "invite" && leader ? (<InviteShare teamName={teamSettings?.teamName} teamLogo={teamSettings?.logo} teamCode={inviteCode} currentUserRole={currentUserRole} onClose={() => setDetail(null)} onCreateInvite={async () => { const invite = await onCreateInvite(teamSettings.id); if (invite?.code) setInviteCode(invite.code); return invite; }} onRevokeInvite={onRevokeInvite ? () => onRevokeInvite(teamSettings.id) : undefined} />) : detail === "management" && leader ? (
+        {detail === "invite" && leader ? (<InviteShare teamName={teamSettings?.teamName} teamLogo={teamSettings?.logo} teamCode={inviteCode} inviteStatus={inviteStatus} currentUserRole={currentUserRole} onClose={() => setDetail(null)} onCreateInvite={async () => { const invite = await onCreateInvite(teamSettings.id); if (!invite?.code) throw new Error("Không tạo được mã mời."); setInviteCode(invite.code); setInviteStatus("active"); return invite; }} onRevokeInvite={onRevokeInvite ? async () => { const result = await onRevokeInvite(teamSettings.id); setInviteStatus("revoked"); return result; } : undefined} />) : detail === "management" && leader ? (
           <section className="profile-group profile-management">
             {owner && onNavigate && <Row icon={Settings} onClick={() => onNavigate("team-settings")}>{t("Cấu hình đội")}</Row>}
             <Row icon={Shield} onClick={() => setDetail("admin")}>{t("Phân quyền và quản trị")}</Row>

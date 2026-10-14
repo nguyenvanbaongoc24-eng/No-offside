@@ -25,7 +25,7 @@ Hai attachment chỉ có đặc tả chữ, không có ảnh mockup. Đã tham c
 
 ## Kiểm tra
 
-- `npm test`: 80/80 pass. Test mới bao gồm gửi trắng/trùng, quota failure giữ draft, phạm vi đội/tài khoản, đọc tin cũ khi có tin mới, grouping/date, keyboard callback/cleanup, quyền menu, avatar lỗi, form thiếu dữ liệu, lưu thất bại và chờ callback thành công.
+- `npm test`: 81/81 pass. Test mới bao gồm gửi trắng/trùng, quota failure giữ draft, phạm vi đội/tài khoản, đọc tin cũ khi có tin mới, grouping/date, keyboard callback/cleanup, quyền menu, avatar lỗi, form thiếu dữ liệu, lưu thất bại, chờ callback thành công và trạng thái lời mời sau callback tạo/thu hồi.
 - `npm run build` và `git diff --check`: pass. Repository không có lint/typecheck script. Cảnh báo import.meta trong test bundle CJS có sẵn không phải lỗi runtime mới.
 - 13 case × Light/Dark × 320/360/390/430/1280 = 130 phép đo layout: không tràn ngang, control được đo ≥44×44, nhãn nav không bị cắt. Có Owner/Admin/Member, tên dài, 30 tin chứa URL dài/nhiều dòng, empty và English.
 - Tại 390×844: composer bottom 752, capsule top 764, khoảng cách 12 px. Textarea tối thiểu 16 px. Probe chữ trên nền phẳng không phát hiện cặp dưới ngưỡng; gradient và alpha không thuộc probe này.

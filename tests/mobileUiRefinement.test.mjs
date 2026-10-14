@@ -135,8 +135,11 @@ test("Personal menu keeps forms closed and hides management for member and teaml
   assert.match(member, /Đăng xuất/);
   assert.doesNotMatch(member, /<form|Phân quyền|Yêu cầu chờ duyệt|Cài đặt đội/);
   const owner = compiled.exports.render({ ...props, currentUserRole: "owner" });
-  assert.match(owner, /Phân quyền/);
-  assert.match(owner, /Cài đặt đội/);
+  assert.match(owner, /Quản lý đội/);
+  assert.doesNotMatch(owner, /Phân quyền/);
+  const management = compiled.exports.render({ ...props, currentUserRole: "owner", initialDetail: "management" });
+  assert.match(management, /Phân quyền và quản trị/);
+  assert.match(management, /Cấu hình đội/);
   const teamless = compiled.exports.render({ ...props, hasTeam: false });
   assert.doesNotMatch(teamless, /Nội quy|Thành viên|Phân quyền/);
 });

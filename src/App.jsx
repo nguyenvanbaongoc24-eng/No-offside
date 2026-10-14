@@ -38,6 +38,7 @@ import GovernanceNotice from "./components/GovernanceNotice";
 
 export default function App() {
   const auth = useAuth();
+  const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
   const [tab, setTab] = useState(
     window.location.pathname.startsWith("/invite/")
       ? "invite-landing"
@@ -183,7 +184,7 @@ export default function App() {
   ];
   return (
     <div className="app-shell bg-slate-100 min-h-screen text-gray-900 flex justify-center antialiased">
-      <div className="app-frame w-full max-w-md min-h-screen bg-slate-50 relative pb-safe-nav">
+      <div className={"app-frame w-full max-w-md min-h-screen bg-slate-50 relative" + (["chat", "profile"].includes(activeTab) ? "" : " pb-safe-nav")}>
         {auth.storageError && (
           <div role="alert" className="p-3 bg-rose-50 text-rose-700">
             {auth.storageError}
@@ -300,6 +301,10 @@ export default function App() {
               accountId={auth.accountId}
               user={auth.user}
               members={auth.teamSettings.members}
+              language={preferences.value.language || "vi"}
+              teamName={auth.teamSettings.teamName}
+              teamLogo={auth.teamSettings.logo}
+              onKeyboardChange={setChatKeyboardOpen}
               birthdayEnabled={
                 auth.teamSettings.appearance.birthdayReportEnabled !== false
               }
@@ -312,6 +317,8 @@ export default function App() {
                 teamSettings={auth.teamSettings}
                 hasTeam={auth.hasTeam}
                 preferences={preferences}
+                onCreateInvite={auth.createInvite}
+                onRevokeInvite={auth.revokeInvite}
                 onUpdateUsername={auth.updateUsername}
                 onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
                 onLogout={auth.logout}
@@ -441,7 +448,7 @@ export default function App() {
         {!["create-team", "invite-landing", "team-settings"].includes(
           activeTab,
         ) && (
-          <FloatingBottomNavigation tabs={tabs} activeTab={activeTab} avatar={auth.user?.avatar} visible={navVisible} onNavigate={navigate} onReveal={revealNav} />
+          <FloatingBottomNavigation tabs={tabs} activeTab={activeTab} avatar={auth.user?.avatar} visible={activeTab === "chat" ? !chatKeyboardOpen : navVisible} onNavigate={navigate} onReveal={revealNav} />
         )}
         {auth.deletedMatch && leader && (
           <div className="match-undo" role="status">

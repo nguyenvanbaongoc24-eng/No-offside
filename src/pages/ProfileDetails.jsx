@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { personalText } from "../lib/personalCopy";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -31,10 +32,12 @@ import {
   UserX,
   BookOpen,
 } from "lucide-react";
+import Avatar from "../components/Avatar";
 import { imageDataUrl } from "../lib/images";
 
 export default function ProfileDetails({
   detail = "profile",
+  preferences,
   user,
   currentUserRole = "owner",
   onToggleRole,
@@ -54,41 +57,33 @@ export default function ProfileDetails({
   onRequestAdmin,
   demoSession,
 }) {
+  const t = text => personalText(text, preferences?.value.language);
   // Personal Info Form State
   const [avatar, setAvatar] = useState(user.avatar);
-  const [name, setName] = useState(user.name);
-  const [number, setNumber] = useState(user.number || 9);
-  const [role, setRole] = useState(user.role || "Tiền Đạo (ST)");
-  const [height, setHeight] = useState(user.height || 175);
-  const [weight, setWeight] = useState(user.weight || 68);
+  const [name, setName] = useState(user.name ?? "");
+  const [number, setNumber] = useState(user.number ?? "");
+  const [role, setRole] = useState(user.role ?? "");
+  const [height, setHeight] = useState(user.height ?? "");
+  const [weight, setWeight] = useState(user.weight ?? "");
   const [phone, setPhone] = useState(user.phone || "");
   const [isSaved, setIsSaved] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false), [profileError, setProfileError] = useState("");
+  useEffect(() => {
+    const fail = event => { setProfileError(event.detail || "Không thể lưu dữ liệu trên thiết bị."); setIsSaved(false); };
+    window.addEventListener("storage-error", fail);
+    return () => window.removeEventListener("storage-error", fail);
+  }, []);
 
   // Captain Team Name State
   const isOwner = currentUserRole === "owner";
   const isAdmin = currentUserRole === "admin";
   const [editingTeamName, setEditingTeamName] = useState(
-    teamSettings?.teamName || user.teamName || "FC No Offside",
+    teamSettings?.teamName || user.teamName || "",
   );
   const [teamNameSaved, setTeamNameSaved] = useState(false);
 
   // Sub-Admins list
-  const subAdmins = teamSettings?.subAdmins || [
-    {
-      id: 101,
-      name: "Nguyễn Hoàng Hải",
-      number: 10,
-      customTitle: "Thủ Quỹ",
-      phone: "0988776655",
-    },
-    {
-      id: 102,
-      name: "Đặng Văn Lâm",
-      number: 1,
-      customTitle: "Đội Phó",
-      phone: "0977889900",
-    },
-  ];
+  const subAdmins = teamSettings?.subAdmins || [];
 
   // Pending Admin Nominations
   const pendingRequests = teamSettings?.pendingAdminRequests || [];
@@ -123,28 +118,19 @@ export default function ProfileDetails({
     try {
       setAvatar(await imageDataUrl(e.target.files?.[0]));
     } catch (err) {
-      alert(err.message);
+      setProfileError(err.message);
     }
   };
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
+    if (savingProfile) return;
+    setSavingProfile(true); setProfileError(""); setIsSaved(false);
     try {
-      onUpdateProfile({
-        name,
-        number,
-        role,
-        height: Number(height),
-        weight: Number(weight),
-        avatar,
-        phone: phone.trim(),
-      });
-    } catch (err) {
-      alert(err.message);
-      return;
-    }
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2500);
+      await onUpdateProfile({ name, number, role, height: height === "" ? "" : Number(height), weight: weight === "" ? "" : Number(weight), avatar, phone: phone.trim() });
+      setIsSaved(true);
+    } catch (err) { setProfileError(err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại."); }
+    finally { setSavingProfile(false); }
   };
 
   const handleSaveTeamName = (e) => {
@@ -218,26 +204,28 @@ export default function ProfileDetails({
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-emerald-600" />
               <h3 className="text-xs font-bold  tracking-wider text-gray-800">
-                Hồ sơ cá nhân
+                {t("Hồ sơ cá nhân")}
               </h3>
             </div>
             <span className="text-xs text-gray-400 font-bold">
-              Chỉnh sửa & Cập nhật
+              {t("Chỉnh sửa & Cập nhật")}
             </span>
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
-            <label className="form-field" htmlFor="profile-avatar">Ảnh đại diện
-              <img src={avatar} alt="Ảnh đại diện hiện tại" className="w-16 h-16 rounded-full object-cover"/>
+            <label className="form-field" htmlFor="profile-avatar">{t("Ảnh đại diện")}
+              <Avatar src={avatar} name={name} className="profile-form-avatar"/>
+              {avatar !== user.avatar && <span className="field-hint">{t("Ảnh mới sẽ áp dụng khi cập nhật hồ sơ.")}</span>}
               <input id="profile-avatar" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAvatarChange}/>
             </label>
             <div>
               <label htmlFor="profile-name" className="text-gray-600 block mb-1 font-bold">
-                Họ và tên
+                {t("Họ và tên")}
               </label>
               <input
                 type="text"
                 id="profile-name"
+                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 text-gray-900 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
@@ -250,11 +238,15 @@ export default function ProfileDetails({
                   htmlFor="profile-number"
                   className="text-gray-600 block mb-1 font-bold"
                 >
-                  Số áo thi đấu
+                  {t("Số áo thi đấu")}
                 </label>
                 <input
                   type="number"
                   id="profile-number"
+                  required
+                  inputMode="numeric"
+                  min="1" max="99"
+                  aria-invalid={/số áo/i.test(profileError) || undefined}
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
                   className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 tabular-nums font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
@@ -265,7 +257,7 @@ export default function ProfileDetails({
                   htmlFor="profile-role"
                   className="text-gray-600 block mb-1 font-bold"
                 >
-                  Vị trí sở trường
+                  {t("Vị trí sở trường")}
                 </label>
                 <input
                   type="text"
@@ -277,17 +269,21 @@ export default function ProfileDetails({
               </div>
             </div>
 
+            {profileError && /số áo/i.test(profileError) && <p role="alert" className="form-error">{t(profileError)}</p>}
+            <h3 className="profile-form-section">{t("Thông tin bổ sung (không bắt buộc)")}</h3>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label
                   htmlFor="profile-height"
                   className="text-gray-600 block mb-1 font-bold"
                 >
-                  Chiều cao (cm)
+                  {t("Chiều cao (cm)")}
                 </label>
                 <input
                   type="number"
                   id="profile-height"
+                  inputMode="decimal"
+                  step="any"
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
                   className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 tabular-nums font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
@@ -298,11 +294,12 @@ export default function ProfileDetails({
                   htmlFor="profile-weight"
                   className="text-gray-600 block mb-1 font-bold"
                 >
-                  Cân nặng (kg)
+                  {t("Cân nặng (kg)")}
                 </label>
                 <input
                   type="number"
                   id="profile-weight"
+                  inputMode="decimal"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   className="w-full h-11 bg-gray-50 border border-gray-200/90 rounded-2xl px-3.5 tabular-nums font-bold text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
@@ -312,7 +309,7 @@ export default function ProfileDetails({
 
             <div>
               <label htmlFor="profile-phone" className="text-gray-600 block mb-1 font-bold">
-                Số điện thoại liên hệ (tùy chọn)
+                {t("Số điện thoại liên hệ (tùy chọn)")}
               </label>
               <input
                 type="tel"
@@ -331,10 +328,13 @@ export default function ProfileDetails({
             <motion.button
               whileTap={{ scale: 0.95 }}
               type="submit"
+              disabled={savingProfile}
               className="w-full h-11 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs shadow-lg shadow-green-500/30 flex items-center justify-center whitespace-nowrap cursor-pointer mt-1"
             >
-              {isSaved ? " Đã Lưu Thông Tin" : "Lưu Hồ Sơ Thành viên"}
+              {savingProfile ? t("Đang cập nhật…") : t("Cập nhật hồ sơ")}
             </motion.button>
+            {profileError && !/số áo/i.test(profileError) && <p role="alert" className="form-error">{t(profileError)}</p>}
+            {isSaved && !profileError && <p role="status" className="field-hint">{t("Đã cập nhật trong ứng dụng. Đồng bộ sử dụng cơ chế hiện có.")}</p>}
           </form>
         </section>
       )}

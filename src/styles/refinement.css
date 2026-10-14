@@ -432,7 +432,8 @@ body,.app-shell { min-height:100vh; min-height:100dvh; }
 .app-page-transition { animation:app-page-enter var(--motion-page) var(--motion-ease) both; }
 @keyframes app-page-enter { from {opacity:.65;} to {opacity:1;} }
 button { transition-duration:var(--motion-control),var(--motion-control),var(--motion-press),var(--motion-press); }
-button[class*="duration-"],summary[class*="duration-"] { transition-duration:var(--motion-control); }
+button[class*="transition"],button[class*="duration-"],summary[class*="duration-"] { transition-property:background-color,color,border-color,opacity,transform; transition-duration:var(--motion-control),var(--motion-control),var(--motion-control),var(--motion-menu),var(--motion-press); }
+html[data-theme] .nav-item { transition:background-color var(--motion-control),color var(--motion-control),transform var(--motion-press); }
 .bottom-navigation { transition:transform var(--motion-menu) var(--motion-ease),opacity var(--motion-menu) var(--motion-ease); }
 .profile-detail,.profile-return { animation:app-page-enter var(--motion-page) var(--motion-ease) both; }
 .profile-detail .compact-header h1 { margin-inline:8px; animation:detail-enter var(--motion-page) var(--motion-ease) both; }

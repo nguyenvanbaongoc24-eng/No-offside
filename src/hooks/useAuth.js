@@ -1437,51 +1437,68 @@ export function useAuth() {
       typeof supabase.rpc === "function" &&
       authSession?.user?.id
     ) {
-      const { data, error } = await supabase.rpc("no_gov_join_via_invite", {
-        p_code: cleanCode,
-        p_name: name,
-        p_number: number,
-        p_position: position,
-      });
-      if (error) throw new Error(error.message);
+      try {
+        const { data, error } = await supabase.rpc("no_gov_join_via_invite", {
+          p_code: cleanCode,
+          p_name: name,
+          p_number: number,
+          p_position: position,
+        });
+        if (!error && data && data.success) {
+          const teamObj = data.team;
+          const me = data.me;
 
-      if (data && data.success) {
-        const teamObj = data.team;
-        const me = data.me;
+          const newSettings = {
+            ...teamSettings,
+            id: teamObj.id,
+            teamName: teamObj.name,
+            logo: teamObj.logo || teamSettings.logo,
+            members: [
+              ...(teamSettings.members || []).filter((m) => m.id !== me.user_id),
+              {
+                id: me.user_id,
+                name: me.name,
+                number: me.jersey_number,
+                role: me.position,
+                roleType: me.role || "member", // strictly 'member'
+                customTitle: "Cầu thủ",
+              },
+            ],
+          };
+          setTeamSettings(newSettings);
+          writeStored("no_offside_team_" + teamObj.id, newSettings);
 
-        const newSettings = {
-          ...teamSettings,
-          id: teamObj.id,
-          teamName: teamObj.name,
-          logo: teamObj.logo || teamSettings.logo,
-          members: [
-            ...(teamSettings.members || []).filter((m) => m.id !== me.user_id),
-            {
-              id: me.user_id,
-              name: me.name,
-              number: me.jersey_number,
-              role: me.position,
-              roleType: me.role || "member", // strictly 'member'
-              customTitle: "Cầu thủ",
-            },
-          ],
-        };
-        setTeamSettings(newSettings);
-        writeStored("no_offside_team_" + teamObj.id, newSettings);
+          setUser((prev) => ({
+            ...prev,
+            name: me.name,
+            number: me.jersey_number,
+            role: me.position,
+            teamName: teamObj.name,
+            isCaptain: false,
+            customTitle: "Cầu thủ",
+          }));
+          setCurrentUserRole(me.role || "member");
 
-        setUser((prev) => ({
-          ...prev,
-          name: me.name,
-          number: me.jersey_number,
-          role: me.position,
-          teamName: teamObj.name,
-          isCaptain: false,
-          customTitle: "Cầu thủ",
-        }));
-        setCurrentUserRole(me.role || "member");
-
-        await loadDatabaseMemberships();
-        return data;
+          await loadDatabaseMemberships();
+          return data;
+        }
+        if (error) {
+          const isMissingRpc =
+            error.code === "PGRST202" ||
+            error.code === "42883" ||
+            error.message?.includes("schema cache") ||
+            error.message?.includes("Could not find the function");
+          if (!isMissingRpc) {
+            throw new Error(error.message);
+          }
+        }
+      } catch (err) {
+        if (
+          !err.message?.includes("schema cache") &&
+          !err.message?.includes("Could not find the function")
+        ) {
+          throw err;
+        }
       }
     }
 

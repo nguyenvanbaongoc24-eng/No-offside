@@ -75,6 +75,11 @@ export default function ProfileMenu(props) {
     team: "Đội đang tham gia",
     invite: "Mời thành viên",
   };
+  const navigateDetail = (dest) => {
+    setInviteOpen(false);
+    setError("");
+    setDetail(dest);
+  };
   const logout = async () => {
     if (busy) return;
     setBusy(true);
@@ -113,8 +118,8 @@ export default function ProfileMenu(props) {
         {detail === "management" && leader ? (
           <section className="profile-group profile-management">
             {owner && onNavigate && <Row icon={Settings} onClick={() => onNavigate("team-settings")}>{t("Cấu hình đội")}</Row>}
-            <Row icon={Shield} onClick={() => setDetail("admin")}>{t("Phân quyền và quản trị")}</Row>
-            {owner && <Row icon={ClipboardList} onClick={() => setDetail("requests")}>Yêu cầu chờ duyệt{teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row>}
+            <Row icon={Shield} onClick={() => navigateDetail("admin")}>{t("Phân quyền và quản trị")}</Row>
+            {owner && <Row icon={ClipboardList} onClick={() => navigateDetail("requests")}>Yêu cầu chờ duyệt{teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row>}
           </section>
         ) : detail === "stats" ? (
           <section className="settings-card m-4"><h2>{t("Thành tích của tôi")}</h2><dl className="profile-stats">{[["Trận",user.stats?.matches],["Bàn thắng",user.stats?.goals],["Kiến tạo",user.stats?.assists]].map(([label,value])=><div key={t(label)}><dt>{t(label)}</dt><dd>{value ?? "—"}</dd></div>)}</dl></section>
@@ -200,24 +205,24 @@ export default function ProfileMenu(props) {
           <Avatar src={user.avatar} name={user.name} />
           <div><h1>{user.name || t("Hồ sơ của bạn")}</h1><p>{user.number ? "#" + user.number : t("Chưa có số áo")}{user.role ? " · " + user.role : ""}</p><p>{hasTeam ? teamSettings?.teamName || user.teamName : t("Chưa tham gia đội")}{hasTeam ? " · " + (owner ? t("Chủ đội") : leader ? t("Quản trị viên") : t("Thành viên")) : ""}</p></div>
         </section>
-        <button type="button" className="profile-edit-button" onClick={() => setDetail("profile")}>{t("Sửa hồ sơ")}<ChevronRight size={16} aria-hidden="true" /></button>
+        <button type="button" className="profile-edit-button" onClick={() => navigateDetail("profile")}>{t("Sửa hồ sơ")}<ChevronRight size={16} aria-hidden="true" /></button>
       </header>
       {hasTeam && onNavigate && (
         <section className="profile-group" aria-label="Thao tác nhanh"><h2>{t("Thao tác nhanh")}</h2><div className="profile-quick-grid">
           <button type="button" onClick={() => onNavigate("governance")}><BookOpen size={20} /><span>{t("Nội quy")}</span></button>
           {leader && onCreateInvite && <button type="button" disabled={busy} onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
-          {leader && <button type="button" onClick={() => setDetail("management")}><Settings size={20} /><span>{t("Quản lý đội")}</span></button>}
+          {leader && <button type="button" onClick={() => navigateDetail("management")}><Settings size={20} /><span>{t("Quản lý đội")}</span></button>}
         </div></section>
       )}
       <section className="profile-group"><h2>{t("Hồ sơ")}</h2>
-        <Row icon={User} onClick={() => setDetail("profile")}>{t("Thông tin cá nhân")}</Row>
-        {user.stats && <Row icon={Trophy} onClick={() => setDetail("stats")}>{t("Thành tích của tôi")}</Row>}
+        <Row icon={User} onClick={() => navigateDetail("profile")}>{t("Thông tin cá nhân")}</Row>
+        {user.stats && <Row icon={Trophy} onClick={() => navigateDetail("stats")}>{t("Thành tích của tôi")}</Row>}
       </section>
       {hasTeam ? (
         <section className="profile-group">
           <h2>{t("Đội bóng")}</h2>
-          <Row icon={Users} onClick={() => setDetail("team")}>{t("Đội đang tham gia")}</Row>
-          <Row icon={Users} onClick={() => setDetail("members")}>
+          <Row icon={Users} onClick={() => navigateDetail("team")}>{t("Đội đang tham gia")}</Row>
+          <Row icon={Users} onClick={() => navigateDetail("members")}>
             {t("Thành viên")}
           </Row>
           {onNavigate && (
@@ -251,16 +256,16 @@ export default function ProfileMenu(props) {
           )}
         </section>
       )}
-      {hasTeam && leader && <section className="profile-group"><h2>{t("Quản lý đội")}</h2><Row icon={Shield} onClick={() => setDetail("management")}>Quản lý đội{owner && teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row></section>}
+      {hasTeam && leader && <section className="profile-group"><h2>{t("Quản lý đội")}</h2><Row icon={Shield} onClick={() => navigateDetail("management")}>Quản lý đội{owner && teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row></section>}
       <section className="profile-group"><h2>{t("Tùy chọn")}</h2>
-        {appearancePanel && <Row icon={Palette} onClick={() => setDetail("appearance")}>{t("Giao diện và font")}</Row>}
-        {appearancePanel && <Row icon={Languages} onClick={() => setDetail("appearance")}>{t("Ngôn ngữ")}</Row>}
+        {appearancePanel && <Row icon={Palette} onClick={() => navigateDetail("appearance")}>{t("Giao diện và font")}</Row>}
+        {appearancePanel && <Row icon={Languages} onClick={() => navigateDetail("appearance")}>{t("Ngôn ngữ")}</Row>}
         {onOpenNotifications && <Row icon={Bell} onClick={onOpenNotifications}>{t("Lịch sử thông báo")}</Row>}
       </section>
       <section className="profile-group">
         <h2>{t("Tài khoản")}</h2>
         {accountPanel && (
-          <Row icon={ArrowRightLeft} onClick={() => setDetail("accounts")}>
+          <Row icon={ArrowRightLeft} onClick={() => navigateDetail("accounts")}>
             {t("Chuyển tài khoản")}
           </Row>
         )}

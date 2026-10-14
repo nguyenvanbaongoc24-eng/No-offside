@@ -125,3 +125,36 @@ test('document navigation hides for keyboard, restores without scroll jump, clea
  keyboard=0;act(()=>{resizeListeners.get('resize')();frames.shift()();});assert.equal(tree.root.findByType('span').props['data-visible'],true);
  act(()=>tree.update(React.createElement(Demo,{route:'chat'})));assert.equal(resizeListeners.size,0);assert.equal(listeners.scroll,undefined);act(()=>tree.unmount());delete window.visualViewport;
 });
+
+test('navigating between personal views clears stale errors and management renders cleanly', async () => {
+  let tree;
+  act(() => {
+    tree = renderer.create(
+      React.createElement(Profile, {
+        user,
+        teamSettings: { id: 'team-one', teamName: 'FC', members: [] },
+        currentUserRole: 'owner',
+        hasTeam: true,
+        onNavigate: () => {},
+        onCreateInvite: async () => { throw new Error('Could not find the function public.no_gov_create_invite(p_team_id) in the schema cache'); },
+        onLogout: () => {},
+      })
+    );
+  });
+  const inviteSpan = tree.root.findAllByType('span').find(s => s.children.includes('Mời thành viên'));
+  assert.ok(inviteSpan);
+  await act(async () => {
+    await inviteSpan.parent.props.onClick();
+  });
+  assert.match(texts(tree), /no_gov_create_invite/);
+
+  const mgmtSpan = tree.root.findAllByType('span').find(s => s.children.includes('Quản lý đội'));
+  assert.ok(mgmtSpan);
+  act(() => {
+    mgmtSpan.parent.props.onClick();
+  });
+  assert.match(texts(tree), /Phân quyền và quản trị/);
+  assert.doesNotMatch(texts(tree), /no_gov_create_invite/);
+  act(() => tree.unmount());
+});
+

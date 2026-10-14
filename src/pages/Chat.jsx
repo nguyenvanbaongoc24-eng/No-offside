@@ -113,7 +113,7 @@ export default function Chat({
               className={
                 "max-w-[85%] rounded-2xl p-3 " +
                 (m.senderId === user.id
-                  ? "bg-emerald-700 text-white"
+                  ? "chat-bubble-own bg-emerald-700 text-white"
                   : "bg-white border border-slate-200 text-slate-900")
               }
             >

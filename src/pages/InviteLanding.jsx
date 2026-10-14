@@ -204,7 +204,7 @@ export default function InviteLanding({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-safe-nav font-sans">
+    <div className="invite-page min-h-screen bg-slate-50 pb-safe-nav font-sans">
       <header className="bg-slate-900 text-white p-5 pt-safe-hero rounded-b-[36px] shadow-md">
         <button
           onClick={onBackToApp}
@@ -230,7 +230,7 @@ export default function InviteLanding({
             <div className="inline-block px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-1">
               Lời mời tham gia
             </div>
-            <h1 className="text-xl font-bold truncate tracking-tight">{teamData.name}</h1>
+            <h1 className="text-xl font-bold break-words">{teamData.name}</h1>
             <p className="text-xs text-slate-300 mt-0.5 truncate">
               Đội trưởng: <span className="font-semibold text-white">{teamData.captain}</span>
             </p>

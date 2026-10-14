@@ -30,6 +30,7 @@ import { monthKey } from "./lib/teamModel";
 import { usePersonalAppearance } from "./hooks/usePersonalAppearance";
 import { useScrollNavigation } from "./hooks/useScrollNavigation";
 import AppearanceSettings from "./components/AppearanceSettings";
+import FloatingBottomNavigation from "./components/FloatingBottomNavigation";
 import AccountControls from "./components/AccountControls";
 import Governance from "./pages/Governance";
 import { useGovernance } from "./hooks/useGovernance";
@@ -440,52 +441,7 @@ export default function App() {
         {!["create-team", "invite-landing", "team-settings"].includes(
           activeTab,
         ) && (
-          <nav
-            className={"bottom-navigation" + (navVisible ? "" : " nav-hidden")}
-            aria-label="Điều hướng chính"
-            onFocusCapture={revealNav}
-          >
-            <div className="nav-items">
-              {tabs.map(({ id, label, Icon }) => {
-                const isActive = activeTab === id;
-                return (
-                  <button
-                    key={id}
-                    aria-label={label}
-                    title={label}
-                    aria-current={isActive ? "page" : undefined}
-                    onClick={() => navigate(id)}
-                    className="nav-item"
-                  >
-                    {id === "profile" && auth.user?.avatar ? (
-                      <div
-                        className={`w-7 h-7 rounded-full overflow-hidden transition-all duration-150 flex items-center justify-center ${
-                          isActive
-                            ? "ring-2 ring-emerald-600 dark:ring-emerald-400 scale-105"
-                            : "opacity-75"
-                        }`}
-                      >
-                        <img
-                          src={auth.user.avatar}
-                          alt={label}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <Icon
-                        size={24}
-                        className={`transition-all duration-150 ${
-                          isActive
-                            ? "fill-current stroke-[2.2] scale-105 text-emerald-600 dark:text-emerald-400"
-                            : "stroke-[1.8] opacity-75"
-                        }`}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
+          <FloatingBottomNavigation tabs={tabs} activeTab={activeTab} avatar={auth.user?.avatar} visible={navVisible} onNavigate={navigate} onReveal={revealNav} />
         )}
         {auth.deletedMatch && leader && (
           <div className="match-undo" role="status">

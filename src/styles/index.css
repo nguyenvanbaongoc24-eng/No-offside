@@ -90,18 +90,6 @@ button[class*="bg-gradient-to-"][class*="from-amber"] { background-image: linear
 .settings-card { padding: 20px; border: 1px solid #e2e8f0; background: #fff; border-radius: 24px; }
 .settings-card h2 { font-size: 18px; font-weight: 600; }
 /* Instagram-style pill bottom navigation */
-.bottom-navigation { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--keyboard-inset, 0px)); left: 12px; right: 12px; max-width: 424px; margin: 0 auto; z-index: 40; }
-.nav-items { display: flex; justify-content: space-around; align-items: center; height: 58px; padding: 0 8px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 9999px; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.12); backdrop-filter: blur(16px); }
-.dark .nav-items, [data-theme="dark"] .nav-items { background: #0f172a; border-color: #334155; box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.5); }
-.nav-item { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; height: 44px; flex: 1; color: #64748b; border-radius: 9999px; background: transparent; cursor: pointer; transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1); outline: none !important; -webkit-tap-highlight-color: transparent; }
-.nav-item:focus, .nav-item:focus-visible { outline: none !important; box-shadow: none !important; }
-.nav-item[aria-current="page"] { color: #047857; background: rgba(16, 185, 129, 0.12); font-weight: 700; box-shadow: none; }
-.dark .nav-item { color: #94a3b8; }
-.dark .nav-item[aria-current="page"], [data-theme="dark"] .nav-item[aria-current="page"] { color: #6ee7b7; background: rgba(16, 185, 129, 0.18); }
-.nav-item:hover:not([aria-current]) { background: rgba(0, 0, 0, 0.04); color: #0f172a; }
-.dark .nav-item:hover:not([aria-current]), [data-theme="dark"] .nav-item:hover:not([aria-current]) { background: rgba(255, 255, 255, 0.06); color: #f8fafc; }
-.nav-item:active { transform: scale(0.92); box-shadow: none !important; }
-.pb-safe-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
 .chat-stream { padding-bottom: calc(180px + env(safe-area-inset-bottom,0px)); }
 .chat-composer { position: fixed; bottom: calc(78px + env(safe-area-inset-bottom,0px) + var(--keyboard-inset, 0px)); left: 0; right: 0; max-width: 448px; margin: auto; display: flex; gap: 10px; align-items: center; padding: 12px 16px; background: rgb(255 255 255 / .98); border-top: 1px solid #e2e8f0; z-index: 30; }
 [role="dialog"].fixed { z-index: 150; }
@@ -123,7 +111,6 @@ button[class*="bg-gradient-to-"][class*="from-amber"] { background-image: linear
 /* Mobile UI: equal tabs, native inputs, compact financial hierarchy. */
 .lucide { stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 button .lucide { width: 20px; height: 20px; flex-shrink: 0; }
-.nav-item .lucide { width: 24px; height: 24px; }
 .chat-composer { bottom: calc(52px + env(safe-area-inset-bottom,0px) + var(--keyboard-inset, 0px)); }
 .compact-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: max(20px,env(safe-area-inset-top,0px)) 20px 16px; }
 .compact-header h1 { font-size: 24px; font-weight: 600; letter-spacing: -.025em; }
@@ -283,8 +270,6 @@ html[data-theme="dark"] .form-field textarea,html[data-theme="dark"] .form-field
 .simple-sheet { max-height:calc(var(--visual-viewport-height,100dvh) - max(16px,env(safe-area-inset-top,0px)) - max(16px,env(safe-area-inset-bottom,0px))); }
 
 /* Shared semantic tokens; legacy utility surfaces map to the same palette. */
-:root { --background:#f6f7f8; --surface:#ffffff; --elevated-surface:#ffffff; --text:#172126; --secondary-text:#53616a; --border:#a6b1b8; --accent:#047857; --success:#047857; --warning:#925900; --danger:#be123c; --focus:#047857; --input-background:#f4f6f7; --disabled-text:#59666f; --selection:#c4f0de; --selection-text:#143c2d; }
-:root[data-theme="dark"] { --background:#111416; --surface:#1b2023; --elevated-surface:#272e32; --text:#f3f5f6; --secondary-text:#b4bec5; --border:#65737c; --accent:#6ee7b7; --success:#6ee7b7; --warning:#f7cc72; --danger:#fda4af; --focus:#6ee7b7; --input-background:#141a1d; --disabled-text:#a8b3bb; --selection:#235843; --selection-text:#ffffff; background:var(--background); }
 html,body { background:var(--background); color:var(--text); }
 .font-sans,.font-mono,button,input,textarea,select,option { font-family:var(--font-ui) !important; }
 h1 { font-weight:600; } h2,h3 { font-weight:600; } label { line-height:1.5; }

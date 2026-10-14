@@ -9,6 +9,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {Home,Network,Wallet,MessageSquare,User} from 'lucide-react';
 import Login from './src/pages/Login.jsx';
+import FloatingBottomNavigation from './src/components/FloatingBottomNavigation.jsx';
 import TeamOnboarding from './src/pages/TeamOnboarding.jsx';
 import ClubCodeModal from './src/components/ClubCodeModal.jsx';
 import PlayerDashboard from './src/pages/PlayerDashboard.jsx';
@@ -22,6 +23,8 @@ import CreateTeam from './src/pages/CreateTeam.jsx';
 import MatchForm from './src/components/MatchFormSheet.jsx';
 import Appearance from './src/components/AppearanceSettings.jsx';
 import BankPicker from './src/components/BankPicker.jsx';
+import AddMemberModal from './src/components/AddMemberModal.jsx';
+import QrPreview from './src/components/QrPreview.jsx';
 import EmptyTeam from './src/pages/EmptyTeam.jsx';
 import InviteLanding from './src/pages/InviteLanding.jsx';
 import Governance from './src/pages/Governance.jsx';
@@ -37,6 +40,10 @@ const common={user,currentUserRole:'owner',demoSession:false,teamSettings:team,m
 const gov={snapshot:null,loading:false,error:'Chưa kết nối nghiệp vụ cho đội này.',serverNow:Date.now(),mutate:noop};
 const cases={
  login:<Login/>,
+ signup:<Login initialMode="signup"/>,
+ memberform:<AddMemberModal isOpen onClose={noop} members={members} onAddMember={noop}/>,
+ loading:<Governance governance={{...gov,loading:true,error:""}} onBack={noop}/>,
+ qrloading:<QrPreview src={avatar}/>,
  onboarding:<TeamOnboarding user={user} onOpenCreateTeam={noop} onOpenJoinCode={noop} onOpenScanQr={noop}/>,
  join:<ClubCodeModal isOpen onClose={noop} onJoinSuccess={noop} currentUser={user}/>,
  home:<PlayerDashboard {...common} teamId={team.id} matches={[match]} activeMatch={match} attendance={{}} reports={{}} balance={300000} funds={funds} treasurerQr={{}} governance={gov} onOpenNotifications={noop} onAddNotice={noop} onSaveMatch={noop} onSetMatchStatus={noop} onSelectMatch={noop} onDeleteMatch={noop} onApprove={noop} onChangeFunds={noop} onAttendanceChange={noop}/>,
@@ -55,7 +62,9 @@ const cases={
  bank:<BankPicker value="970422" name="MBBank" onChange={noop}/>,
  invite:<InviteLanding teamData={{name:team.teamName,captain:user.name,membersCount:4,venue:team.venue,logo:avatar,category:'Sân 7',code:'UI1234'}} onBackToApp={noop} onRequireAuth={noop}/>
 };
-export const renderNav=()=>renderToStaticMarkup(<nav className="bottom-navigation" aria-label="Điều hướng chính"><div className="nav-items">{[['home','Trang chủ',Home],['tactics','Chiến thuật',Network],['fund','Quỹ đội',Wallet],['chat','Tin nhắn',MessageSquare],['profile','Cá nhân',User]].map(([key,label,Icon])=><button key={key} className="nav-item" data-target={key}><Icon size={24}/><span>{label}</span></button>)}</div></nav>);
+cases.longhome=React.cloneElement(cases.home,{user:{...user,name:'Nguyễn Hoàng Minh Anh với tên hiển thị dài',teamName:'Đội bóng phong trào thành phố với tên đội rất dài'},activeMatch:{...match,title:'Trận giao hữu với đội bóng có tên dài và nhiều thông tin địa điểm'}});
+cases.longfund=React.cloneElement(cases.fund,{funds:{...funds,transactions:[{...funds.transactions[0],title:'Khoản đóng góp cho giải bóng đá giao hữu có tên và ghi chú dài',amount:999999999999}]}});
+export const renderNav=()=>renderToStaticMarkup(<FloatingBottomNavigation tabs={[['home','Trang chủ',Home],['tactics','Chiến thuật',Network],['fund','Quỹ đội',Wallet],['chat','Tin nhắn',MessageSquare],['profile','Cá nhân',User]].map(([id,label,Icon])=>({id,label,Icon}))} activeTab="home" onNavigate={noop}/>);
 export const render=()=>Object.fromEntries(Object.entries(cases).map(([key,value])=>[key,renderToStaticMarkup(value)]));
 `},bundle:true,platform:'node',format:'cjs',write:false,logLevel:'silent',plugins:[{name:'read-only-fixture',setup(b){b.onResolve({filter:/lib\/supabase$/},()=>({path:'supabase-fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase = null;',loader:'js'}));}}]});
 globalThis.localStorage={getItem:key=>key==='no_offside_messages_ui-review::ui-review'?JSON.stringify([{id:'m1',senderId:'usr-10',sender:'Hoàng Hải',text:'Hẹn cả đội ra sân lúc 18:30. Chúc mọi người một buổi đá vui!',createdAt:'2026-10-13T10:00Z'},{id:'m2',senderId:'usr-9',sender:'Minh Anh',text:'Mình đã nhận thông tin lịch thi đấu.',createdAt:'2026-10-13T10:02Z'}]):null,setItem:()=>{}};
@@ -68,7 +77,7 @@ const cases=compiled.exports.render();
 const cssName=(await readdir(root+'dist/assets')).find(name=>name.endsWith('.css'));
 const css=await readFile(root+'dist/assets/'+cssName,'utf8');
 const nav=compiled.exports.renderNav();
-const html='<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>No Offside — Kiểm chứng UI</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"><style>'+css+'[hidden]{display:none!important;} [data-screen] [style*="opacity:0"]{opacity:1!important;transform:none!important;}</style></head><body><div class="app-frame max-w-md mx-auto"><div class="session-banner">Kiểm chứng UI · dữ liệu minh họa · nghiệp vụ không hoạt động</div>'+Object.entries(cases).map(([key,markup])=>'<main data-screen="'+key+'" hidden>'+markup+'</main>').join('')+'<div id="review-nav">'+nav+'</div></div><script>const p=new URLSearchParams(location.search);const screen=p.get("screen")||"home";document.documentElement.dataset.theme=p.get("theme")||"light";document.documentElement.dataset.font=p.get("font")||"vietnam";document.documentElement.dataset.fontSize=p.get("size")||"medium";document.querySelectorAll("[data-screen]").forEach(el=>el.hidden=el.dataset.screen!==screen);if(!["home","tactics","fund","chat","profile"].includes(screen))document.getElementById("review-nav").hidden=true;document.addEventListener("submit",e=>e.preventDefault());document.querySelectorAll("button[data-target]").forEach(el=>{if(el.dataset.target===screen)el.setAttribute("aria-current","page")});document.querySelectorAll("button[data-target]").forEach(el=>el.onclick=()=>{p.set("screen",el.dataset.target);location.search=p.toString()});</script></body></html>';
+const html='<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>No Offside — Kiểm chứng UI</title><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"><style>'+css+'[hidden]{display:none!important;} [data-screen] [style*="opacity:0"]{opacity:1!important;transform:none!important;}</style></head><body><div class="app-frame max-w-md mx-auto"><div class="session-banner">Kiểm chứng UI · dữ liệu minh họa · nghiệp vụ không hoạt động</div>'+Object.entries(cases).map(([key,markup])=>'<main data-screen="'+key+'" hidden>'+markup+'</main>').join('')+'<div id="review-nav">'+nav+'</div></div><script>const p=new URLSearchParams(location.search);const screen=p.get("screen")||"home";document.documentElement.dataset.theme=p.get("theme")||"light";document.documentElement.dataset.font=p.get("font")||"vietnam";document.documentElement.dataset.fontSize=p.get("size")||"medium";document.querySelectorAll("[data-screen]").forEach(el=>el.hidden=el.dataset.screen!==screen);if(!["home","tactics","fund","chat","profile"].includes(screen))document.getElementById("review-nav").hidden=true;document.addEventListener("submit",e=>e.preventDefault());document.querySelectorAll("button[data-target]").forEach(el=>{if(el.dataset.target===screen)el.setAttribute("aria-current","page");else el.removeAttribute("aria-current")});document.querySelectorAll("button[data-target]").forEach(el=>el.onclick=()=>{p.set("screen",el.dataset.target);location.search=p.toString()});</script></body></html>';
 const target = process.argv[2] ? path.resolve(root, process.argv[2]) : root+'.ui-review/ui-review.html';
 await mkdir(path.dirname(target),{recursive:true});
 await writeFile(target,html);

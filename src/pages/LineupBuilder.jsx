@@ -637,7 +637,7 @@ export default function LineupBuilder({
       <div className="px-4 mt-3">
         <div className="flex items-center justify-between mb-2.5 px-1">
           <span className="text-xs font-bold tracking-wider text-gray-500">
-            DANH SÁCH CHIẾN THUẬT ({formationsList.length})
+            Danh sách chiến thuật ({formationsList.length})
           </span>
           <span className="text-xs font-medium text-gray-400">
             Chạm để xem và chỉnh sửa

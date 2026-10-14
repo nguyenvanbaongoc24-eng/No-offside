@@ -95,7 +95,7 @@ export default function AddMemberModal({
     >
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl z-10 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white animate-in slide-in-from-bottom duration-300">
+      <div className="member-form-sheet relative w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-[32px] p-6 shadow-2xl z-10 border border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white animate-in slide-in-from-bottom duration-300">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
@@ -225,7 +225,7 @@ export default function AddMemberModal({
           </p>
 
           {/* Actions */}
-          <div className="pt-2 flex items-center gap-2">
+          <div className="member-form-actions pt-2 flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}

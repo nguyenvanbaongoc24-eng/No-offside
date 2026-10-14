@@ -9,7 +9,8 @@ export function useAppearance(appearance = {}) {
       document.documentElement.dataset.font = appearance.fontFamily === 'Be Vietnam Pro' ? 'vietnam' : 'system';
       document.documentElement.dataset.fontSize = appearance.fontSize || 'medium';
       document.documentElement.lang = 'vi';
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b1120' : '#f8fafc');
+      const background = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background);
     };
     apply(); media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);

@@ -301,7 +301,7 @@ export default function PlayerDashboard({
             className="shrink-0"
           >
             <img
-              src={user.avatar}
+              src={teamSettings?.logo || user.avatar}
               alt=""
               className="w-12 h-12 rounded-2xl object-cover"
             />
@@ -362,152 +362,7 @@ export default function PlayerDashboard({
       {/* =========================================================
           2. CARDS CONTAINER VỚI TIGHT SPACING & MOTION
           ========================================================= */}
-      <div className="dashboard-card-flow px-3.5 space-y-3 mt-3">
-        {/* YÊU CẦU 2: CARD NẰM NGANG [Thành viên đội] VỚI NÚT [THÊM THÀNH VIÊN] (DÀNH CHO OWNER & ADMIN) */}
-        {isLeader && (
-          <div className="w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all group text-left relative overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowTeamManagerModal(true)}
-              className="flex items-center gap-3.5 relative z-10 min-w-0 flex-1 cursor-pointer text-left outline-none"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-                <Users2 className="w-6 h-6" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                    Thành viên đội
-                  </h3>
-                  <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 tabular-nums">
-                    {members.filter((m) => m.membershipStatus !== "removed").length} người
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
-                  Danh sách, phân quyền và sinh nhật
-                </p>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-1.5 shrink-0 relative z-10 pl-2">
-              {/* Nút Thêm thành viên thủ công */}
-              <button
-                type="button"
-                onClick={() => setShowAddMemberModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
-                title="Thêm thành viên thủ công"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                <span className="whitespace-nowrap">Thêm thành viên</span>
-              </button>
-
-              {/* Nút Mời QR */}
-              <button
-                type="button"
-                onClick={() => setShowInviteModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
-                title="Mời qua QR & Mã Club"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span className="whitespace-nowrap">Mã / QR</span>
-              </button>
-
-              <button
-                type="button"
-                aria-label="Xem chi tiết danh sách"
-                onClick={() => setShowTeamManagerModal(true)}
-                className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer outline-none"
-              >
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* CARD MỜI VÀO ĐỘI (MÃ CLUB & QR CODE) */}
-        <div className="w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
-              <QrCode className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MÃ CLUB:</span>
-                <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 tracking-wider truncate block max-w-[160px] sm:max-w-[200px]">
-                  {inviteCode}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
-                Quét QR hoặc nhập mã để vào đội
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => copyToClipboard(inviteCode, "clubCode")}
-              className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 outline-none"
-            >
-              {copiedField === "clubCode" ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-600">Đã chép</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Chép</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowInviteModal(true)}
-              className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-all active:scale-95"
-            >
-              <QrCode className="w-3.5 h-3.5" />
-              <span>Mã QR</span>
-            </button>
-          </div>
-        </div>
-
-        <section aria-label="Thao tác nhanh" className="quick-actions-panel">
-          <p className="text-xs text-slate-600 mb-3">
-            Trận đang chọn: {activeMatch.title}
-          </p>
-          <div className="quick-actions">
-            <button
-              onClick={() =>
-                isLeader
-                  ? setShowAttendanceModal(true)
-                  : document
-                      .getElementById("match-attendance")
-                      ?.scrollIntoView({ block: "center", behavior: "smooth" })
-              }
-            >
-              <UserCheck size={20} />
-              <span>Điểm danh</span>
-            </button>
-            <button onClick={() => onNavigate("lineup")}>
-              <Network size={20} />
-              <span>Chiến thuật</span>
-            </button>
-            {user.fundDebt > 0 && bankInfo.qrUrl && !user.isFundPaid && (
-              <button onClick={() => setShowQrModal(true)}>
-                <Wallet size={20} />
-                <span>Đóng quỹ</span>
-              </button>
-            )}
-            {isLeader && (
-              <button onClick={() => openMatchEditor(false)}>
-                <PlusCircle size={20} />
-                <span>Tạo trận</span>
-              </button>
-            )}
-          </div>
-        </section>
+      <div className="dashboard-card-flow px-4 space-y-4 mt-4">
         {/* CARD 1: TRẬN ĐẤU TIẾP THEO & BỘ ĐẾM NGƯỢC REAL-TIME */}
         <SwipeMatchCard
           key={activeMatch.id}
@@ -795,6 +650,291 @@ export default function PlayerDashboard({
             )}
           </section>
         </SwipeMatchCard>
+        <section aria-label="Thao tác nhanh" className="quick-actions-panel">
+          <p className="text-xs text-slate-600 mb-3">
+            Trận đang chọn: {activeMatch.title}
+          </p>
+          <div className="quick-actions">
+            <button
+              onClick={() =>
+                isLeader
+                  ? setShowAttendanceModal(true)
+                  : document
+                      .getElementById("match-attendance")
+                      ?.scrollIntoView({ block: "center", behavior: "smooth" })
+              }
+            >
+              <UserCheck size={20} />
+              <span>Điểm danh</span>
+            </button>
+            <button onClick={() => onNavigate("lineup")}>
+              <Network size={20} />
+              <span>Chiến thuật</span>
+            </button>
+            {user.fundDebt > 0 && bankInfo.qrUrl && !user.isFundPaid && (
+              <button onClick={() => setShowQrModal(true)}>
+                <Wallet size={20} />
+                <span>Đóng quỹ</span>
+              </button>
+            )}
+            {isLeader && (
+              <button onClick={() => openMatchEditor(false)}>
+                <PlusCircle size={20} />
+                <span>Tạo trận</span>
+              </button>
+            )}
+          </div>
+        </section>
+        {/* CARD 2: TÀI CHÍNH & QUỸ ĐỘI PREVIEW */}
+        <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
+          <div className="flex items-center justify-between mb-2.5 px-1">
+            <span className="text-xs font-semibold  tracking-wider text-gray-400">
+              {isLeader ? "Tổng quan quỹ" : "TÀI CHÍNH & QUỸ ĐỘI"}
+            </span>
+            <span className="text-xs font-bold text-emerald-600">
+              {new Date().toLocaleDateString("vi-VN", {
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+
+          {isLeader ? (
+            /* Admin / Owner Summary */
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-100">
+                  <span className="text-xs font-bold text-emerald-800 block">
+                    Số dư quỹ
+                  </span>
+                  <span className="text-lg font-bold text-emerald-700 tabular-nums mt-0.5 block truncate">
+                    {formatCurrency(balance)}
+                  </span>
+                </div>
+
+                <div className="bg-rose-50/80 p-3 rounded-2xl border border-rose-100">
+                  <span className="text-xs font-bold text-rose-700 block">
+                    Chưa nộp quỹ
+                  </span>
+                  <span className="text-lg font-bold text-rose-600 tabular-nums mt-0.5 block">
+                    {funds.debtors.length}/{members.length} Người
+                  </span>
+                  <span
+                    className="text-xs text-rose-500 font-medium block truncate"
+                    title={formatCurrency(
+                      funds.debtors.reduce((n, d) => n + d.amount, 0),
+                    )}
+                  >
+                    Tổng nợ:{" "}
+                    {formatCurrency(
+                      funds.debtors.reduce((n, d) => n + d.amount, 0),
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* 2 Nút hành động Admin */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  onClick={() => onNavigate && onNavigate("fund")}
+                  className="py-2.5 px-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <Wallet className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Sổ quỹ chi tiết</span>
+                </button>
+
+                <button
+                  onClick={() => setShowAdminApproveModal(true)}
+                  className="py-2.5 px-3 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-green-500/20 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  <span>Duyệt tiền ({pendingApprovals.length})</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Member Personal Debt & VietQR Pay */
+            <div className="divide-y divide-gray-100">
+              <div className="py-2.5 px-1 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-800">
+                      Trạng thái đóng quỹ
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Quỹ tháng {new Date().getMonth() + 1}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  {user.isFundPaid ? (
+                    <span className="text-xs font-bold text-emerald-600 tabular-nums bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                      Đã đóng đủ
+                    </span>
+                  ) : (
+                    <span className="text-sm font-bold text-rose-500 tabular-nums">
+                      -{formatCurrency(user.fundDebt || 0)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (user.isFundPaid) {
+                    if (demoSession) onResetPaid();
+                  } else {
+                    setShowQrModal(true);
+                  }
+                }}
+                className="w-full py-2.5 px-1 flex items-center justify-between hover:bg-gray-50/80 rounded-2xl transition-all duration-200 active:scale-95 cursor-pointer text-left group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <QrCode className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-800">
+                      {user.isFundPaid
+                        ? "Đã đóng đủ"
+                        : user.fundPaymentPending
+                          ? "Đang chờ duyệt"
+                          : "Thanh toán QR (VietQR)"}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {user.isFundPaid
+                        ? "Thủ quỹ đã xác nhận"
+                        : "Quét QR và gửi yêu cầu xác nhận"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 text-gray-400 group-hover:text-gray-700 transition-colors">
+                  <span className="text-xs font-bold text-emerald-600">
+                    Quét ngay
+                  </span>
+                  <ChevronRight className="w-4 h-4" />
+                </div>
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* YÊU CẦU 2: CARD NẰM NGANG [Thành viên đội] VỚI NÚT [THÊM THÀNH VIÊN] (DÀNH CHO OWNER & ADMIN) */}
+        {isLeader && (
+          <div className="dashboard-roster w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all group text-left relative overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowTeamManagerModal(true)}
+              className="flex items-center gap-3.5 relative z-10 min-w-0 flex-1 cursor-pointer text-left outline-none"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+                <Users2 className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                    Thành viên đội
+                  </h3>
+                  <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 tabular-nums">
+                    {members.filter((m) => m.membershipStatus !== "removed").length} người
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
+                  Danh sách, phân quyền và sinh nhật
+                </p>
+              </div>
+            </button>
+
+            <div className="flex items-center gap-1.5 shrink-0 relative z-10 pl-2">
+              {/* Nút Thêm thành viên thủ công */}
+              <button
+                type="button"
+                onClick={() => setShowAddMemberModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
+                title="Thêm thành viên thủ công"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span className="whitespace-nowrap">Thêm thành viên</span>
+              </button>
+
+              {/* Nút Mời QR */}
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
+                title="Mời qua QR & Mã Club"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span className="whitespace-nowrap">Mã / QR</span>
+              </button>
+
+              <button
+                type="button"
+                aria-label="Xem chi tiết danh sách"
+                onClick={() => setShowTeamManagerModal(true)}
+                className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer outline-none"
+              >
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CARD MỜI VÀO ĐỘI (MÃ CLUB & QR CODE) */}
+        <div className="w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
+              <QrCode className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MÃ CLUB:</span>
+                <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 tracking-wider truncate block max-w-[160px] sm:max-w-[200px]">
+                  {inviteCode}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">
+                Quét QR hoặc nhập mã để vào đội
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => copyToClipboard(inviteCode, "clubCode")}
+              className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 outline-none"
+            >
+              {copiedField === "clubCode" ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-600">Đã chép</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Chép</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowInviteModal(true)}
+              className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-all active:scale-95"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Mã QR</span>
+            </button>
+          </div>
+        </div>
+
+
 
         {/* =========================================================
             THẺ THỐNG KÊ CÁ NHÂN (SELF-REPORTING SAU TRẬN)
@@ -924,145 +1064,6 @@ export default function PlayerDashboard({
             </motion.button>
           </motion.section>
         )}
-
-        {/* CARD 2: TÀI CHÍNH & QUỸ ĐỘI PREVIEW */}
-        <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
-          <div className="flex items-center justify-between mb-2.5 px-1">
-            <span className="text-xs font-semibold  tracking-wider text-gray-400">
-              {isLeader ? "Tổng quan quỹ" : "TÀI CHÍNH & QUỸ ĐỘI"}
-            </span>
-            <span className="text-xs font-bold text-emerald-600">
-              {new Date().toLocaleDateString("vi-VN", {
-                month: "long",
-                year: "numeric",
-              })}
-            </span>
-          </div>
-
-          {isLeader ? (
-            /* Admin / Owner Summary */
-            <div className="space-y-2.5">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-100">
-                  <span className="text-xs font-bold text-emerald-800 block">
-                    Số dư quỹ
-                  </span>
-                  <span className="text-lg font-bold text-emerald-700 tabular-nums mt-0.5 block truncate">
-                    {formatCurrency(balance)}
-                  </span>
-                </div>
-
-                <div className="bg-rose-50/80 p-3 rounded-2xl border border-rose-100">
-                  <span className="text-xs font-bold text-rose-700 block">
-                    Chưa nộp quỹ
-                  </span>
-                  <span className="text-lg font-bold text-rose-600 tabular-nums mt-0.5 block">
-                    {funds.debtors.length}/{members.length} Người
-                  </span>
-                  <span
-                    className="text-xs text-rose-500 font-medium block truncate"
-                    title={formatCurrency(
-                      funds.debtors.reduce((n, d) => n + d.amount, 0),
-                    )}
-                  >
-                    Tổng nợ:{" "}
-                    {formatCurrency(
-                      funds.debtors.reduce((n, d) => n + d.amount, 0),
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* 2 Nút hành động Admin */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  onClick={() => onNavigate && onNavigate("fund")}
-                  className="py-2.5 px-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
-                >
-                  <Wallet className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Sổ Quỹ Chi Tiết</span>
-                </button>
-
-                <button
-                  onClick={() => setShowAdminApproveModal(true)}
-                  className="py-2.5 px-3 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-green-500/20 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
-                >
-                  <FileCheck className="w-3.5 h-3.5" />
-                  <span>Duyệt tiền ({pendingApprovals.length})</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Member Personal Debt & VietQR Pay */
-            <div className="divide-y divide-gray-100">
-              <div className="py-2.5 px-1 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center shrink-0">
-                    <Wallet className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-800">
-                      Trạng thái đóng quỹ
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Quỹ tháng {new Date().getMonth() + 1}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  {user.isFundPaid ? (
-                    <span className="text-xs font-bold text-emerald-600 tabular-nums bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                      Đã đóng đủ
-                    </span>
-                  ) : (
-                    <span className="text-sm font-bold text-rose-500 tabular-nums">
-                      -{formatCurrency(user.fundDebt || 0)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  if (user.isFundPaid) {
-                    if (demoSession) onResetPaid();
-                  } else {
-                    setShowQrModal(true);
-                  }
-                }}
-                className="w-full py-2.5 px-1 flex items-center justify-between hover:bg-gray-50/80 rounded-2xl transition-all duration-200 active:scale-95 cursor-pointer text-left group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <QrCode className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-800">
-                      {user.isFundPaid
-                        ? "Đã đóng đủ"
-                        : user.fundPaymentPending
-                          ? "Đang chờ duyệt"
-                          : "Thanh toán QR (VietQR)"}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {user.isFundPaid
-                        ? "Thủ quỹ đã xác nhận"
-                        : "Quét QR và gửi yêu cầu xác nhận"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 text-gray-400 group-hover:text-gray-700 transition-colors">
-                  <span className="text-xs font-bold text-emerald-600">
-                    Quét ngay
-                  </span>
-                  <ChevronRight className="w-4 h-4" />
-                </div>
-              </button>
-            </div>
-          )}
-        </section>
 
         <details className="secondary-summary">
           <summary>

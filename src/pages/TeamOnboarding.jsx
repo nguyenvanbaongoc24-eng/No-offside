@@ -21,7 +21,7 @@ export default function TeamOnboarding({
         {/* Welcome Header */}
         <div className="text-center space-y-2 pt-4">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 shadow-sm mb-1">
-            <Shield className="w-7 h-7" />
+            <img src="/pwa-512x512.png" alt="No Offside" width="48" height="48" className="app-logo" />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Bắt đầu cùng đội bóng của bạn

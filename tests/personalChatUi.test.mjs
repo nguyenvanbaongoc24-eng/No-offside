@@ -101,3 +101,30 @@ test('navigating between personal views clears stale errors and management rende
   act(() => tree.unmount());
 });
 
+test('clicking Mời thành viên in personal menu opens InviteShare modal with Club code and QR', async () => {
+  let tree;
+  act(() => {
+    tree = renderer.create(
+      React.createElement(Profile, {
+        user,
+        teamSettings: { id: 'team-one', teamName: 'FC Sài Gòn', inviteCode: 'SG9999', members: [] },
+        currentUserRole: 'owner',
+        hasTeam: true,
+        onNavigate: () => {},
+        onCreateInvite: async () => ({ code: 'SG9999' }),
+        onLogout: () => {},
+      })
+    );
+  });
+  const inviteSpan = tree.root.findAllByType('span').find(s => s.children.includes('Mời thành viên'));
+  assert.ok(inviteSpan);
+  await act(async () => {
+    await inviteSpan.parent.props.onClick();
+  });
+  assert.match(texts(tree), /SG9999/);
+  assert.match(texts(tree), /Mời thành viên mới/);
+  assert.match(texts(tree), /Gửi mã Club hoặc mã QR cho cầu thủ/);
+  act(() => tree.unmount());
+});
+
+

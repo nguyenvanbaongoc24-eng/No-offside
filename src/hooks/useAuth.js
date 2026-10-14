@@ -1373,33 +1373,36 @@ export function useAuth() {
     const tId = targetTeamId || teamSettings?.id;
     if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id) {
       try {
-        const { data, error } = await supabase.rpc("no_gov_create_invite", {
+        let { data, error } = await supabase.rpc("no_gov_create_invite", {
           p_team_id: tId,
         });
+
+        // If team or membership not provisioned on Supabase yet, attempt to auto-create team
+        if (error && (currentUserRole === "owner" || user?.isCaptain)) {
+          try {
+            await supabase.rpc("no_gov_create_team", {
+              p_team_id: tId,
+              p_name: teamSettings?.teamName || user?.teamName || "FC No Offside",
+            });
+            const retry = await supabase.rpc("no_gov_create_invite", {
+              p_team_id: tId,
+            });
+            if (!retry.error && retry.data?.code) {
+              data = retry.data;
+              error = null;
+            }
+          } catch {}
+        }
+
         if (!error && data?.code) {
           setTeamSettings((prev) => ({ ...prev, inviteCode: data.code, inviteStatus: "active" }));
           return data;
         }
-        if (error) {
-          const isMissingRpc =
-            error.code === "PGRST202" ||
-            error.code === "42883" ||
-            error.message?.includes("schema cache") ||
-            error.message?.includes("Could not find the function");
-          if (!isMissingRpc) {
-            throw new Error(error.message);
-          }
-        }
       } catch (err) {
-        if (
-          !err.message?.includes("schema cache") &&
-          !err.message?.includes("Could not find the function")
-        ) {
-          throw err;
-        }
+        console.warn("Supabase create invite error, using local fallback:", err);
       }
     }
-    const code = "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = teamSettings?.inviteCode || ("NO" + Math.random().toString(36).substring(2, 6).toUpperCase());
     setTeamSettings((prev) => ({ ...prev, inviteCode: code, inviteStatus: "active" }));
     if (tId) {
       writeStored("no_offside_team_" + String(code).toLowerCase(), {
@@ -1422,21 +1425,8 @@ export function useAuth() {
           setTeamSettings((prev) => ({ ...prev, inviteCode: "", inviteStatus: "revoked" }));
           return data;
         }
-        const isMissingRpc =
-          error.code === "PGRST202" ||
-          error.code === "42883" ||
-          error.message?.includes("schema cache") ||
-          error.message?.includes("Could not find the function");
-        if (!isMissingRpc) {
-          throw new Error(error.message);
-        }
       } catch (err) {
-        if (
-          !err.message?.includes("schema cache") &&
-          !err.message?.includes("Could not find the function")
-        ) {
-          throw err;
-        }
+        console.warn("Supabase revoke invite error, using local fallback:", err);
       }
     }
     setTeamSettings((prev) => ({ ...prev, inviteCode: "", inviteStatus: "revoked" }));

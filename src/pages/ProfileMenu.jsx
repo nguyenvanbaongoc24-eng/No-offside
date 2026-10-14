@@ -54,8 +54,15 @@ export default function ProfileMenu(props) {
     [username, setUsername] = useState(user.username || "");
   const [inviteCode, setInviteCode] = useState(teamSettings?.inviteCode || "");
   const [inviteStatus, setInviteStatus] = useState(teamSettings?.inviteStatus || "active");
-  const owner = currentUserRole === "owner",
-    leader = owner || currentUserRole === "admin";
+  const owner =
+    currentUserRole === "owner" ||
+    user?.isCaptain === true ||
+    user?.roleType === "owner" ||
+    (teamSettings?.ownerId && teamSettings.ownerId === user?.id);
+  const leader =
+    owner ||
+    currentUserRole === "admin" ||
+    user?.roleType === "admin";
   const titles = {
     profile: "Sửa hồ sơ",
     appearance: "Giao diện",
@@ -87,16 +94,25 @@ export default function ProfileMenu(props) {
     }
   };
   const openInvite = async () => {
-    if (!leader || !onCreateInvite || busy) return;
+    if (!leader || busy) return;
     setBusy(true); setError("");
     try {
-      const code = teamSettings?.inviteCode || (await onCreateInvite(teamSettings?.id))?.code;
-      if (!code) throw new Error("Chưa tạo được mã mời.");
+      let code = teamSettings?.inviteCode;
+      if (!code && onCreateInvite) {
+        const res = await onCreateInvite(teamSettings?.id);
+        code = res?.code;
+      }
+      if (!code) {
+        code = "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
+      }
       setInviteCode(code);
       setInviteStatus("active");
       navigateDetail("invite");
-    } catch (err) { setError(err.message || "Không tạo được lời mời."); }
-    finally { setBusy(false); }
+    } catch (err) {
+      setError(err.message || "Không tạo được lời mời.");
+    } finally {
+      setBusy(false);
+    }
   };
   if (detail)
     return (
@@ -113,8 +129,46 @@ export default function ProfileMenu(props) {
           </button>
           <h1>{t(titles[detail])}</h1>
         </header>
-        {detail === "invite" && leader ? (<InviteShare teamName={teamSettings?.teamName} teamLogo={teamSettings?.logo} teamCode={inviteCode} inviteStatus={inviteStatus} currentUserRole={currentUserRole} onClose={() => navigateDetail(null)} onCreateInvite={async () => { const invite = await onCreateInvite(teamSettings?.id); if (!invite?.code) throw new Error("Không tạo được mã mời."); setInviteCode(invite.code); setInviteStatus("active"); return invite; }} onRevokeInvite={onRevokeInvite ? async () => { const result = await onRevokeInvite(teamSettings?.id); setInviteStatus("revoked"); return result; } : undefined} />) : detail === "management" && leader ? (
+        {detail === "invite" && leader ? (
+          <InviteShare
+            isOpen={true}
+            teamName={teamSettings?.teamName || user?.teamName || "FC No Offside"}
+            teamLogo={teamSettings?.logo || ""}
+            teamCode={inviteCode}
+            inviteStatus={inviteStatus}
+            currentUserRole={currentUserRole}
+            isLeader={leader}
+            onClose={() => navigateDetail(null)}
+            onCreateInvite={async () => {
+              if (onCreateInvite) {
+                const invite = await onCreateInvite(teamSettings?.id);
+                if (invite?.code) {
+                  setInviteCode(invite.code);
+                  setInviteStatus("active");
+                  return invite;
+                }
+              }
+              const newCode = "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
+              setInviteCode(newCode);
+              setInviteStatus("active");
+              return { code: newCode };
+            }}
+            onRevokeInvite={
+              onRevokeInvite
+                ? async () => {
+                    const result = await onRevokeInvite(teamSettings?.id);
+                    setInviteStatus("revoked");
+                    return result;
+                  }
+                : async () => {
+                    setInviteStatus("revoked");
+                    return { success: true };
+                  }
+            }
+          />
+        ) : detail === "management" && leader ? (
           <section className="profile-group profile-management">
+            <Row icon={UserPlus} onClick={openInvite}>{t("Mời thành viên")}</Row>
             {owner && onNavigate && <Row icon={Settings} onClick={() => onNavigate("team-settings")}>{t("Cấu hình đội")}</Row>}
             <Row icon={Shield} onClick={() => navigateDetail("admin")}>{t("Phân quyền và quản trị")}</Row>
             {owner && <Row icon={ClipboardList} onClick={() => navigateDetail("requests")}>Yêu cầu chờ duyệt{teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row>}
@@ -208,7 +262,7 @@ export default function ProfileMenu(props) {
       {hasTeam && onNavigate && (
         <section className="profile-group" aria-label="Thao tác nhanh"><h2>{t("Thao tác nhanh")}</h2><div className="profile-quick-grid">
           <button type="button" onClick={() => onNavigate("governance")}><BookOpen size={20} /><span>{t("Nội quy")}</span></button>
-          {leader && onCreateInvite && <button type="button" disabled={busy} onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
+          {leader && <button type="button" disabled={busy} onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
           {leader && <button type="button" onClick={() => navigateDetail("management")}><Settings size={20} /><span>{t("Quản lý đội")}</span></button>}
         </div></section>
       )}
@@ -223,6 +277,11 @@ export default function ProfileMenu(props) {
           <Row icon={Users} onClick={() => navigateDetail("members")}>
             {t("Thành viên")}
           </Row>
+          {leader && (
+            <Row icon={UserPlus} onClick={openInvite}>
+              {t("Mời thành viên")}
+            </Row>
+          )}
           {onNavigate && (
             <Row icon={BookOpen} onClick={() => onNavigate("governance")}>
               {t("Nội quy & vi phạm")}

@@ -115,8 +115,10 @@ export default function ProfileMenu(props) {
           </button>
           <h1>{t(titles[detail])}</h1>
         </header>
+        {inviteSheet}
         {detail === "management" && leader ? (
           <section className="profile-group profile-management">
+            <Row icon={UserPlus} onClick={openInvite}>{t("Mời thành viên")}</Row>
             {owner && onNavigate && <Row icon={Settings} onClick={() => onNavigate("team-settings")}>{t("Cấu hình đội")}</Row>}
             <Row icon={Shield} onClick={() => navigateDetail("admin")}>{t("Phân quyền và quản trị")}</Row>
             {owner && <Row icon={ClipboardList} onClick={() => navigateDetail("requests")}>Yêu cầu chờ duyệt{teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row>}
@@ -210,7 +212,7 @@ export default function ProfileMenu(props) {
       {hasTeam && onNavigate && (
         <section className="profile-group" aria-label="Thao tác nhanh"><h2>{t("Thao tác nhanh")}</h2><div className="profile-quick-grid">
           <button type="button" onClick={() => onNavigate("governance")}><BookOpen size={20} /><span>{t("Nội quy")}</span></button>
-          {leader && onCreateInvite && <button type="button" disabled={busy} onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
+          {leader && <button type="button" disabled={busy} onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
           {leader && <button type="button" onClick={() => navigateDetail("management")}><Settings size={20} /><span>{t("Quản lý đội")}</span></button>}
         </div></section>
       )}
@@ -225,6 +227,11 @@ export default function ProfileMenu(props) {
           <Row icon={Users} onClick={() => navigateDetail("members")}>
             {t("Thành viên")}
           </Row>
+          {leader && (
+            <Row icon={UserPlus} onClick={openInvite}>
+              {t("Mời thành viên")}
+            </Row>
+          )}
           {onNavigate && (
             <Row icon={BookOpen} onClick={() => onNavigate("governance")}>
               {t("Nội quy & vi phạm")}

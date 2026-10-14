@@ -59,7 +59,9 @@ export default function ProfileMenu(props) {
   const homeScroll=useRef(0),previousDetail=useRef(detail);
   const setDetail=next=>{if(!detail)homeScroll.current=window.scrollY || 0;setDetailDirection(1);setDetailState(next);};
   useProfileLayoutEffect(()=>{if(previousDetail.current===detail)return;window.scrollTo?.({top:detail ? 0 : homeScroll.current,behavior:"instant"});previousDetail.current=detail;},[detail]);
-  const [inviteOpen,setInviteOpen]=useState(false);
+  const [inviteOpen, setInviteOpen] = useState(
+    props.initialDetail === "invite" || props.detail === "invite"
+  );
   const invite=useTeamInvite(teamSettings,currentUserRole,onCreateInvite,onRevokeInvite,onReadInvite);
   const owner = currentUserRole === "owner",
     leader = owner || currentUserRole === "admin";
@@ -76,7 +78,11 @@ export default function ProfileMenu(props) {
     invite: "Mời thành viên",
   };
   const navigateDetail = (dest) => {
-    setInviteOpen(false);
+    if (dest !== "invite") {
+      setInviteOpen(false);
+    } else {
+      setInviteOpen(true);
+    }
     setError("");
     setDetail(dest);
   };
@@ -94,11 +100,35 @@ export default function ProfileMenu(props) {
       setBusy(false);
     }
   };
-  const openInvite = async () => {
-    setInviteOpen(true);
-    await invite.load().catch(() => {});
+  const handleCloseInvite = () => {
+    setInviteOpen(false);
+    if (detail === "invite") {
+      setDetail(null);
+    }
   };
-  const inviteSheet=<InviteShare isOpen={inviteOpen} onClose={()=>setInviteOpen(false)} teamName={teamSettings?.teamName} teamLogo={teamSettings?.logo} teamCode={invite.code} inviteStatus={invite.status} currentUserRole={currentUserRole} loading={invite.loading} error={invite.error} onRetry={()=>invite.load()} onCreateInvite={()=>invite.load(true)} onRevokeInvite={invite.revoke}/>;
+  const openInvite = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setError("");
+    setInviteOpen(true);
+    return await invite.load().catch(() => {});
+  };
+  const inviteSheet = (
+    <InviteShare
+      isOpen={inviteOpen || detail === "invite"}
+      onClose={handleCloseInvite}
+      teamName={teamSettings?.teamName || user?.teamName || "FC No Offside"}
+      teamLogo={teamSettings?.logo || ""}
+      teamCode={invite.code || teamSettings?.inviteCode || ""}
+      inviteStatus={invite.status || teamSettings?.inviteStatus || "active"}
+      currentUserRole={currentUserRole}
+      isLeader={leader}
+      loading={invite.loading}
+      error={invite.error}
+      onRetry={() => invite.load()}
+      onCreateInvite={() => invite.load(true)}
+      onRevokeInvite={invite.revoke}
+    />
+  );
   if (detail)
     return (
       <div lang={props.preferences?.value.language || "vi"} key={detail} className={"profile-detail" + (detailDirection<0 ? " profile-back" : "")}>
@@ -212,7 +242,7 @@ export default function ProfileMenu(props) {
       {hasTeam && onNavigate && (
         <section className="profile-group" aria-label="Thao tác nhanh"><h2>{t("Thao tác nhanh")}</h2><div className="profile-quick-grid">
           <button type="button" onClick={() => onNavigate("governance")}><BookOpen size={20} /><span>{t("Nội quy")}</span></button>
-          {leader && <button type="button" disabled={busy} onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
+          {leader && <button type="button" onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
           {leader && <button type="button" onClick={() => navigateDetail("management")}><Settings size={20} /><span>{t("Quản lý đội")}</span></button>}
         </div></section>
       )}

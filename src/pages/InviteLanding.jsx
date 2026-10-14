@@ -60,24 +60,39 @@ export default function InviteLanding({
       setError('');
       try {
         if (supabase) {
-          const { data, error: rpcError } = await supabase.rpc('no_gov_get_invite', {
-            p_code: code,
-          });
-          if (rpcError) throw new Error(rpcError.message);
-          if (data && data.valid) {
-            setTeamData({
-              id: data.teamId,
-              name: data.teamName,
-              logo: data.logo,
-              category: data.category,
-              venue: data.venue,
-              captain: data.captain,
-              membersCount: data.memberCount,
-              takenNumbers: data.takenNumbers || [],
-              code: data.code,
+          try {
+            const { data, error: rpcError } = await supabase.rpc('no_gov_get_invite', {
+              p_code: code,
             });
-            setLoading(false);
-            return;
+            if (rpcError) {
+              const isMissingRpc =
+                rpcError.code === "PGRST202" ||
+                rpcError.code === "42883" ||
+                rpcError.message?.includes("schema cache") ||
+                rpcError.message?.includes("Could not find the function");
+              if (!isMissingRpc) throw new Error(rpcError.message);
+            } else if (data && data.valid) {
+              setTeamData({
+                id: data.teamId,
+                name: data.teamName,
+                logo: data.logo,
+                category: data.category,
+                venue: data.venue,
+                captain: data.captain,
+                membersCount: data.memberCount,
+                takenNumbers: data.takenNumbers || [],
+                code: data.code,
+              });
+              setLoading(false);
+              return;
+            }
+          } catch (e) {
+            if (
+              !e.message?.includes("schema cache") &&
+              !e.message?.includes("Could not find the function")
+            ) {
+              throw e;
+            }
           }
         }
 

@@ -52,14 +52,29 @@ export default function ClubCodeModal({
     setLoading(true);
     try {
       if (supabase) {
-        const { data, error: rpcError } = await supabase.rpc('no_gov_get_invite', {
-          p_code: cleanCode,
-        });
-        if (rpcError) throw new Error(rpcError.message);
-        if (data && data.valid) {
-          setTeamInfo(data);
-          setStep('form');
-          return;
+        try {
+          const { data, error: rpcError } = await supabase.rpc('no_gov_get_invite', {
+            p_code: cleanCode,
+          });
+          if (rpcError) {
+            const isMissingRpc =
+              rpcError.code === "PGRST202" ||
+              rpcError.code === "42883" ||
+              rpcError.message?.includes("schema cache") ||
+              rpcError.message?.includes("Could not find the function");
+            if (!isMissingRpc) throw new Error(rpcError.message);
+          } else if (data && data.valid) {
+            setTeamInfo(data);
+            setStep('form');
+            return;
+          }
+        } catch (e) {
+          if (
+            !e.message?.includes("schema cache") &&
+            !e.message?.includes("Could not find the function")
+          ) {
+            throw e;
+          }
         }
       }
 

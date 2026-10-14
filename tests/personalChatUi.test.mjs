@@ -68,3 +68,36 @@ test('personal invite status updates only after revoke/regenerate callback ackno
  await act(async()=>await tree.root.findByProps({teamCode:'QA1234'}).props.onRevokeInvite());assert.equal(tree.root.findByProps({teamCode:'QA1234'}).props.inviteStatus,'revoked');
  await act(async()=>await tree.root.findByProps({teamCode:'QA1234'}).props.onCreateInvite());assert.equal(tree.root.findByProps({teamCode:'QA5678'}).props.inviteStatus,'active');act(()=>tree.unmount());
 });
+
+test('navigating between personal views clears stale errors and management renders cleanly', async () => {
+  let tree;
+  act(() => {
+    tree = renderer.create(
+      React.createElement(Profile, {
+        user,
+        teamSettings: { id: 'team-one', teamName: 'FC', members: [] },
+        currentUserRole: 'owner',
+        hasTeam: true,
+        onNavigate: () => {},
+        onCreateInvite: async () => { throw new Error('Could not find the function public.no_gov_create_invite(p_team_id) in the schema cache'); },
+        onLogout: () => {},
+      })
+    );
+  });
+  const inviteSpan = tree.root.findAllByType('span').find(s => s.children.includes('Mời thành viên'));
+  assert.ok(inviteSpan);
+  await act(async () => {
+    await inviteSpan.parent.props.onClick();
+  });
+  assert.match(texts(tree), /no_gov_create_invite/);
+
+  const mgmtSpan = tree.root.findAllByType('span').find(s => s.children.includes('Quản lý đội'));
+  assert.ok(mgmtSpan);
+  act(() => {
+    mgmtSpan.parent.props.onClick();
+  });
+  assert.match(texts(tree), /Phân quyền và quản trị/);
+  assert.doesNotMatch(texts(tree), /no_gov_create_invite/);
+  act(() => tree.unmount());
+});
+

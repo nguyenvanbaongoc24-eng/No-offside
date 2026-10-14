@@ -1,4 +1,5 @@
-import {useTeamInvite} from "../hooks/useTeamInvite";
+import { copyToClipboard } from "../lib/clipboard";
+import { useTeamInvite } from "../hooks/useTeamInvite";
 import React, { useState, useEffect } from "react";
 import {
   CalendarDays,
@@ -60,16 +61,34 @@ export default function EmptyTeam({
   );
 
   const handleCopyCode = async () => {
-    if (!inviteCode) {openInvite(); return;}
+    const codeToCopy = inviteCode || invite.code || teamSettings?.inviteCode;
+    if (!codeToCopy) {
+      openInvite();
+      return;
+    }
     setCopyError("");
-    try {
-      const valid=await invite.load();
-      if (!navigator.clipboard?.writeText) throw Error("Trình duyệt chưa hỗ trợ sao chép.");
-      await navigator.clipboard.writeText(valid.code);
+    // Copy immediately in user gesture context (no preceding await)
+    const result = await copyToClipboard(codeToCopy);
+    if (result.success) {
       setCopiedCode(true);
-    } catch(err) {setCopyError(err.message || "Không sao chép được mã. Mở Mã / QR để chọn và sao chép thủ công.");}
+      invite.load().catch(() => {});
+    } else {
+      setCopyError(
+        result.message ||
+          "Trình duyệt chặn sao chép tự động. Vui lòng nhấn giữ mã để sao chép hoặc mở Mã QR."
+      );
+    }
   };
-  useEffect(() => {if(!copiedCode)return;const timer=setTimeout(()=>setCopiedCode(false),2000);return ()=>clearTimeout(timer);},[copiedCode]);
+  useEffect(() => {
+    if (!copiedCode) return;
+    const timer = setTimeout(() => setCopiedCode(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copiedCode]);
+  useEffect(() => {
+    if (!copyError) return;
+    const timer = setTimeout(() => setCopyError(""), 5000);
+    return () => clearTimeout(timer);
+  }, [copyError]);
   return (
     <section className="empty-team p-4 max-w-lg mx-auto space-y-4">
       {/* HEADER ĐỘI BÓNG */}

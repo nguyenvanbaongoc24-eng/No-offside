@@ -137,6 +137,8 @@ function Application({onRetryStartup}) {
     inviteCode = "";
   }
   const inviteTeam =
+    readStored("no_offside_team_" + String(inviteCode || "").toLowerCase(), null) ||
+    readStored("no_offside_team_" + String(inviteCode || "").toUpperCase(), null) ||
     readStored("no_offside_team_" + inviteCode, null) ||
     (inviteCode === auth.teamSettings.id ? auth.teamSettings : null);
   if (auth.authLoading || auth.startupPending || auth.startupError)

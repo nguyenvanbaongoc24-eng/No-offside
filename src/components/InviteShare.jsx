@@ -3,6 +3,7 @@ import {AnimatePresence,motion} from 'framer-motion';
 import {QRCodeSVG} from 'qrcode.react';
 import {X,Copy,Share2,ExternalLink,RotateCw,Ban,Loader2} from 'lucide-react';
 import Avatar from './Avatar';
+import { copyToClipboard } from '../lib/clipboard';
 
 export default function InviteShare({isOpen=true,onClose,teamName='',teamLogo='',teamCode='',clubCode,inviteStatus='active',loading=false,error='',onRetry,isLeader=false,currentUserRole,onRegenerateCode,onCreateInvite,onRevokeCode,onRevokeInvite,onPreviewLanding}) {
   const [notice,setNotice]=useState(''),[failure,setFailure]=useState(''),[busy,setBusy]=useState(false),[confirmRevoke,setConfirmRevoke]=useState(false);
@@ -33,8 +34,8 @@ export default function InviteShare({isOpen=true,onClose,teamName='',teamLogo=''
     finally{lock.current=false;if(alive.current)setBusy(false);}
   };
   const copy=async(value,label)=>{
-    if(!navigator.clipboard?.writeText)throw Error('Trình duyệt chưa hỗ trợ sao chép. Chọn mã hoặc liên kết bên dưới để sao chép thủ công.');
-    try{await navigator.clipboard.writeText(value);}catch{throw Error('Không sao chép được. Chọn mã hoặc liên kết để sao chép thủ công.');}
+    const res = await copyToClipboard(value);
+    if(!res.success) throw Error(res.message || 'Không thể tự động sao chép. Vui lòng nhấn giữ mã hoặc liên kết để sao chép thủ công.');
     if(alive.current)setNotice(label);
   };
   const share=async()=>{

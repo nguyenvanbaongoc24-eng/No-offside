@@ -59,56 +59,76 @@ export default function InviteLanding({
       setLoading(true);
       setError('');
       try {
+        // 1. Try Supabase RPC first if available
         if (supabase) {
           try {
             const { data, error: rpcError } = await supabase.rpc('no_gov_get_invite', {
               p_code: code,
             });
-            if (rpcError) {
-              const isMissingRpc =
-                rpcError.code === "PGRST202" ||
-                rpcError.code === "42883" ||
-                rpcError.message?.includes("schema cache") ||
-                rpcError.message?.includes("Could not find the function");
-              if (!isMissingRpc) throw new Error(rpcError.message);
-            } else if (data && data.valid) {
+            if (!rpcError && data && data.valid) {
               setTeamData({
                 id: data.teamId,
                 name: data.teamName,
-                logo: data.logo,
-                category: data.category,
-                venue: data.venue,
-                captain: data.captain,
-                membersCount: data.memberCount,
+                logo: data.logo || '',
+                category: data.category || 'Sân 7',
+                venue: data.venue || '',
+                captain: data.captain || 'Đội trưởng',
+                membersCount: data.memberCount || 1,
                 takenNumbers: data.takenNumbers || [],
-                code: data.code,
+                code: data.code || code,
               });
               setLoading(false);
               return;
             }
-          } catch (e) {
-            if (
-              !e.message?.includes("schema cache") &&
-              !e.message?.includes("Could not find the function")
-            ) {
-              throw e;
-            }
+          } catch {
+            // Proceed to cloud API fallback
           }
         }
 
-        // Local storage fallback for demo
+        // 2. Cloud API fallback (/api/invites) for cross-device QR scanning
         try {
-          const localRaw = window?.localStorage?.getItem(`no_offside_team_${code.toLowerCase()}`);
+          const resp = await fetch(`/api/invites?code=${encodeURIComponent(code)}`);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.valid) {
+              setTeamData({
+                id: data.teamId,
+                name: data.teamName,
+                logo: data.logo || '',
+                category: data.category || 'Sân 7',
+                venue: data.venue || '',
+                captain: data.captain || 'Đội trưởng',
+                membersCount: data.membersCount || 1,
+                takenNumbers: data.takenNumbers || [],
+                code: data.code || code,
+              });
+              setLoading(false);
+              return;
+            } else if (data && data.error) {
+              throw new Error(data.error);
+            }
+          }
+        } catch (apiErr) {
+          if (apiErr.message && !apiErr.message.includes('fetch')) {
+            throw apiErr;
+          }
+        }
+
+        // 3. Local storage fallback for offline / same-device testing
+        try {
+          const localRaw =
+            window?.localStorage?.getItem(`no_offside_team_${code.toLowerCase()}`) ||
+            window?.localStorage?.getItem(`no_offside_team_${code.toUpperCase()}`);
           if (localRaw) {
             const t = JSON.parse(localRaw);
             setTeamData({
               id: t.id,
               name: t.teamName,
-              logo: t.logo,
+              logo: t.logo || '',
               category: t.teamCategory || 'Sân 7',
               venue: t.venue || '',
               captain: t.members?.find((m) => m.roleType === 'owner')?.name || 'Đội trưởng',
-              membersCount: t.members?.length || 0,
+              membersCount: t.members?.length || 1,
               takenNumbers: (t.members || []).map((m) => Number(m.number)),
               code,
             });
@@ -117,9 +137,9 @@ export default function InviteLanding({
           }
         } catch {}
 
-        throw new Error('Mã mời không tồn tại, đã hết hạn hoặc bị thu hồi.');
+        throw new Error('Mã Club không hợp lệ hoặc lời mời đã hết hạn / bị thu hồi.');
       } catch (err) {
-        setError(err.message || 'Không tìm thấy thông tin đội bóng.');
+        setError(err.message || 'Mã Club không hợp lệ hoặc lời mời đã hết hạn / bị thu hồi.');
       } finally {
         setLoading(false);
       }

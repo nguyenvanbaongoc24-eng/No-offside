@@ -1382,6 +1382,9 @@ export function useAuth() {
 
   const createInvite = async (targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
+    let code = teamSettings?.inviteCode;
+    let status = "active";
+
     if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id && !demoSession) {
       let { data, error } = await supabase.rpc("no_gov_create_invite", {
         p_team_id: tId,
@@ -1404,41 +1407,106 @@ export function useAuth() {
       }
 
       if (!error && data?.code) {
-        setTeamSettings((prev) => prev.id === tId && inviteAccountRef.current===accountId ? ({ ...prev, inviteCode: data.code, inviteStatus: "active" }) : prev);
-        return { ...data, teamId: tId };
+        code = data.code;
+        status = data.status || "active";
       }
     }
-    const code = teamSettings?.inviteCode || ("NO" + Math.random().toString(36).substring(2, 6).toUpperCase());
-    setTeamSettings((prev) => prev.id === tId && inviteAccountRef.current===accountId ? ({ ...prev, inviteCode: code, inviteStatus: "active" }) : prev);
-    if (tId) {
-      writeStored("no_offside_team_" + String(code).toLowerCase(), {
-        ...teamSettings,
-        id: tId,
-        inviteCode: code,
-      });
+
+    if (!code) {
+      code = "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
     }
-    return { success: true, code, status: "active", teamId: tId };
+
+    setTeamSettings((prev) =>
+      prev.id === tId && inviteAccountRef.current === accountId
+        ? { ...prev, inviteCode: code, inviteStatus: "active" }
+        : prev
+    );
+
+    const teamPayload = {
+      ...teamSettings,
+      id: tId,
+      inviteCode: code,
+      inviteStatus: "active",
+    };
+
+    if (tId) {
+      writeStored("no_offside_team_" + String(code).toLowerCase(), teamPayload);
+      writeStored("no_offside_team_" + String(code).toUpperCase(), teamPayload);
+    }
+
+    // Always push / sync invite to cloud so ANY other device scanning the QR code can resolve it!
+    try {
+      fetch("/api/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          teamId: tId,
+          teamName: teamSettings?.teamName || user?.teamName || "FC No Offside",
+          logo: teamSettings?.logo || "",
+          category: teamSettings?.teamCategory || "Sân 7",
+          venue: teamSettings?.venue || "",
+          captain:
+            teamSettings?.members?.find((m) => m.roleType === "owner")?.name ||
+            user?.name ||
+            "Đội trưởng",
+          membersCount: (teamSettings?.members || []).length || 1,
+          takenNumbers: (teamSettings?.members || [])
+            .map((m) => Number(m.number))
+            .filter((n) => Number.isInteger(n)),
+          status: "active",
+          team: teamPayload,
+        }),
+      }).catch(() => {});
+    } catch {}
+
+    return { success: true, code, status, teamId: tId };
   };
 
   const readInvite = async (code, targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
-    if (!supabase || !authSession?.user?.id || demoSession) {
-      return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
-    }
-    try {
-      const { data, error } = await supabase.rpc("no_gov_get_invite", {p_code: code});
-      if (!error && data?.valid) {
-        if (data.teamId && data.teamId !== tId) throw new Error("Mã mời không thuộc đội đang chọn.");
-        return data;
+    if (supabase && authSession?.user?.id && !demoSession) {
+      try {
+        const { data, error } = await supabase.rpc("no_gov_get_invite", { p_code: code });
+        if (!error && data?.valid) {
+          if (data.teamId && data.teamId !== tId) throw new Error("Mã mời không thuộc đội đang chọn.");
+          return data;
+        }
+      } catch (err) {
+        if (err.message?.includes("không thuộc đội đang chọn")) throw err;
       }
-    } catch (err) {
-      if (err.message?.includes("không thuộc đội đang chọn")) throw err;
     }
+
+    // Cloud lookup fallback
+    try {
+      const resp = await fetch(`/api/invites?code=${encodeURIComponent(code)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.valid) {
+          if (data.teamId && tId && data.teamId !== tId) throw new Error("Mã mời không thuộc đội đang chọn.");
+          return data;
+        }
+      }
+    } catch (e) {
+      if (e.message?.includes("không thuộc đội đang chọn")) throw e;
+    }
+
     return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
   };
 
   const revokeInvite = async (targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
+    const code = teamSettings?.inviteCode;
+    try {
+      if (code) {
+        fetch("/api/invites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "revoke", code, teamId: tId }),
+        }).catch(() => {});
+      }
+    } catch {}
+
     if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id && !demoSession) {
       const { data, error } = await supabase.rpc("no_gov_revoke_invite", {
         p_team_id: tId,
@@ -1517,29 +1585,64 @@ export function useAuth() {
           await loadDatabaseMemberships();
           return data;
         }
-        if (error) {
-          const isMissingRpc =
-            error.code === "PGRST202" ||
-            error.code === "42883" ||
-            error.message?.includes("schema cache") ||
-            error.message?.includes("Could not find the function");
-          if (!isMissingRpc) {
-            throw new Error(error.message);
-          }
+      } catch {}
+    }
+
+    // Cloud API join fallback (/api/invites) for shared and demo teams
+    try {
+      const resp = await fetch("/api/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "join",
+          code: cleanCode,
+          memberProfile: { name, number, role: position },
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.success && data.team) {
+          const joinedTeam = data.team;
+          const me = data.me;
+          const newSettings = {
+            ...teamSettings,
+            ...joinedTeam,
+            id: joinedTeam.id || teamSettings.id,
+            teamName: joinedTeam.teamName || teamSettings.teamName,
+            members: joinedTeam.members || [
+              ...(teamSettings.members || []),
+              me,
+            ],
+          };
+          setTeamSettings(newSettings);
+          writeStored("no_offside_team_" + newSettings.id, newSettings);
+          setUser((prev) => ({
+            ...prev,
+            name: me.name,
+            number: me.number,
+            role: me.role,
+            teamName: newSettings.teamName,
+            isCaptain: false,
+            customTitle: "Cầu thủ",
+          }));
+          setCurrentUserRole("member");
+          return data;
+        } else if (data && data.error) {
+          throw new Error(data.error);
         }
-      } catch (err) {
-        if (
-          !err.message?.includes("schema cache") &&
-          !err.message?.includes("Could not find the function")
-        ) {
-          throw err;
-        }
+      }
+    } catch (apiErr) {
+      if (apiErr.message && !apiErr.message.includes("fetch")) {
+        throw apiErr;
       }
     }
 
     // Fallback join for demo / offline
     const fallbackTeamKey = "no_offside_team_" + cleanCode.toLowerCase();
-    const existingTeam = readStored(fallbackTeamKey, teamSettings);
+    const existingTeam =
+      readStored(fallbackTeamKey, null) ||
+      readStored("no_offside_team_" + cleanCode.toUpperCase(), null) ||
+      teamSettings;
     joinTeam(existingTeam, { ...memberProfile, name, number, role: position });
   };
 

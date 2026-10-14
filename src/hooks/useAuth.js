@@ -1403,11 +1403,10 @@ export function useAuth() {
         } catch {}
       }
 
-      if (error) throw new Error(error.message);
-      if (data?.code) {
+      if (!error && data?.code) {
         setTeamSettings((prev) => prev.id === tId && inviteAccountRef.current===accountId ? ({ ...prev, inviteCode: data.code, inviteStatus: "active" }) : prev);
+        return { ...data, teamId: tId };
       }
-      return { ...data, teamId: tId };
     }
     const code = teamSettings?.inviteCode || ("NO" + Math.random().toString(36).substring(2, 6).toUpperCase());
     setTeamSettings((prev) => prev.id === tId && inviteAccountRef.current===accountId ? ({ ...prev, inviteCode: code, inviteStatus: "active" }) : prev);
@@ -1424,20 +1423,18 @@ export function useAuth() {
   const readInvite = async (code, targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
     if (!supabase || !authSession?.user?.id || demoSession) {
-      if (teamSettings?.inviteCode === code) {
-        return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
-      }
-      return { valid: true, code, status: 'active', teamId: tId };
+      return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
     }
-    const { data, error } = await supabase.rpc("no_gov_get_invite", {p_code: code});
-    if (error) {
-      if (teamSettings?.inviteCode === code) {
-        return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
+    try {
+      const { data, error } = await supabase.rpc("no_gov_get_invite", {p_code: code});
+      if (!error && data?.valid) {
+        if (data.teamId && data.teamId !== tId) throw new Error("Mã mời không thuộc đội đang chọn.");
+        return data;
       }
-      throw new Error(error.message);
+    } catch (err) {
+      if (err.message?.includes("không thuộc đội đang chọn")) throw err;
     }
-    if (data?.valid && data.teamId !== targetTeamId) throw new Error("Mã mời không thuộc đội đang chọn.");
-    return data;
+    return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
   };
 
   const revokeInvite = async (targetTeamId) => {

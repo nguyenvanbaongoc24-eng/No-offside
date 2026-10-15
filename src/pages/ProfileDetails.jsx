@@ -33,7 +33,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import Avatar from "../components/Avatar";
-import { imageDataUrl } from "../lib/images";
+import { imageDataUrl, uploadAvatarImage } from "../lib/images";
 
 export default function ProfileDetails({
   detail = "profile",
@@ -56,10 +56,12 @@ export default function ProfileDetails({
   onUpdateProfile,
   onRequestAdmin,
   demoSession,
+  authSession,
 }) {
   const t = text => personalText(text, preferences?.value.language);
   // Personal Info Form State
   const [avatar, setAvatar] = useState(user.avatar);
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
   const [name, setName] = useState(user.name ?? "");
   const [number, setNumber] = useState(user.number ?? "");
   const [role, setRole] = useState(user.role ?? "");
@@ -115,8 +117,12 @@ export default function ProfileDetails({
   );
 
   const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     try {
-      setAvatar(await imageDataUrl(e.target.files?.[0]));
+      setSelectedAvatarFile(file);
+      setAvatar(await imageDataUrl(file));
+      setProfileError("");
     } catch (err) {
       setProfileError(err.message);
     }
@@ -126,12 +132,27 @@ export default function ProfileDetails({
     e.preventDefault();
     if (savingProfile) return;
     setSavingProfile(true); setProfileError(""); setIsSaved(false);
+    let finalAvatar = avatar;
     try {
-      await onUpdateProfile({ name, number, role, height: height === "" ? "" : Number(height), weight: weight === "" ? "" : Number(weight), avatar, phone: phone.trim() });
+      if (selectedAvatarFile) {
+        finalAvatar = await uploadAvatarImage(selectedAvatarFile, authSession?.access_token);
+        setAvatar(finalAvatar);
+        setSelectedAvatarFile(null);
+      }
+      await onUpdateProfile({
+        name,
+        number,
+        role,
+        height: height === "" ? "" : Number(height),
+        weight: weight === "" ? "" : Number(weight),
+        avatar: finalAvatar,
+        phone: phone.trim()
+      });
       setIsSaved(true);
     } catch (err) { setProfileError(err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại."); }
     finally { setSavingProfile(false); }
   };
+
 
   const handleSaveTeamName = (e) => {
     e.preventDefault();

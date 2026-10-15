@@ -36,6 +36,7 @@ import AccountControls from "./components/AccountControls";
 import Governance from "./pages/Governance";
 import { useGovernance } from "./hooks/useGovernance";
 import GovernanceNotice from "./components/GovernanceNotice";
+import { useAppVersion } from "./hooks/useAppVersion";
 
 export default function App() {
   const [startupAttempt,setStartupAttempt]=useState(0);
@@ -43,6 +44,7 @@ export default function App() {
 }
 function Application({onRetryStartup}) {
   const auth = useAuth();
+  const { isUpdating } = useAppVersion();
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
   const [tab, setTab] = useState(
     window.location.pathname.startsWith("/invite/")
@@ -137,8 +139,6 @@ function Application({onRetryStartup}) {
     inviteCode = "";
   }
   const inviteTeam =
-    readStored("no_offside_team_" + String(inviteCode || "").toLowerCase(), null) ||
-    readStored("no_offside_team_" + String(inviteCode || "").toUpperCase(), null) ||
     readStored("no_offside_team_" + inviteCode, null) ||
     (inviteCode === auth.teamSettings.id ? auth.teamSettings : null);
   if (auth.authLoading || auth.startupPending || auth.startupError)
@@ -206,6 +206,16 @@ function Application({onRetryStartup}) {
     <StartupGate onRetry={onRetryStartup}>
     <div className="app-shell bg-slate-100 min-h-screen text-gray-900 flex justify-center antialiased">
       <div className={"app-frame app-scroll-frame w-full max-w-md bg-slate-50 relative" + (navigationAvailable ? " app-has-navigation" : "") + (activeTab === "chat" ? " app-chat-frame" : "")}>
+        {isUpdating && (
+          <div
+            role="status"
+            aria-live="assertive"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-emerald-700/95 text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold backdrop-blur-md border border-emerald-500/40 animate-pulse pointer-events-none"
+          >
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+            <span>Đang cập nhật No Offside…</span>
+          </div>
+        )}
         {auth.storageError && (
           <div role="alert" className="p-3 bg-rose-50 text-rose-700">
             {auth.storageError}
@@ -316,6 +326,7 @@ function Application({onRetryStartup}) {
               key={auth.accountId + auth.teamSettings.id}
               teamId={auth.teamSettings.id}
               accountId={auth.accountId}
+              accessToken={auth.demoSession ? null : auth.authSession?.access_token}
               user={auth.user}
               members={auth.teamSettings.members}
               language={preferences.value.language || "vi"}
@@ -330,6 +341,7 @@ function Application({onRetryStartup}) {
             <React.Fragment key={auth.accountId + auth.teamSettings.id}>
               <Profile
                 {...shared}
+                authSession={auth.demoSession ? null : auth.authSession}
                 onOpenNotifications={() => setShowNotices(true)}
                 teamSettings={auth.teamSettings}
                 hasTeam={auth.hasTeam}

@@ -348,6 +348,10 @@ button[class*="duration-"],summary[class*="duration-"] { transition-duration:var
 .member-form-sheet > div:first-child { flex-shrink:0; }
 .member-form-sheet form { overflow-y:auto; min-height:0; overscroll-behavior:contain; }
 .member-form-actions { position:sticky; bottom:0; z-index:1; background:var(--elevated-surface); padding-top:12px; }
+.match-form-sheet { display:flex !important; flex-direction:column !important; overflow:hidden !important; }
+.match-form-sheet > header, .match-form-sheet > .sheet-header { flex-shrink:0; z-index:10; background:var(--elevated-surface) !important; }
+.match-form-sheet form, .match-form-sheet .match-form { flex:1 1 auto; overflow-y:auto; min-height:0; overscroll-behavior:contain; }
+.match-form-sheet footer, .match-form-sheet .sheet-footer { flex-shrink:0; z-index:10; background:var(--elevated-surface) !important; }
 
 /* Team conversation: its own scroll viewport, independently of page navigation. */
 .person-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; flex-shrink:0; }

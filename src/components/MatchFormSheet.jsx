@@ -43,16 +43,16 @@ export default function MatchFormSheet({
 
       <section className="match-form-sheet relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-[32px] border border-slate-200/80 dark:border-slate-800 shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] text-slate-900 dark:text-white overflow-hidden animate-in slide-in-from-bottom duration-300 z-10">
         {/* Mobile handle indicator */}
-        <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mt-3 sm:hidden shrink-0" />
+        <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2.5 sm:hidden shrink-0" />
 
-        {/* Sheet Header */}
-        <header className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+        {/* Sheet Header - Fixed at top, crisp separator */}
+        <header className="sheet-header px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0 z-10">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
               <CalendarPlus size={20} className="stroke-[2.5]" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white truncate">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white truncate tracking-tight">
                 {editing ? "Sửa trận" : "Tạo trận"}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
@@ -64,9 +64,9 @@ export default function MatchFormSheet({
             type="button"
             aria-label="Đóng"
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer outline-none shrink-0"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer outline-none shrink-0 border-0"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </header>
 
@@ -88,7 +88,9 @@ export default function MatchFormSheet({
           {/* Card 1: Thông tin trận */}
           <fieldset className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3 m-0">
             <legend className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 px-1">
-              <CalendarDays size={16} className="stroke-[2.5]" />
+              <div className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <CalendarDays size={13} className="stroke-[2.5]" />
+              </div>
               <span>Thông tin trận</span>
             </legend>
 
@@ -154,7 +156,9 @@ export default function MatchFormSheet({
           {/* Card 2: Điểm danh */}
           <fieldset className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3 m-0">
             <legend className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 px-1">
-              <UserCheck size={16} className="stroke-[2.5]" />
+              <div className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <UserCheck size={13} className="stroke-[2.5]" />
+              </div>
               <span>Điểm danh</span>
             </legend>
 
@@ -181,7 +185,7 @@ export default function MatchFormSheet({
             </div>
 
             {/* Checkbox Áp dụng phạt khi vắng mặt */}
-            <label className="checkbox-field flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
+            <label className="checkbox-field flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none hover:border-emerald-500/40 transition-all shadow-2xs">
               <input
                 type="checkbox"
                 checked={draft.penaltyEnabled}
@@ -190,14 +194,19 @@ export default function MatchFormSheet({
                 }
                 className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 shrink-0"
               />
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Áp dụng mức phạt khi chưa điểm danh
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Áp dụng mức phạt khi chưa điểm danh
+                </span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
+                  Tự động ghi nhận nợ quỹ nếu vắng mặt không phép
+                </span>
+              </div>
             </label>
 
             {/* Mức phạt khi vắng mặt */}
             {draft.penaltyEnabled && (
-              <div className="form-field p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 space-y-2 animate-in fade-in duration-150">
+              <div className="form-field p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 space-y-2.5 animate-in fade-in duration-150">
                 <label htmlFor={`${prefix}-fine`} className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                   <Coins size={14} className="text-emerald-600" />
                   <span>Mức phạt (đ/người)</span>
@@ -216,9 +225,9 @@ export default function MatchFormSheet({
                       onChange({ ...draft, penaltyFine: e.target.value })
                     }
                     placeholder="50000"
-                    className="w-full bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 tabular-nums shadow-2xs pr-12"
+                    className="w-full bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 tabular-nums shadow-2xs pr-12"
                   />
-                  <span className="absolute right-3.5 top-2 text-xs font-bold text-slate-400">
+                  <span className="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">
                     đ
                   </span>
                 </div>
@@ -235,7 +244,7 @@ export default function MatchFormSheet({
                       key={val}
                       type="button"
                       onClick={() => onChange({ ...draft, penaltyFine: val })}
-                      className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
                         String(draft.penaltyFine) === val
                           ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
                           : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-400"
@@ -252,13 +261,16 @@ export default function MatchFormSheet({
           {/* Card 3: Đến muộn */}
           <fieldset className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3 m-0">
             <legend className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 px-1">
-              <ShieldCheck size={16} className="stroke-[2.5]" />
+              <div className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <ShieldCheck size={13} className="stroke-[2.5]" />
+              </div>
               <span>Đến muộn</span>
             </legend>
 
-            <p className="field-hint text-[11px] text-slate-500 dark:text-slate-400">
-              Cấu hình chỉ được thực thi khi trận đã kết nối nghiệp vụ trên server.
-            </p>
+            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-400">
+              <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Cấu hình tự động thực thi theo quy chế ban quản lý.</span>
+            </div>
 
             <div className="grid grid-cols-2 gap-2.5">
               <div className="form-field">
@@ -299,24 +311,48 @@ export default function MatchFormSheet({
             </div>
 
             <div className="form-field">
-              <label htmlFor={`${prefix}-late-fine`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Phạt đi muộn (đ)
+              <label htmlFor={`${prefix}-late-fine`} className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Phạt đi muộn (đ)</span>
               </label>
-              <input
-                id={`${prefix}-late-fine`}
-                type="number"
-                inputMode="numeric"
-                min="0"
-                max={100000000}
-                step="1"
-                required
-                value={late.fine}
-                onChange={(e) => updateLate("fine", Number(e.target.value))}
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
-              />
+              <div className="relative">
+                <input
+                  id={`${prefix}-late-fine`}
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  max={100000000}
+                  step="1"
+                  required
+                  value={late.fine}
+                  onChange={(e) => updateLate("fine", Number(e.target.value))}
+                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs pr-10"
+                />
+                <span className="absolute right-3.5 top-2 text-xs font-bold text-slate-400">
+                  đ
+                </span>
+              </div>
+
+              {/* Nút chọn nhanh mức phạt đi muộn */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-500 font-medium">Nhanh:</span>
+                {quickFines.map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => updateLate("fine", Number(val))}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                      Number(late.fine) === Number(val)
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
+                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-400"
+                    }`}
+                  >
+                    {Number(val) / 1000}k
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <label className="checkbox-field flex items-center gap-2.5 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
+            <label className="checkbox-field flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none hover:border-emerald-500/40 transition-all shadow-2xs">
               <input
                 type="checkbox"
                 checked={late.approvalRequired}
@@ -325,9 +361,14 @@ export default function MatchFormSheet({
                 }
                 className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 shrink-0"
               />
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Cần người có quyền duyệt
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Cần người có quyền duyệt
+                </span>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
+                  Ban quản lý cần chấp thuận đơn xin muộn
+                </span>
+              </div>
             </label>
 
             <div className="form-field">
@@ -338,7 +379,7 @@ export default function MatchFormSheet({
                 id={`${prefix}-approved-policy`}
                 value={late.approvedPolicy}
                 onChange={(e) => updateLate("approvedPolicy", e.target.value)}
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs cursor-pointer"
+                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs cursor-pointer"
               >
                 <option value="eta">Tính muộn từ giờ đã chấp thuận</option>
                 <option value="kickoff">Vẫn tính từ giờ đá</option>
@@ -356,15 +397,12 @@ export default function MatchFormSheet({
           )}
         </form>
 
-        {/* =========================================================================
-            STICKY ACTION FOOTER: NỔI TRÊN CÙNG, CỐ ĐỊNH Ở ĐÁY SHEET, RÕ RÀNG VÀ TRỰC QUAN
-            Không bao giờ bị che khuất bởi navigation bar hay cấn mép điện thoại
-            ========================================================================= */}
-        <footer className="sheet-footer p-4 pb-6 sm:pb-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 flex items-center gap-2.5 shrink-0">
+        {/* Sticky Action Footer */}
+        <footer className="sheet-footer p-4 pb-6 sm:pb-4 bg-white/98 dark:bg-slate-900/98 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 flex items-center gap-3 shrink-0 z-10">
           <button
             type="button"
             onClick={onClose}
-            className="py-3 px-4 rounded-2xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap active:scale-95 outline-none"
+            className="h-12 px-5 rounded-2xl font-bold text-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer whitespace-nowrap active:scale-95 outline-none flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60"
           >
             Hủy
           </button>
@@ -373,7 +411,7 @@ export default function MatchFormSheet({
             form={`${prefix}-form`}
             type="submit"
             disabled={saving}
-            className="primary-button flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 outline-none"
+            className="primary-button h-12 flex-1 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-lg shadow-emerald-700/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 outline-none"
           >
             {saving ? (
               <>

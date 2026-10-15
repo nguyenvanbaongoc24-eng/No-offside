@@ -101,7 +101,7 @@ export default function MemberQuickProfileModal({
     setTimeout(() => setCopiedPhone(false), 2000);
   };
 
-  return createPortal(
+  const content = (
     <AnimatePresence>
       <div
         role="dialog"
@@ -356,7 +356,10 @@ export default function MemberQuickProfileModal({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>,
-    document.body
+    </AnimatePresence>
   );
+
+  return typeof document !== "undefined" && document.body
+    ? createPortal(content, document.body)
+    : content;
 }

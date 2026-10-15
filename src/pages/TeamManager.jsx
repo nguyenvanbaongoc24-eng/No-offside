@@ -102,7 +102,7 @@ export default function TeamManager({
 
   if (!isOpen) return null;
 
-  return createPortal(
+  const content = (
     <AnimatePresence>
       <div
         role="dialog"
@@ -538,7 +538,10 @@ export default function TeamManager({
         onClose={() => setSelectedMember(null)}
         currentUserRole={currentUserRole}
       />
-    </AnimatePresence>,
-    document.body
+    </AnimatePresence>
   );
+
+  return typeof document !== "undefined" && document.body
+    ? createPortal(content, document.body)
+    : content;
 }

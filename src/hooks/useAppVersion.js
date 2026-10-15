@@ -87,7 +87,7 @@ export function useAppVersion() {
       const registration = await navigator.serviceWorker?.getRegistration();
       if (registration?.waiting) {
         // Wait for this tab's controller transition; never force reload another tab.
-        await new Promise((resolve, reject) => {
+        await new Promise((resolve) => {
           const changed = () => {
             clearTimeout(timer);
             navigator.serviceWorker.removeEventListener(
@@ -101,10 +101,16 @@ export function useAppVersion() {
               "controllerchange",
               changed,
             );
-            reject(Error("Chưa kích hoạt được bản mới. Vui lòng thử lại."));
-          }, 10000);
+            // Fallback: nếu sau 3 giây sự kiện controllerchange không kích hoạt (ví dụ worker cũ bị lỗi importScripts),
+            // vẫn tự động tiếp tục để tải lại trang với phiên bản mới từ server thay vì chặn đứng người dùng.
+            resolve();
+          }, 3000);
           navigator.serviceWorker.addEventListener("controllerchange", changed);
-          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          try {
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          } catch {
+            resolve();
+          }
         });
       }
       if (pendingWriteCount() > 0 || window.__no_offside_busy_saving)

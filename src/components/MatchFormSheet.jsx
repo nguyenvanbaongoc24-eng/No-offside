@@ -31,11 +31,11 @@ export default function MatchFormSheet({
 
   const quickFines = ["20000", "50000", "100000", "200000"];
 
-  return createPortal(
+  const content = (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={editing ? "Sửa lịch thi đấu" : "Tạo lịch thi đấu"}
+      aria-label={editing ? "Sửa trận" : "Tạo trận"}
       className="match-form-overlay fixed inset-0 z-[200] flex justify-center items-end sm:items-center p-0 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
     >
       {/* Backdrop Click to close */}
@@ -53,10 +53,10 @@ export default function MatchFormSheet({
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-bold text-slate-900 dark:text-white truncate">
-                {editing ? "Chỉnh sửa lịch thi đấu" : "Tạo lịch thi đấu mới"}
+                {editing ? "Sửa trận" : "Tạo trận"}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                Thiết lập đối thủ, thời gian & chế tài điểm danh
+                Thiết lập đối thủ, thời gian và chế tài điểm danh
               </p>
             </div>
           </div>
@@ -83,20 +83,20 @@ export default function MatchFormSheet({
               setSaving(false);
             }
           }}
-          className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
+          className="match-form flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
         >
-          {/* Card 1: Thông tin trận đấu */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 border-b border-slate-200/60 dark:border-slate-700/60">
+          {/* Card 1: Thông tin trận */}
+          <fieldset className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3 m-0">
+            <legend className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 px-1">
               <CalendarDays size={16} className="stroke-[2.5]" />
-              <span>Thông tin trận đấu</span>
-            </div>
+              <span>Thông tin trận</span>
+            </legend>
 
             {/* Đối thủ */}
             <div className="form-field">
               <label htmlFor={`${prefix}-opponent`} className="text-xs font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
                 <Users size={14} className="text-emerald-600" />
-                <span>Đội đối thủ</span>
+                <span>Đối thủ</span>
               </label>
               <input
                 id={`${prefix}-opponent`}
@@ -123,11 +123,12 @@ export default function MatchFormSheet({
                 value={draft.datetime}
                 onChange={(e) => onChange({ ...draft, datetime: e.target.value })}
                 onInput={(e) => onChange({ ...draft, datetime: e.currentTarget.value })}
+                aria-describedby={`${prefix}-datetime-hint`}
                 autoComplete="off"
                 className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
               />
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                {draft.datetime ? "Giờ theo thiết bị địa phương" : "Chọn ngày và giờ ra sân"}
+              <span id={`${prefix}-datetime-hint`} className="field-hint text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {draft.datetime ? "Giờ địa phương trên thiết bị" : "Chọn ngày và giờ trên thiết bị"}
               </span>
             </div>
 
@@ -135,27 +136,27 @@ export default function MatchFormSheet({
             <div className="form-field">
               <label htmlFor={`${prefix}-venue`} className="text-xs font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
                 <MapPin size={14} className="text-emerald-600" />
-                <span>Địa điểm sân bóng</span>
+                <span>Địa điểm</span>
               </label>
               <input
                 id={`${prefix}-venue`}
                 required
                 type="text"
                 value={draft.venue}
-                placeholder="Ví dụ: Sân Chuyên Việt - 123 Lê Lợi, Q.1"
+                placeholder="Tên sân và địa chỉ"
                 onChange={(e) => onChange({ ...draft, venue: e.target.value })}
                 autoComplete="off"
                 className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
               />
             </div>
-          </div>
+          </fieldset>
 
-          {/* Card 2: Quy chế điểm danh & Tiền phạt */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 border-b border-slate-200/60 dark:border-slate-700/60">
+          {/* Card 2: Điểm danh */}
+          <fieldset className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3 m-0">
+            <legend className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 px-1">
               <UserCheck size={16} className="stroke-[2.5]" />
-              <span>Điểm danh & Chế tài quỹ</span>
-            </div>
+              <span>Điểm danh</span>
+            </legend>
 
             {/* Hạn chốt điểm danh */}
             <div className="form-field">
@@ -170,16 +171,17 @@ export default function MatchFormSheet({
                 value={draft.timeoutDatetime}
                 onChange={(e) => onChange({ ...draft, timeoutDatetime: e.target.value })}
                 onInput={(e) => onChange({ ...draft, timeoutDatetime: e.currentTarget.value })}
+                aria-describedby={`${prefix}-timeout-hint`}
                 autoComplete="off"
                 className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
               />
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Khuyến nghị: Nên đặt hạn chốt trước giờ thi đấu ít nhất 2 - 4 tiếng.
+              <span id={`${prefix}-timeout-hint`} className="field-hint text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Hạn chốt phải trước thời gian thi đấu. Giờ được lưu theo giờ địa phương của thiết bị.
               </span>
             </div>
 
             {/* Checkbox Áp dụng phạt khi vắng mặt */}
-            <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
+            <label className="checkbox-field flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={draft.penaltyEnabled}
@@ -189,19 +191,17 @@ export default function MatchFormSheet({
                 className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 shrink-0"
               />
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Áp dụng phạt tiền quỹ khi không điểm danh
+                Áp dụng mức phạt khi chưa điểm danh
               </span>
             </label>
 
             {/* Mức phạt khi vắng mặt */}
             {draft.penaltyEnabled && (
-              <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 space-y-2 animate-in fade-in duration-150">
-                <div className="flex items-center justify-between">
-                  <label htmlFor={`${prefix}-fine`} className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                    <Coins size={14} className="text-emerald-600" />
-                    <span>Mức phạt vắng mặt (VNĐ / người)</span>
-                  </label>
-                </div>
+              <div className="form-field p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 space-y-2 animate-in fade-in duration-150">
+                <label htmlFor={`${prefix}-fine`} className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                  <Coins size={14} className="text-emerald-600" />
+                  <span>Mức phạt (đ/người)</span>
+                </label>
 
                 <div className="relative">
                   <input
@@ -209,7 +209,7 @@ export default function MatchFormSheet({
                     type="number"
                     inputMode="numeric"
                     min="0"
-                    step="1000"
+                    step="1"
                     required
                     value={draft.penaltyFine}
                     onChange={(e) =>
@@ -222,6 +222,10 @@ export default function MatchFormSheet({
                     đ
                   </span>
                 </div>
+
+                <span className="field-hint text-[11px] text-slate-500">
+                  Khoản phạt cần được kiểm tra và ghi vào quỹ.
+                </span>
 
                 {/* Nút chọn nhanh mức phạt */}
                 <div className="flex items-center gap-1.5 pt-0.5">
@@ -243,23 +247,23 @@ export default function MatchFormSheet({
                 </div>
               </div>
             )}
-          </div>
+          </fieldset>
 
-          {/* Card 3: Quy định đến muộn */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 border-b border-slate-200/60 dark:border-slate-700/60">
+          {/* Card 3: Đến muộn */}
+          <fieldset className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3 m-0">
+            <legend className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider pb-1 px-1">
               <ShieldCheck size={16} className="stroke-[2.5]" />
-              <span>Quy chế đến muộn (Tùy chọn)</span>
-            </div>
+              <span>Đến muộn</span>
+            </legend>
 
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Cấu hình xử lý khi thành viên xin đến muộn hoặc đến trễ giờ thi đấu.
+            <p className="field-hint text-[11px] text-slate-500 dark:text-slate-400">
+              Cấu hình chỉ được thực thi khi trận đã kết nối nghiệp vụ trên server.
             </p>
 
             <div className="grid grid-cols-2 gap-2.5">
               <div className="form-field">
                 <label htmlFor={`${prefix}-late-lateBefore`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Hạn xin trước (phút)
+                  Hạn xin trước giờ đá (phút)
                 </label>
                 <input
                   id={`${prefix}-late-lateBefore`}
@@ -277,7 +281,7 @@ export default function MatchFormSheet({
 
               <div className="form-field">
                 <label htmlFor={`${prefix}-late-grace`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Dung sai trễ (phút)
+                  Dung sai (phút)
                 </label>
                 <input
                   id={`${prefix}-late-grace`}
@@ -296,7 +300,7 @@ export default function MatchFormSheet({
 
             <div className="form-field">
               <label htmlFor={`${prefix}-late-fine`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Mức phạt đi muộn (VNĐ)
+                Phạt đi muộn (đ)
               </label>
               <input
                 id={`${prefix}-late-fine`}
@@ -304,7 +308,7 @@ export default function MatchFormSheet({
                 inputMode="numeric"
                 min="0"
                 max={100000000}
-                step="5000"
+                step="1"
                 required
                 value={late.fine}
                 onChange={(e) => updateLate("fine", Number(e.target.value))}
@@ -312,7 +316,7 @@ export default function MatchFormSheet({
               />
             </div>
 
-            <label className="flex items-center gap-2.5 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
+            <label className="checkbox-field flex items-center gap-2.5 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={late.approvalRequired}
@@ -322,13 +326,13 @@ export default function MatchFormSheet({
                 className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 shrink-0"
               />
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Yêu cầu Ban Quản Lý phê duyệt khi xin muộn
+                Cần người có quyền duyệt
               </span>
             </label>
 
             <div className="form-field">
               <label htmlFor={`${prefix}-approved-policy`} className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Chính sách khi đơn xin muộn được duyệt
+                Khi xin muộn được duyệt
               </label>
               <select
                 id={`${prefix}-approved-policy`}
@@ -337,18 +341,18 @@ export default function MatchFormSheet({
                 className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs cursor-pointer"
               >
                 <option value="eta">Tính muộn từ giờ đã chấp thuận</option>
-                <option value="kickoff">Vẫn tính từ giờ bắt đầu trận</option>
-                <option value="exempt">Miễn phạt đi muộn khi đã được duyệt</option>
+                <option value="kickoff">Vẫn tính từ giờ đá</option>
+                <option value="exempt">Miễn phạt đi muộn khi được duyệt</option>
               </select>
             </div>
-          </div>
+          </fieldset>
 
           {/* Error Notice */}
           {error && (
-            <div role="alert" className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+            <p role="alert" className="form-error p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />
               <span>{error}</span>
-            </div>
+            </p>
           )}
         </form>
 
@@ -356,7 +360,7 @@ export default function MatchFormSheet({
             STICKY ACTION FOOTER: NỔI TRÊN CÙNG, CỐ ĐỊNH Ở ĐÁY SHEET, RÕ RÀNG VÀ TRỰC QUAN
             Không bao giờ bị che khuất bởi navigation bar hay cấn mép điện thoại
             ========================================================================= */}
-        <footer className="p-4 pb-6 sm:pb-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 flex items-center gap-2.5 shrink-0">
+        <footer className="sheet-footer p-4 pb-6 sm:pb-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -369,28 +373,31 @@ export default function MatchFormSheet({
             form={`${prefix}-form`}
             type="submit"
             disabled={saving}
-            className="flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 outline-none"
+            className="primary-button flex-1 py-3.5 px-6 rounded-2xl font-bold text-sm bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-lg shadow-emerald-600/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 outline-none"
           >
             {saving ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Đang lưu lịch đấu…</span>
+                <span>Đang lưu…</span>
               </>
             ) : editing ? (
               <>
                 <Check size={18} className="stroke-[2.5]" />
-                <span>Lưu thay đổi trận đấu</span>
+                <span>Lưu thay đổi</span>
               </>
             ) : (
               <>
                 <CalendarPlus size={18} className="stroke-[2.5]" />
-                <span>Xác nhận tạo lịch đá</span>
+                <span>Tạo trận</span>
               </>
             )}
           </button>
         </footer>
       </section>
-    </div>,
-    document.body
+    </div>
   );
+
+  return typeof document !== "undefined" && document.body
+    ? createPortal(content, document.body)
+    : content;
 }

@@ -1,5 +1,6 @@
+import { TeamSwitcher } from "../components/TeamIdentityHeader";
 import { personalText } from "../lib/personalCopy";
-import {useTeamInvite} from "../hooks/useTeamInvite";
+import { useTeamInvite } from "../hooks/useTeamInvite";
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   Palette,
@@ -21,7 +22,11 @@ import {
 import InviteShare from "../components/InviteShare";
 import Avatar from "../components/Avatar";
 import ProfileDetails from "./ProfileDetails";
-const useProfileLayoutEffect=typeof document!=="undefined" && typeof document.createElement==="function" ? useLayoutEffect : useEffect;
+const useProfileLayoutEffect =
+  typeof document !== "undefined" &&
+  typeof document.createElement === "function"
+    ? useLayoutEffect
+    : useEffect;
 function Row({ icon: Icon, children, onClick }) {
   return (
     <button type="button" className="menu-row" onClick={onClick}>
@@ -34,7 +39,7 @@ function Row({ icon: Icon, children, onClick }) {
   );
 }
 export default function ProfileMenu(props) {
-  const t = text => personalText(text, props.preferences?.value.language);
+  const t = (text) => personalText(text, props.preferences?.value.language);
   const {
     user,
     teamSettings,
@@ -55,14 +60,47 @@ export default function ProfileMenu(props) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [username, setUsername] = useState(user.username || "");
-  const [detailDirection,setDetailDirection]=useState(1);
-  const homeScroll=useRef(0),previousDetail=useRef(detail);
-  const setDetail=next=>{if(!detail)homeScroll.current=window.scrollY || 0;setDetailDirection(1);setDetailState(next);};
-  useProfileLayoutEffect(()=>{if(previousDetail.current===detail)return;window.scrollTo?.({top:detail ? 0 : homeScroll.current,behavior:"instant"});previousDetail.current=detail;},[detail]);
+  const [detailDirection, setDetailDirection] = useState(1);
+  const homeScroll = useRef(0),
+    previousDetail = useRef(detail);
+  const setDetail = (next) => {
+    if (!detail) homeScroll.current = window.scrollY || 0;
+    setDetailDirection(1);
+    window.history?.pushState(
+      { ...window.history.state, noOffsideDetail: next },
+      "",
+    );
+    setDetailState(next);
+  };
+  useEffect(() => {
+    const back = (event) => {
+      if (event.state?.noOffsideTab === "profile") {
+        setDetailDirection(-1);
+        setDetailState(event.state.noOffsideDetail || null);
+        setError("");
+      }
+    };
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
+  }, []);
+  useProfileLayoutEffect(() => {
+    if (previousDetail.current === detail) return;
+    window.scrollTo?.({
+      top: detail ? 0 : homeScroll.current,
+      behavior: "instant",
+    });
+    previousDetail.current = detail;
+  }, [detail]);
   const [inviteOpen, setInviteOpen] = useState(
-    props.initialDetail === "invite" || props.detail === "invite"
+    props.initialDetail === "invite" || props.detail === "invite",
   );
-  const invite=useTeamInvite(teamSettings,currentUserRole,onCreateInvite,onRevokeInvite,onReadInvite);
+  const invite = useTeamInvite(
+    teamSettings,
+    currentUserRole,
+    onCreateInvite,
+    onRevokeInvite,
+    onReadInvite,
+  );
   const owner = currentUserRole === "owner",
     leader = owner || currentUserRole === "admin";
   const titles = {
@@ -131,13 +169,26 @@ export default function ProfileMenu(props) {
   );
   if (detail)
     return (
-      <div lang={props.preferences?.value.language || "vi"} key={detail} className={"profile-detail" + (detailDirection<0 ? " profile-back" : "")}>
+      <div
+        lang={props.preferences?.value.language || "vi"}
+        key={detail}
+        className={
+          "profile-detail" + (detailDirection < 0 ? " profile-back" : "")
+        }
+      >
         <header className="compact-header">
           <button
             type="button"
             aria-label="Quay lại Cá nhân"
             onClick={() => {
-              setDetailDirection(-1);setDetailState(["admin", "requests"].includes(detail) ? "management" : null);
+              if (window.history?.state?.noOffsideDetail === detail) {
+                window.history.back();
+                return;
+              }
+              setDetailDirection(-1);
+              setDetailState(
+                ["admin", "requests"].includes(detail) ? "management" : null,
+              );
               setError("");
             }}
           >
@@ -148,15 +199,76 @@ export default function ProfileMenu(props) {
         {inviteSheet}
         {detail === "management" && leader ? (
           <section className="profile-group profile-management">
-            <Row icon={UserPlus} onClick={openInvite}>{t("Mời thành viên")}</Row>
-            {owner && onNavigate && <Row icon={Settings} onClick={() => onNavigate("team-settings")}>{t("Cấu hình đội")}</Row>}
-            <Row icon={Shield} onClick={() => navigateDetail("admin")}>{t("Phân quyền và quản trị")}</Row>
-            {owner && <Row icon={ClipboardList} onClick={() => navigateDetail("requests")}>Yêu cầu chờ duyệt{teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row>}
+            <Row icon={UserPlus} onClick={openInvite}>
+              {t("Mời thành viên")}
+            </Row>
+            {owner && onNavigate && (
+              <Row icon={Settings} onClick={() => onNavigate("team-settings")}>
+                {t("Cấu hình đội")}
+              </Row>
+            )}
+            <Row icon={Shield} onClick={() => navigateDetail("admin")}>
+              {t("Phân quyền và quản trị")}
+            </Row>
+            {owner && (
+              <Row
+                icon={ClipboardList}
+                onClick={() => navigateDetail("requests")}
+              >
+                Yêu cầu chờ duyệt
+                {teamSettings?.pendingAdminRequests?.length
+                  ? " (" + teamSettings.pendingAdminRequests.length + ")"
+                  : ""}
+              </Row>
+            )}
           </section>
         ) : detail === "stats" ? (
-          <section className="settings-card m-4"><h2>{t("Thành tích của tôi")}</h2><dl className="profile-stats">{[["Trận",user.stats?.matches],["Bàn thắng",user.stats?.goals],["Kiến tạo",user.stats?.assists]].map(([label,value])=><div key={t(label)}><dt>{t(label)}</dt><dd>{value ?? "—"}</dd></div>)}</dl></section>
+          <section className="settings-card m-4">
+            <h2>{t("Thành tích của tôi")}</h2>
+            <dl className="profile-stats">
+              {[
+                ["Trận", user.stats?.matches],
+                ["Bàn thắng", user.stats?.goals],
+                ["Kiến tạo", user.stats?.assists],
+              ].map(([label, value]) => (
+                <div key={t(label)}>
+                  <dt>{t(label)}</dt>
+                  <dd>{value ?? "—"}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
         ) : detail === "team" ? (
-          <section className="settings-card m-4"><h2>{teamSettings?.teamName || user.teamName}</h2><p className="field-hint">{owner ? t("Chủ đội") : leader ? t("Quản trị viên") : t("Thành viên")}</p><dl className="profile-team-info">{[["Loại sân",teamSettings?.teamCategory],["Sân",teamSettings?.venue],["Lịch",teamSettings?.schedule]].filter(([,value])=>value).map(([label,value])=><div key={t(label)}><dt>{t(label)}</dt><dd>{value}</dd></div>)}</dl></section>
+          <section className="settings-card m-4">
+            <h2>{teamSettings?.teamName || user.teamName}</h2>
+            <TeamSwitcher
+              teamId={teamSettings?.id}
+              memberships={props.memberships}
+              onSwitchTeam={props.onSwitchTeam}
+              busy={props.switchingTeam}
+            />
+            <p className="field-hint">
+              {owner
+                ? t("Chủ đội")
+                : leader
+                  ? t("Quản trị viên")
+                  : t("Thành viên")}
+            </p>
+            <dl className="profile-team-info">
+              {[
+                ["Loại sân", teamSettings?.teamCategory],
+                ["Sân", teamSettings?.venue],
+                ["Lịch", teamSettings?.schedule],
+              ]
+                .filter(([, value]) => value)
+                .map(([label, value]) => (
+                  <div key={t(label)}>
+                    <dt>{t(label)}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+            </dl>
+          </section>
         ) : detail === "appearance" ? (
           <div className="p-4">{appearancePanel}</div>
         ) : detail === "accounts" ? (
@@ -230,30 +342,89 @@ export default function ProfileMenu(props) {
       </div>
     );
   return (
-    <div lang={props.preferences?.value.language || "vi"} className={"profile-home" + (detailDirection<0 ? " profile-return" : "")}>
+    <div
+      lang={props.preferences?.value.language || "vi"}
+      className={
+        "profile-home" + (detailDirection < 0 ? " profile-return" : "")
+      }
+    >
       <header className="personal-header">
         <p className="personal-eyebrow">{t("Cá nhân")}</p>
         <section className="profile-hero" aria-label="Hồ sơ">
           <Avatar src={user.avatar} name={user.name} />
-          <div><h1>{user.name || t("Hồ sơ của bạn")}</h1><p>{user.number ? "#" + user.number : t("Chưa có số áo")}{user.role ? " · " + user.role : ""}</p><p>{hasTeam ? teamSettings?.teamName || user.teamName : t("Chưa tham gia đội")}{hasTeam ? " · " + (owner ? t("Chủ đội") : leader ? t("Quản trị viên") : t("Thành viên")) : ""}</p></div>
+          <div>
+            <h1>{user.name || t("Hồ sơ của bạn")}</h1>
+            <p>
+              {user.number ? "#" + user.number : t("Chưa có số áo")}
+              {user.role ? " · " + user.role : ""}
+            </p>
+            <p>
+              {hasTeam
+                ? teamSettings?.teamName || user.teamName
+                : t("Chưa tham gia đội")}
+              {hasTeam
+                ? " · " +
+                  (owner
+                    ? t("Chủ đội")
+                    : leader
+                      ? t("Quản trị viên")
+                      : t("Thành viên"))
+                : ""}
+            </p>
+          </div>
         </section>
-        <button type="button" className="profile-edit-button" onClick={() => navigateDetail("profile")}>{t("Sửa hồ sơ")}<ChevronRight size={16} aria-hidden="true" /></button>
+        <button
+          type="button"
+          className="profile-edit-button"
+          onClick={() => navigateDetail("profile")}
+        >
+          {t("Sửa hồ sơ")}
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
       </header>
       {hasTeam && onNavigate && (
-        <section className="profile-group" aria-label="Thao tác nhanh"><h2>{t("Thao tác nhanh")}</h2><div className="profile-quick-grid">
-          <button type="button" onClick={() => onNavigate("governance")}><BookOpen size={20} /><span>{t("Nội quy")}</span></button>
-          {leader && <button type="button" onClick={openInvite}><UserPlus size={20} /><span>{t("Mời thành viên")}</span></button>}
-          {leader && <button type="button" onClick={() => navigateDetail("management")}><Settings size={20} /><span>{t("Quản lý đội")}</span></button>}
-        </div></section>
+        <section className="profile-group" aria-label="Thao tác nhanh">
+          <h2>{t("Thao tác nhanh")}</h2>
+          <div className="profile-quick-grid">
+            <button type="button" onClick={() => onNavigate("governance")}>
+              <BookOpen size={20} />
+              <span>{t("Nội quy")}</span>
+            </button>
+            {leader && (
+              <button type="button" onClick={openInvite}>
+                <UserPlus size={20} />
+                <span>{t("Mời thành viên")}</span>
+              </button>
+            )}
+            {leader && (
+              <button
+                type="button"
+                onClick={() => navigateDetail("management")}
+              >
+                <Settings size={20} />
+                <span>{t("Quản lý đội")}</span>
+              </button>
+            )}
+          </div>
+        </section>
       )}
-      <section className="profile-group"><h2>{t("Hồ sơ")}</h2>
-        <Row icon={User} onClick={() => navigateDetail("profile")}>{t("Thông tin cá nhân")}</Row>
-        {user.stats && <Row icon={Trophy} onClick={() => navigateDetail("stats")}>{t("Thành tích của tôi")}</Row>}
+      <section className="profile-group">
+        <h2>{t("Hồ sơ")}</h2>
+        <Row icon={User} onClick={() => navigateDetail("profile")}>
+          {t("Thông tin cá nhân")}
+        </Row>
+        {user.stats && (
+          <Row icon={Trophy} onClick={() => navigateDetail("stats")}>
+            {t("Thành tích của tôi")}
+          </Row>
+        )}
       </section>
       {hasTeam ? (
         <section className="profile-group">
           <h2>{t("Đội bóng")}</h2>
-          <Row icon={Users} onClick={() => navigateDetail("team")}>{t("Đội đang tham gia")}</Row>
+          <Row icon={Users} onClick={() => navigateDetail("team")}>
+            {t("Đội đang tham gia")}
+          </Row>
           <Row icon={Users} onClick={() => navigateDetail("members")}>
             {t("Thành viên")}
           </Row>
@@ -293,11 +464,34 @@ export default function ProfileMenu(props) {
           )}
         </section>
       )}
-      {hasTeam && leader && <section className="profile-group"><h2>{t("Quản lý đội")}</h2><Row icon={Shield} onClick={() => navigateDetail("management")}>Quản lý đội{owner && teamSettings?.pendingAdminRequests?.length ? " (" + teamSettings.pendingAdminRequests.length + ")" : ""}</Row></section>}
-      <section className="profile-group"><h2>{t("Tùy chọn")}</h2>
-        {appearancePanel && <Row icon={Palette} onClick={() => navigateDetail("appearance")}>{t("Giao diện và font")}</Row>}
-        {appearancePanel && <Row icon={Languages} onClick={() => navigateDetail("appearance")}>{t("Ngôn ngữ")}</Row>}
-        {onOpenNotifications && <Row icon={Bell} onClick={onOpenNotifications}>{t("Lịch sử thông báo")}</Row>}
+      {hasTeam && leader && (
+        <section className="profile-group">
+          <h2>{t("Quản lý đội")}</h2>
+          <Row icon={Shield} onClick={() => navigateDetail("management")}>
+            Quản lý đội
+            {owner && teamSettings?.pendingAdminRequests?.length
+              ? " (" + teamSettings.pendingAdminRequests.length + ")"
+              : ""}
+          </Row>
+        </section>
+      )}
+      <section className="profile-group">
+        <h2>{t("Tùy chọn")}</h2>
+        {appearancePanel && (
+          <Row icon={Palette} onClick={() => navigateDetail("appearance")}>
+            {t("Giao diện và font")}
+          </Row>
+        )}
+        {appearancePanel && (
+          <Row icon={Languages} onClick={() => navigateDetail("appearance")}>
+            {t("Ngôn ngữ")}
+          </Row>
+        )}
+        {onOpenNotifications && (
+          <Row icon={Bell} onClick={onOpenNotifications}>
+            {t("Lịch sử thông báo")}
+          </Row>
+        )}
       </section>
       <section className="profile-group">
         <h2>{t("Tài khoản")}</h2>

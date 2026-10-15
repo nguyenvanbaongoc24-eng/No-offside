@@ -1,6 +1,22 @@
+import { serverRequest } from "../lib/serverRequest";
+import { beginPendingWrite } from "../lib/pendingWrites";
 import { readStored, writeStored } from "../lib/storage";
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
-import { Send, MessageSquare, PartyPopper, ArrowDown, AlertCircle, RefreshCw } from "lucide-react";
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import {
+  Send,
+  MessageSquare,
+  PartyPopper,
+  ArrowDown,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { uid } from "../lib/teamModel";
 import { chatScope, dayLabel, messageGroup } from "../lib/chatPresentation";
@@ -9,12 +25,15 @@ import Avatar from "../components/Avatar";
 import { supabase } from "../lib/supabase";
 
 const useChatLayoutEffect =
-  typeof document !== "undefined" && typeof document.createElement === "function"
+  typeof document !== "undefined" &&
+  typeof document.createElement === "function"
     ? useLayoutEffect
     : useEffect;
 
 export default function Chat(props) {
-  return <ScopedChat key={chatScope(props.accountId, props.teamId)} {...props} />;
+  return (
+    <ScopedChat key={chatScope(props.accountId, props.teamId)} {...props} />
+  );
 }
 
 function ScopedChat({
@@ -34,23 +53,21 @@ function ScopedChat({
   const storageKey = "no_offside_messages_" + scopeKey;
   const draftKey = "no_offside_draft_" + scopeKey;
 
-  const [messages, setMessages] = usePersistentState(
-    storageKey,
-    () =>
-      readStored(
-        storageKey,
-        accountId === "demo"
-          ? readStored(
-              "no_offside_messages_" + teamId,
-              teamId === "fc-no-offside-99"
-                ? readStored(
-                    "no_offside_messages_demo::undefined",
-                    readStored("no_offside_messages_undefined", [])
-                  )
-                : []
-            )
-          : []
-      )
+  const [messages, setMessages] = usePersistentState(storageKey, () =>
+    readStored(
+      storageKey,
+      accountId === "demo"
+        ? readStored(
+            "no_offside_messages_" + teamId,
+            teamId === "fc-no-offside-99"
+              ? readStored(
+                  "no_offside_messages_demo::undefined",
+                  readStored("no_offside_messages_undefined", []),
+                )
+              : [],
+          )
+        : [],
+    ),
   );
 
   const [input, setInput] = useState(() => readStored(draftKey, ""));
@@ -58,8 +75,43 @@ function ScopedChat({
   inputRef.current = input;
 
   const [error, setError] = useState("");
+  const [preservedCount, setPreservedCount] = useState(0);
+  const [initialLoading, setInitialLoading] = useState(
+    Boolean(accessToken && accountId !== "demo"),
+  );
+  const [historyCursor, setHistoryCursor] = useState(null),
+    [hasMore, setHasMore] = useState(false),
+    [historyLoading, setHistoryLoading] = useState(false);
+  const historyLoaded = useRef(false),
+    prependScroll = useRef(null),
+    requestController = useRef(null);
+  useEffect(() => () => requestController.current?.abort(), []);
+  const identity = (m) => m.id || [m.senderId, m.clientMsgId].join(":");
+  const mergeMessages = (current, incoming) => {
+    const merged = new Map(current.map((m) => [identity(m), m]));
+    for (const message of incoming) {
+      for (const [key, previous] of merged) {
+        if (
+          previous.senderId === message.senderId &&
+          previous.clientMsgId &&
+          previous.clientMsgId === message.clientMsgId
+        )
+          merged.delete(key);
+      }
+      merged.set(identity(message), message);
+    }
+    return [...merged.values()].sort(
+      (a, b) =>
+        new Date(a.createdAt) - new Date(b.createdAt) ||
+        String(a.id).localeCompare(String(b.id)),
+    );
+  };
   const [unread, setUnread] = useState(0);
-  const [viewport, setViewport] = useState({ height: null, top: 0, keyboard: false });
+  const [viewport, setViewport] = useState({
+    height: null,
+    top: 0,
+    keyboard: false,
+  });
   const stream = useRef(null);
   const textarea = useRef(null);
   const nearEnd = useRef(true);
@@ -75,10 +127,8 @@ function ScopedChat({
 
   // Listen for save-active-drafts event (triggered on auto-update)
   useEffect(() => {
-    const onSaveDrafts = () => {
-      if (inputRef.current) {
-        writeStored(draftKey, inputRef.current);
-      }
+    const onSaveDrafts = (event) => {
+      if (!writeStored(draftKey, inputRef.current)) event.preventDefault();
     };
     window.addEventListener("save-active-drafts", onSaveDrafts);
     return () => {
@@ -88,50 +138,96 @@ function ScopedChat({
 
   // Fetch remote messages from Supabase API when logged in
   const fetchRemoteMessages = useCallback(async () => {
-    if (!accessToken || accountId === "demo" || !teamId || typeof fetch === "undefined") {
+    if (
+      !accessToken ||
+      accountId === "demo" ||
+      !teamId ||
+      typeof fetch === "undefined"
+    ) {
       return;
     }
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
+    if (!historyLoaded.current) setInitialLoading(true);
     try {
-      const res = await fetch(`/api/chat?teamId=${encodeURIComponent(teamId)}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: "no-store",
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success && Array.isArray(data.messages)) {
-        setMessages((local) => {
-          const remoteMap = new Map(
-            data.messages.map((m) => [m.clientMsgId || m.id, m])
-          );
-          const merged = [...data.messages];
-
-          // Preserve any local messages that failed or are currently sending
-          for (const lm of local) {
-            const key = lm.clientMsgId || lm.id;
-            if (!remoteMap.has(key) && (lm.status === "failed" || lm.status === "sending")) {
-              merged.push(lm);
-            }
-          }
-
-          merged.sort((a, b) => {
-            const tDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            if (tDiff !== 0) return tDiff;
-            return String(a.id).localeCompare(String(b.id));
-          });
-
-          writeStored(storageKey, merged);
-          return merged;
-        });
+      const { response: res, data } = await serverRequest(
+        `/api/chat?teamId=${encodeURIComponent(teamId)}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+          signal: controller.signal,
+        },
+      );
+      if (!res.ok) throw Error("Không tải được lịch sử tin nhắn từ server.");
+      if (controller.signal.aborted) return;
+      if (!data.success || !Array.isArray(data.messages))
+        throw Error("Server chưa trả lịch sử tin nhắn.");
+      const alreadyLoaded = historyLoaded.current;
+      if (!alreadyLoaded) {
+        setHistoryCursor(data.cursor);
+        setHasMore(Boolean(data.hasMore));
       }
-    } catch {}
+      historyLoaded.current = true;
+      setPreservedCount(data.preservedUnparsedMessages || 0);
+      setMessages((local) =>
+        mergeMessages(
+          alreadyLoaded
+            ? local
+            : local.filter(
+                (m) => m.status === "failed" || m.status === "sending",
+              ),
+          data.messages,
+        ),
+      );
+      setError("");
+    } catch (error) {
+      if (!controller.signal.aborted)
+        setError(
+          error.message ||
+            "Không tải được tin nhắn. Kiểm tra kết nối rồi thử lại.",
+        );
+    } finally {
+      if (requestController.current === controller) setInitialLoading(false);
+    }
   }, [accessToken, accountId, teamId, setMessages, storageKey]);
+  const loadOlder = async () => {
+    if (historyLoading || !historyCursor || !accessToken) return;
+    setHistoryLoading(true);
+    try {
+      const params = new URLSearchParams({ teamId, ...historyCursor });
+      const { response: res, data } = await serverRequest(
+        `/api/chat?${params}`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: "no-store",
+        },
+      );
+      if (!res.ok || !data.success) throw Error("Không tải được tin nhắn cũ.");
+      if (stream.current)
+        prependScroll.current = {
+          top: stream.current.scrollTop,
+          height: stream.current.scrollHeight,
+        };
+      setMessages((prev) => mergeMessages(prev, data.messages));
+      setHistoryCursor(data.cursor);
+      setHasMore(Boolean(data.hasMore));
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   // Initial fetch and reconnect listeners
   useEffect(() => {
     fetchRemoteMessages();
 
     const onOnlineOrFocus = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+      if (
+        typeof document !== "undefined" &&
+        document.visibilityState === "visible"
+      ) {
         fetchRemoteMessages();
       }
     };
@@ -153,35 +249,21 @@ function ScopedChat({
 
     let channel = null;
     try {
-      channel = supabase.channel(`team-chat:${teamId}`);
-      channel
-        .on("broadcast", { event: "new-message" }, ({ payload }) => {
-          if (!payload) return;
-          setMessages((prev) => {
-            const idx = prev.findIndex(
-              (m) =>
-                (payload.clientMsgId && m.clientMsgId === payload.clientMsgId) ||
-                m.id === payload.id
-            );
-            let updated;
-            if (idx >= 0) {
-              updated = [...prev];
-              updated[idx] = { ...updated[idx], ...payload, status: "sent" };
-            } else {
-              updated = [...prev, { ...payload, status: "sent" }];
-            }
-
-            updated.sort((a, b) => {
-              const tDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-              if (tDiff !== 0) return tDiff;
-              return String(a.id).localeCompare(String(b.id));
-            });
-
-            writeStored(storageKey, updated);
-            return updated;
-          });
-        })
-        .subscribe();
+      channel = supabase
+        .channel(`team-chat:${teamId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "no_team_messages",
+            filter: `team_id=eq.${teamId}`,
+          },
+          () => fetchRemoteMessages(),
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") fetchRemoteMessages();
+        });
     } catch {}
 
     return () => {
@@ -191,9 +273,11 @@ function ScopedChat({
         } catch {}
       }
     };
-  }, [teamId, accountId, setMessages, storageKey]);
+  }, [teamId, accountId, fetchRemoteMessages]);
 
-  const visibleMessages = messages.filter((m) => m && typeof m.text === "string");
+  const visibleMessages = messages.filter(
+    (m) => m && typeof m.text === "string",
+  );
   const birthdays = useMemo(
     () =>
       members.filter((m) => {
@@ -204,7 +288,7 @@ function ScopedChat({
           Number(parts[2]) === today.getDate()
         );
       }),
-    [members]
+    [members],
   );
 
   useEffect(() => {
@@ -230,7 +314,7 @@ function ScopedChat({
         focused &&
         Math.max(
           baseline - height,
-          window.innerHeight - height - (vv?.offsetTop || 0)
+          window.innerHeight - height - (vv?.offsetTop || 0),
         ) > 80;
       setViewport({ height, top: vv?.offsetTop || 0, keyboard });
       onKeyboardChange?.(keyboard);
@@ -273,6 +357,15 @@ function ScopedChat({
   useChatLayoutEffect(() => {
     const list = stream.current;
     if (!list) return;
+    if (prependScroll.current) {
+      list.scrollTop =
+        prependScroll.current.top +
+        list.scrollHeight -
+        prependScroll.current.height;
+      prependScroll.current = null;
+      previousCount.current = messages.length;
+      return;
+    }
     if (nearEnd.current) {
       list.scrollTop = list.scrollHeight;
       setUnread(0);
@@ -309,7 +402,7 @@ function ScopedChat({
 
     if (!writeStored("no_offside_messages_" + scopeKey, next)) {
       setError(
-        "Không lưu được tin nhắn trên thiết bị. Nội dung vẫn được giữ để thử lại."
+        "Không lưu được tin nhắn trên thiết bị. Nội dung vẫn được giữ để thử lại.",
       );
       sending.current = false;
       return;
@@ -326,10 +419,8 @@ function ScopedChat({
 
     // If online with accessToken, send to server
     if (accessToken && typeof fetch !== "undefined") {
-      if (typeof window !== "undefined") {
-        window.__no_offside_busy_saving = true;
-      }
-      fetch("/api/chat", {
+      const finishWrite = beginPendingWrite();
+      serverRequest("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -341,15 +432,16 @@ function ScopedChat({
           clientMsgId,
         }),
       })
-        .then(async (res) => {
+        .then(async ({ response: res, data }) => {
           if (!res.ok) throw new Error("Gửi tin nhắn thất bại");
-          const data = await res.json();
+          if (!data.success || !data.message?.id)
+            throw Error("Server chưa xác nhận tin nhắn.");
           if (data.success && data.message) {
             setMessages((prev) => {
               const updated = prev.map((m) =>
-                m.clientMsgId === clientMsgId
+                m.senderId === user.id && m.clientMsgId === clientMsgId
                   ? { ...m, ...data.message, status: "sent" }
-                  : m
+                  : m,
               );
               writeStored(storageKey, updated);
               return updated;
@@ -359,19 +451,17 @@ function ScopedChat({
         .catch(() => {
           setMessages((prev) => {
             const updated = prev.map((m) =>
-              m.clientMsgId === clientMsgId ? { ...m, status: "failed" } : m
+              m.clientMsgId === clientMsgId ? { ...m, status: "failed" } : m,
             );
             writeStored(storageKey, updated);
             return updated;
           });
           setError(
-            "Tin nhắn chưa thể gửi đến đồng đội. Bấm vào biểu tượng để thử lại."
+            "Tin nhắn chưa thể gửi đến đồng đội. Bấm vào biểu tượng để thử lại.",
           );
         })
         .finally(() => {
-          if (typeof window !== "undefined") {
-            window.__no_offside_busy_saving = false;
-          }
+          finishWrite();
           sending.current = false;
         });
     } else {
@@ -386,15 +476,15 @@ function ScopedChat({
     setError("");
     setMessages((prev) =>
       prev.map((m) =>
-        m.clientMsgId === failedMsg.clientMsgId ? { ...m, status: "sending" } : m
-      )
+        m.clientMsgId === failedMsg.clientMsgId
+          ? { ...m, status: "sending" }
+          : m,
+      ),
     );
 
-    if (typeof window !== "undefined") {
-      window.__no_offside_busy_saving = true;
-    }
+    const finishWrite = beginPendingWrite();
 
-    fetch("/api/chat", {
+    serverRequest("/api/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -406,15 +496,16 @@ function ScopedChat({
         clientMsgId: failedMsg.clientMsgId,
       }),
     })
-      .then(async (res) => {
+      .then(async ({ response: res, data }) => {
         if (!res.ok) throw new Error("Thử lại thất bại");
-        const data = await res.json();
+        if (!data.success || !data.message?.id)
+          throw Error("Server chưa xác nhận tin nhắn.");
         if (data.success && data.message) {
           setMessages((prev) => {
             const updated = prev.map((m) =>
-              m.clientMsgId === failedMsg.clientMsgId
+              m.senderId === user.id && m.clientMsgId === failedMsg.clientMsgId
                 ? { ...m, ...data.message, status: "sent" }
-                : m
+                : m,
             );
             writeStored(storageKey, updated);
             return updated;
@@ -424,9 +515,9 @@ function ScopedChat({
       .catch(() => {
         setMessages((prev) => {
           const updated = prev.map((m) =>
-            m.clientMsgId === failedMsg.clientMsgId
+            m.senderId === user.id && m.clientMsgId === failedMsg.clientMsgId
               ? { ...m, status: "failed" }
-              : m
+              : m,
           );
           writeStored(storageKey, updated);
           return updated;
@@ -434,9 +525,7 @@ function ScopedChat({
         setError("Gửi lại thất bại. Vui lòng kiểm tra kết nối mạng.");
       })
       .finally(() => {
-        if (typeof window !== "undefined") {
-          window.__no_offside_busy_saving = false;
-        }
+        finishWrite();
       });
   };
 
@@ -449,12 +538,18 @@ function ScopedChat({
       }
       aria-label={t("Tin nhắn đội")}
       style={{
-        ...(viewport.height ? { "--chat-viewport-height": viewport.height + "px" } : {}),
+        ...(viewport.height
+          ? { "--chat-viewport-height": viewport.height + "px" }
+          : {}),
         "--chat-viewport-top": viewport.top + "px",
       }}
     >
       <header className="conversation-header">
-        <Avatar src={teamLogo} name={teamName || user.teamName} className="chat-team-avatar" />
+        <Avatar
+          src={teamLogo}
+          name={teamName || user.teamName}
+          className="chat-team-avatar"
+        />
         <div className="min-w-0">
           <p className="chat-eyebrow">{t("Tin nhắn đội")}</p>
           <h1>{teamName || user.teamName || "Đội bóng"}</h1>
@@ -480,7 +575,8 @@ function ScopedChat({
         aria-label={t("Lịch sử hội thoại")}
         onScroll={() => {
           const list = stream.current;
-          nearEnd.current = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+          nearEnd.current =
+            list.scrollHeight - list.scrollTop - list.clientHeight < 80;
           if (nearEnd.current) setUnread(0);
         }}
       >
@@ -497,10 +593,12 @@ function ScopedChat({
                 type="button"
                 onClick={() =>
                   send(
-                    (language === "en" ? "Happy birthday " : "Chúc mừng sinh nhật ") +
+                    (language === "en"
+                      ? "Happy birthday "
+                      : "Chúc mừng sinh nhật ") +
                       m.name +
                       "!",
-                    false
+                    false,
                   )
                 }
               >
@@ -509,7 +607,28 @@ function ScopedChat({
             </div>
           ))}
 
-        {!visibleMessages.length && (
+        {hasMore && (
+          <button
+            type="button"
+            className="chat-history-button"
+            onClick={loadOlder}
+            disabled={historyLoading}
+          >
+            {historyLoading ? "Đang tải…" : "Xem tin nhắn cũ hơn"}
+          </button>
+        )}
+        {preservedCount > 0 && (
+          <p className="field-hint" role="status">
+            Có {preservedCount} tin cũ thiếu thông tin cần thiết để hiển thị.
+            Bản gốc đã được giữ trong kho lưu trữ để đối chiếu.
+          </p>
+        )}
+        {initialLoading && (
+          <p role="status" className="field-hint">
+            Đang tải lịch sử tin nhắn…
+          </p>
+        )}
+        {!initialLoading && !visibleMessages.length && (
           <div className="chat-empty">
             <MessageSquare size={28} aria-hidden="true" />
             <p>{t("Chưa có tin nhắn. Bắt đầu trò chuyện với đội.")}</p>
@@ -521,7 +640,8 @@ function ScopedChat({
           const group = messageGroup(visibleMessages, index);
           const sender = members.find((member) => member.id === m.senderId);
           // Look up current avatar dynamically from profile/member list to avoid stale copies
-          const currentAvatar = (own ? user.avatar : sender?.avatar) || m.avatar;
+          const currentAvatar =
+            (own ? user.avatar : sender?.avatar) || m.avatar;
           const date = new Date(m.createdAt);
           const validDate = !Number.isNaN(date.getTime());
 
@@ -561,9 +681,16 @@ function ScopedChat({
                   }
                 >
                   {!own && group.showSender && (
-                    <p className="chat-sender">{m.sender || sender?.name || "Thành viên"}</p>
+                    <p className="chat-sender">
+                      {m.sender || sender?.name || "Thành viên"}
+                    </p>
                   )}
                   <p className="chat-message-text">{m.text}</p>
+                  {m.legacyUnverified && (
+                    <span className="chat-legacy-label">
+                      Lịch sử cũ · tác giả chưa xác minh
+                    </span>
+                  )}
                   <div className="chat-meta flex items-center justify-end gap-1 mt-0.5">
                     <time dateTime={validDate ? date.toISOString() : undefined}>
                       {validDate
@@ -597,7 +724,11 @@ function ScopedChat({
       </div>
 
       {unread > 0 && (
-        <button type="button" className="chat-new-messages" onClick={scrollBottom}>
+        <button
+          type="button"
+          className="chat-new-messages"
+          onClick={scrollBottom}
+        >
           <ArrowDown size={18} />
           {t("Tin nhắn mới")} ({unread})
         </button>
@@ -620,6 +751,7 @@ function ScopedChat({
             {t("Tin nhắn")}
           </label>
           <textarea
+            data-persisted-draft="true"
             ref={textarea}
             id="chat-input"
             rows={1}

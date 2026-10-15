@@ -1,4 +1,5 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import TeamAccessState from "./pages/TeamAccessState";
+import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
 import StartupGate from "./components/StartupGate";
 import {
   Home,
@@ -36,22 +37,75 @@ import AccountControls from "./components/AccountControls";
 import Governance from "./pages/Governance";
 import { useGovernance } from "./hooks/useGovernance";
 import GovernanceNotice from "./components/GovernanceNotice";
-import { useAppVersion } from "./hooks/useAppVersion";
+import VersionNotice from "./components/VersionNotice";
 
 export default function App() {
-  const [startupAttempt,setStartupAttempt]=useState(0);
-  return <Application key={startupAttempt} onRetryStartup={()=>setStartupAttempt(attempt=>attempt+1)}/>;
+  const [startupAttempt, setStartupAttempt] = useState(0);
+  return (
+    <>
+      <Application
+        key={startupAttempt}
+        onRetryStartup={() => setStartupAttempt((attempt) => attempt + 1)}
+      />
+      <VersionNotice />
+    </>
+  );
 }
-function Application({onRetryStartup}) {
+function Application({ onRetryStartup }) {
   const auth = useAuth();
-  const { isUpdating } = useAppVersion();
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
   const [tab, setTab] = useState(
     window.location.pathname.startsWith("/invite/")
       ? "invite-landing"
-      : "dashboard",
+      : window.history?.state?.noOffsideTab || "dashboard",
   );
+  useEffect(() => {
+    const allowed = new Set([
+      "dashboard",
+      "lineup",
+      "fund",
+      "chat",
+      "profile",
+      "team-settings",
+      "create-team",
+      "invite-landing",
+      "onboarding",
+      "personal-fund",
+      "governance",
+      "appearance",
+    ]);
+    if (!window.history?.state?.noOffsideTab)
+      window.history?.replaceState(
+        { ...window.history.state, noOffsideTab: tab },
+        "",
+      );
+    const back = (event) =>
+      setTab(
+        allowed.has(event.state?.noOffsideTab)
+          ? event.state.noOffsideTab
+          : "dashboard",
+      );
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
+  }, []);
   const [showNotices, setShowNotices] = useState(false);
+  const [noticeReadError, setNoticeReadError] = useState("");
+  useEffect(() => {
+    let live = true;
+    if (showNotices) {
+      setNoticeReadError("");
+      auth.markNoticesRead().catch(() => {
+        if (live)
+          setNoticeReadError(
+            "Chưa lưu được trạng thái đã đọc. Hãy mở lại để thử lại.",
+          );
+      });
+    }
+    return () => {
+      live = false;
+    };
+  }, [showNotices, auth.accountId, auth.teamSettings.id]);
+
   const [showJoinCodeModal, setShowJoinCodeModal] = useState(false);
   const [showQrScanModal, setShowQrScanModal] = useState(false);
   const [joinCodeInitial, setJoinCodeInitial] = useState("");
@@ -88,46 +142,56 @@ function Application({onRetryStartup}) {
       persist: false,
       id: saveRequest.current.id,
     });
-    if (governance.snapshot)
-      await governance.mutate(
-        "match",
-        {
-          id: match.id,
-          title: match.title,
-          kickoff: new Date(match.datetime).toISOString(),
-          deadline: new Date(match.deadline).toISOString(),
-          ...match.lateConfig,
-        },
-        saveRequest.current.key,
-      );
-    auth.saveMatch(form, editId, { id: match.id });
+    await auth.saveMatch(form, editId, { id: match.id });
     saveRequest.current = null;
+    await governance.refresh();
   };
   const deleteMatch = async (id) => {
-    if (governance.snapshot)
-      await governance.mutate("archive_match", { matchId: id });
-    auth.deleteMatch(id);
+    await auth.deleteMatch(id);
+    await governance.refresh();
   };
   useDialogAccessibility();
   useVisualViewport();
   const leader = ["owner", "admin"].includes(auth.currentUserRole);
   const activeTab =
-    auth.currentUserRole !== "owner" && tab === "team-settings"
-      ? "dashboard"
-      : !auth.hasTeam && tab === "dashboard"
-        ? "onboarding"
-        : tab;
-  const navigationAvailable = !["create-team", "invite-landing", "team-settings"].includes(activeTab);
+    auth.teamRestriction &&
+    ![
+      "profile",
+      "governance",
+      "create-team",
+      "invite-landing",
+      "onboarding",
+    ].includes(tab)
+      ? "team-access"
+      : auth.currentUserRole !== "owner" && tab === "team-settings"
+        ? "dashboard"
+        : !auth.hasTeam && tab === "dashboard"
+          ? "onboarding"
+          : tab;
+  const navigationAvailable =
+    !auth.teamRestriction &&
+    !["create-team", "invite-landing", "team-settings"].includes(activeTab);
   const scrollPositions = useRef(new Map());
   const scrollRoute = useRef(null);
-  const scrollKey = auth.accountId + "::" + auth.teamSettings.id + "::" + activeTab;
+  const scrollKey =
+    auth.accountId + "::" + auth.teamSettings.id + "::" + activeTab;
   useLayoutEffect(() => {
     if (!auth.isLoggedIn || auth.authLoading) return;
-    window.scrollTo({top: scrollPositions.current.get(scrollKey) || 0, behavior:"instant"});
+    window.scrollTo({
+      top: scrollPositions.current.get(scrollKey) || 0,
+      behavior: "instant",
+    });
     scrollRoute.current = scrollKey;
   }, [scrollKey, auth.isLoggedIn, auth.authLoading]);
   const navigate = (target) => {
-    if (activeTab !== "chat" && scrollRoute.current) scrollPositions.current.set(scrollRoute.current, window.scrollY);
+    if (activeTab !== "chat" && scrollRoute.current)
+      scrollPositions.current.set(scrollRoute.current, window.scrollY);
+    if (target !== tab)
+      window.history?.pushState(
+        { noOffsideTab: target },
+        "",
+        target === "invite-landing" ? undefined : "/",
+      );
     setTab(target);
   };
   let inviteCode =
@@ -143,35 +207,43 @@ function Application({onRetryStartup}) {
     (inviteCode === auth.teamSettings.id ? auth.teamSettings : null);
   if (auth.authLoading || auth.startupPending || auth.startupError)
     return (
-      <StartupGate pending={auth.authLoading || auth.startupPending} error={auth.startupError} onRetry={onRetryStartup}>
-      <div className="min-h-screen grid place-items-center bg-slate-50">
-        <Loader2
-          className="animate-spin text-emerald-600"
-          aria-label="Đang kiểm tra phiên đăng nhập"
-        />
-      </div>
+      <StartupGate
+        pending={auth.authLoading || auth.startupPending}
+        error={auth.startupError}
+        onRetry={onRetryStartup}
+      >
+        <div className="min-h-screen grid place-items-center bg-slate-50">
+          <Loader2
+            className="animate-spin text-emerald-600"
+            aria-label="Đang kiểm tra phiên đăng nhập"
+          />
+        </div>
       </StartupGate>
     );
   if (!auth.isLoggedIn && tab !== "invite-landing")
     return (
       <StartupGate onRetry={onRetryStartup}>
-      <Login
-        theme={preferences.value.theme}
-        onThemeChange={(theme) => preferences.update({ theme })}
-        initialMode={loginInitialMode}
-        onLoginSuccess={(profile) => {
-          auth.login(profile);
-          navigate("dashboard");
-        }}
-      />
+        <Login
+          theme={preferences.value.theme}
+          onThemeChange={(theme) => preferences.update({ theme })}
+          initialMode={loginInitialMode}
+          onLoginSuccess={(profile) => {
+            auth.login(profile);
+            navigate("dashboard");
+          }}
+        />
       </StartupGate>
     );
   const fundProps = {
     funds: auth.funds,
     onChangeFunds: auth.setFunds,
     onApprove: auth.approveFundPayment,
+    onReject: auth.rejectFundPayment,
   };
-  const currentMonth = monthKey();
+  const currentMonth = monthKey(
+    new Date(),
+    auth.teamSettings.timezone || "Asia/Ho_Chi_Minh",
+  );
   const paid = auth.funds.transactions.some(
     (tx) =>
       tx.type === "income" &&
@@ -182,16 +254,23 @@ function Application({onRetryStartup}) {
     .filter((d) => d.playerId === auth.user.id && d.month === currentMonth)
     .reduce((sum, d) => sum + Number(d.amount), 0);
   const shared = {
+    memberships: auth.dbMemberships,
+    onSwitchTeam: auth.switchTeam,
+    switchingTeam: auth.switchingTeam,
+    unreadCount: auth.notices.filter((notice) => notice.unread).length,
     user: {
       ...auth.user,
       nextMatchAttendance: auth.attendance[auth.user.id] || null,
       isFundPaid: paid,
-      fundDebt: paid ? 0 : debt || auth.user.fundDebt,
+      fundDebt: paid ? 0 : debt,
+      fundRejection: (auth.funds.rejectedPayments || [])
+        .filter((p) => p.playerId === auth.user.id && p.month === currentMonth)
+        .at(-1),
       fundPaymentPending: auth.funds.pendingApprovals.some(
         (p) => p.playerId === auth.user.id && p.month === currentMonth,
       ),
     },
-    currentUserRole: auth.currentUserRole,
+    currentUserRole: auth.teamRestriction ? "member" : auth.currentUserRole,
     onNavigate: navigate,
     demoSession: auth.demoSession,
   };
@@ -204,379 +283,437 @@ function Application({onRetryStartup}) {
   ];
   return (
     <StartupGate onRetry={onRetryStartup}>
-    <div className="app-shell bg-slate-100 min-h-screen text-gray-900 flex justify-center antialiased">
-      <div className={"app-frame app-scroll-frame w-full max-w-md bg-slate-50 relative" + (navigationAvailable ? " app-has-navigation" : "") + (activeTab === "chat" ? " app-chat-frame" : "")}>
-        {isUpdating && (
-          <div
-            role="status"
-            aria-live="assertive"
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-emerald-700/95 text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-semibold backdrop-blur-md border border-emerald-500/40 animate-pulse pointer-events-none"
-          >
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-            <span>Đang cập nhật No Offside…</span>
-          </div>
-        )}
-        {auth.storageError && (
-          <div role="alert" className="p-3 bg-rose-50 text-rose-700">
-            {auth.storageError}
-          </div>
-        )}
-        {auth.demoSession && <div className="session-banner">Bản trải nghiệm • dữ liệu lưu trên thiết bị</div>}
-        <main key={scrollKey} className={activeTab === "chat" ? "" : "app-page-transition"}>
-          {activeTab === "dashboard" && (
-            <GovernanceNotice
-              governance={governance}
-              onOpen={() => navigate("governance")}
-            />
+      <div className="app-shell bg-slate-100 min-h-screen text-gray-900 flex justify-center antialiased">
+        <div
+          className={
+            "app-frame app-scroll-frame w-full max-w-md bg-slate-50 relative" +
+            (navigationAvailable ? " app-has-navigation" : "") +
+            (activeTab === "chat" ? " app-chat-frame" : "")
+          }
+        >
+          {auth.storageError && (
+            <div role="alert" className="p-3 bg-rose-50 text-rose-700">
+              {auth.storageError}
+            </div>
           )}
-          {activeTab === "onboarding" ? (
-            <TeamOnboarding
-              user={auth.user}
-              onOpenCreateTeam={() => navigate("create-team")}
-              onOpenJoinCode={() => {
-                setJoinCodeInitial("");
-                setShowJoinCodeModal(true);
-              }}
-              onOpenScanQr={() => setShowQrScanModal(true)}
-            />
-          ) : activeTab === "create-team" ? (
-            <CreateTeam
-              onTeamCreated={async (data) => {
-                await auth.createTeam(data);
-                navigate("dashboard");
-              }}
-              onBack={() => navigate("profile")}
-            />
-          ) : activeTab === "invite-landing" ? (
-            <InviteLanding
-              inviteCode={inviteCode}
-              teamData={
-                inviteTeam
-                  ? {
-                      id: inviteTeam.id,
-                      name: inviteTeam.teamName,
-                      captain:
-                        inviteTeam.members.find((m) => m.roleType === "owner")
-                          ?.name || "Đội trưởng",
-                      membersCount: inviteTeam.members.length,
-                      category: inviteTeam.teamCategory,
-                      venue: inviteTeam.venue,
-                      matchSchedule: inviteTeam.schedule,
-                      logo: inviteTeam.logo,
-                      code: inviteCode,
-                    }
-                  : null
-              }
-              authenticated={auth.isLoggedIn}
-              currentUser={auth.user}
-              onJoinSuccess={async (profile) => {
-                await auth.joinTeamViaInvite(profile.code, profile);
-                navigate("dashboard");
-                history.replaceState(null, "", "/");
-              }}
-              onRequireAuth={({ mode = "signup" } = {}) => {
-                setLoginInitialMode(mode);
-                navigate("login");
-              }}
-              onBackToApp={() => navigate("profile")}
-            />
-          ) : activeTab === "governance" ? (
-            <Governance
-              key={auth.accountId + auth.teamSettings.id}
-              governance={governance}
-              onBack={() => navigate("dashboard")}
-            />
-          ) : activeTab === "team-settings" ? (
-            <TeamSettings
-              teamSettings={auth.teamSettings}
-              onUpdateTeamSettings={auth.updateTeamSettings}
-              onBack={() => navigate("profile")}
-              currentUserRole={auth.currentUserRole}
-              preferences={preferences}
-            />
-          ) : activeTab === "lineup" ? (
-            <LineupBuilder
-              key={auth.accountId + auth.teamSettings.id}
-              teamId={auth.teamSettings.id}
-              accountId={auth.accountId}
-              currentUserRole={auth.currentUserRole}
-              members={auth.teamSettings.members}
-              onBack={() => navigate("dashboard")}
-            />
-          ) : activeTab === "fund" ? (
-            !leader ? (
-              <PersonalFund
-                user={shared.user}
-                treasurerQr={auth.teamSettings.treasurerQr}
-                onMarkPaid={auth.markFundPaid}
+          {auth.demoSession && (
+            <div className="session-banner">
+              Bản trải nghiệm • dữ liệu lưu trên thiết bị
+            </div>
+          )}
+          <main
+            key={scrollKey}
+            className={activeTab === "chat" ? "" : "app-page-transition"}
+          >
+            {activeTab === "dashboard" && (
+              <GovernanceNotice
+                governance={governance}
+                onOpen={() => navigate("governance")}
               />
-            ) : (
-              <FundManagement
-                {...fundProps}
-                actor={auth.user.name}
-                timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
-                treasurerQr={auth.teamSettings.treasurerQr}
-                onUpdateTreasurerQr={auth.updateTreasurerQr}
-                currentUserRole={auth.currentUserRole}
-                onBack={() => navigate("dashboard")}
+            )}
+            {activeTab === "team-access" ? (
+              <TeamAccessState
+                team={auth.teamSettings}
+                restriction={auth.teamRestriction}
+                memberships={auth.dbMemberships}
+                onSwitchTeam={auth.switchTeam}
+                switchingTeam={auth.switchingTeam}
+                onNavigate={navigate}
+                onJoin={() => setShowJoinCodeModal(true)}
               />
-            )
-          ) : activeTab === "chat" ? (
-            <Chat
-              key={auth.accountId + auth.teamSettings.id}
-              teamId={auth.teamSettings.id}
-              accountId={auth.accountId}
-              accessToken={auth.demoSession ? null : auth.authSession?.access_token}
-              user={auth.user}
-              members={auth.teamSettings.members}
-              language={preferences.value.language || "vi"}
-              teamName={auth.teamSettings.teamName}
-              teamLogo={auth.teamSettings.logo}
-              onKeyboardChange={setChatKeyboardOpen}
-              birthdayEnabled={
-                auth.teamSettings.appearance.birthdayReportEnabled !== false
-              }
-            />
-          ) : activeTab === "profile" ? (
-            <React.Fragment key={auth.accountId + auth.teamSettings.id}>
-              <Profile
-                {...shared}
-                authSession={auth.demoSession ? null : auth.authSession}
-                onOpenNotifications={() => setShowNotices(true)}
-                teamSettings={auth.teamSettings}
-                hasTeam={auth.hasTeam}
-                preferences={preferences}
-                onCreateInvite={auth.createInvite}
-                onReadInvite={auth.readInvite}
-                onRevokeInvite={auth.revokeInvite}
-                onUpdateUsername={auth.updateUsername}
-                onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
-                onLogout={auth.logout}
-                accountPanel={
-                  <AccountControls
-                    user={auth.user}
-                    accountId={auth.accountId}
-                    session={auth.demoSession ? null : auth.authSession}
-                    onLogout={auth.logout}
-                    onNavigate={navigate}
-                  />
-                }
-                appearancePanel={
-                  <AppearanceSettings preferences={preferences} />
-                }
-                onUpdateProfile={auth.updateProfile}
-                onUpdateTeamName={auth.updateTeamName}
-                onUpdateSubAdminTitle={auth.updateSubAdminTitle}
-                onAddSubAdmin={auth.addSubAdmin}
-                onRequestAdmin={auth.requestAdmin}
-                onRemoveSubAdmin={auth.removeSubAdmin}
-                onTransferOwnership={auth.transferOwnership}
-                onApproveAdminRequest={auth.approveAdminRequest}
-                onRejectAdminRequest={auth.rejectAdminRequest}
+            ) : activeTab === "onboarding" ? (
+              <TeamOnboarding
+                user={auth.user}
+                onOpenCreateTeam={() => navigate("create-team")}
                 onOpenJoinCode={() => {
                   setJoinCodeInitial("");
                   setShowJoinCodeModal(true);
                 }}
                 onOpenScanQr={() => setShowQrScanModal(true)}
               />
-            </React.Fragment>
-          ) : !auth.activeMatch ? (
-            <EmptyTeam
-              teamSettings={auth.teamSettings}
-              leader={leader}
-              members={auth.teamSettings.members}
-              onAddMember={auth.addMember}
-              onRemoveMember={auth.removeMember}
-              currentUserRole={auth.currentUserRole}
-              user={shared.user}
-              onCreateInvite={auth.createInvite}
-              onReadInvite={auth.readInvite}
-              onRevokeInvite={auth.revokeInvite}
-              onSaveMatch={saveMatch}
-              onNavigate={navigate}
-            />
-          ) : (
-            <PlayerDashboard
-              {...shared}
-              {...fundProps}
-              members={auth.teamSettings.members}
-              teamId={auth.teamSettings.id}
-              teamSettings={auth.teamSettings}
-              balance={auth.balance}
-              activeMatch={auth.activeMatch}
-              matches={auth.matches}
-              attendance={auth.attendance}
-              reports={auth.reports}
-              onSaveMatch={saveMatch}
-              onSetMatchStatus={auth.setMatchStatus}
-              onSelectMatch={auth.selectMatch}
-              onDeleteMatch={deleteMatch}
-              governance={governance}
-              onAddNotice={auth.addNotice}
-              onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
-              onAttendanceChange={async (status) => {
-                try {
-                  if (governance.snapshot)
-                    await governance.mutate("attendance", {
-                      matchId: auth.activeMatch.id,
-                      status,
-                    });
-                  auth.setAttendance(status);
-                } catch {
-                  alert(
-                    "Server từ chối điểm danh. Kiểm tra hạn, quyền và bản ghi đã chốt.",
-                  );
+            ) : activeTab === "create-team" ? (
+              <CreateTeam
+                onTeamCreated={async (data) => {
+                  await auth.createTeam(data);
+                  navigate("dashboard");
+                }}
+                onBack={() => navigate("profile")}
+              />
+            ) : activeTab === "invite-landing" ? (
+              <InviteLanding
+                inviteCode={inviteCode}
+                teamData={
+                  inviteTeam
+                    ? {
+                        id: inviteTeam.id,
+                        name: inviteTeam.teamName,
+                        captain:
+                          inviteTeam.members.find((m) => m.roleType === "owner")
+                            ?.name || "Đội trưởng",
+                        membersCount: inviteTeam.members.length,
+                        category: inviteTeam.teamCategory,
+                        venue: inviteTeam.venue,
+                        matchSchedule: inviteTeam.schedule,
+                        logo: inviteTeam.logo,
+                        code: inviteCode,
+                      }
+                    : null
                 }
-              }}
-              onMarkPaid={auth.markFundPaid}
-              onResetPaid={auth.resetFund}
-              onOpenNotifications={() => setShowNotices(true)}
-              treasurerQr={auth.teamSettings.treasurerQr}
-              onUpdateMatchStats={auth.updateMatchStats}
-              onRemoveMember={() => navigate("governance")}
-              onAddMember={auth.addMember}
-              onCreateInvite={auth.createInvite}
-              onReadInvite={auth.readInvite}
-              onRevokeInvite={auth.revokeInvite}
+                authenticated={auth.isLoggedIn}
+                currentUser={auth.user}
+                onJoinSuccess={async (profile) => {
+                  await auth.joinTeamViaInvite(profile.code, profile);
+                  navigate("dashboard");
+                  history.replaceState(null, "", "/");
+                }}
+                onRequireAuth={({ mode = "signup" } = {}) => {
+                  setLoginInitialMode(mode);
+                  navigate("login");
+                }}
+                onBackToApp={() => navigate("profile")}
+              />
+            ) : activeTab === "governance" ? (
+              <Governance
+                key={auth.accountId + auth.teamSettings.id}
+                governance={governance}
+                onBack={() => navigate("dashboard")}
+              />
+            ) : activeTab === "team-settings" ? (
+              <TeamSettings
+                teamSettings={auth.teamSettings}
+                onUpdateTeamSettings={auth.updateTeamSettings}
+                onBack={() => navigate("profile")}
+                currentUserRole={auth.currentUserRole}
+                preferences={preferences}
+              />
+            ) : activeTab === "lineup" ? (
+              <LineupBuilder
+                serverLineups={auth.lineups}
+                onSaveLineups={auth.saveLineups}
+                key={auth.accountId + auth.teamSettings.id}
+                teamId={auth.teamSettings.id}
+                accountId={auth.accountId}
+                currentUserRole={auth.currentUserRole}
+                members={auth.teamSettings.members}
+                onBack={() => navigate("dashboard")}
+              />
+            ) : activeTab === "fund" ? (
+              !leader ? (
+                <PersonalFund
+                  user={shared.user}
+                  treasurerQr={auth.teamSettings.treasurerQr}
+                  onMarkPaid={auth.markFundPaid}
+                />
+              ) : (
+                <FundManagement
+                  {...fundProps}
+                  actor={auth.user.name}
+                  timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
+                  treasurerQr={auth.teamSettings.treasurerQr}
+                  onUpdateTreasurerQr={auth.updateTreasurerQr}
+                  currentUserRole={auth.currentUserRole}
+                  onBack={() => navigate("dashboard")}
+                />
+              )
+            ) : activeTab === "chat" ? (
+              <Chat
+                key={auth.accountId + auth.teamSettings.id}
+                teamId={auth.teamSettings.id}
+                accountId={auth.accountId}
+                accessToken={
+                  auth.demoSession ? null : auth.authSession?.access_token
+                }
+                user={auth.user}
+                members={auth.teamSettings.members}
+                language={preferences.value.language || "vi"}
+                teamName={auth.teamSettings.teamName}
+                teamLogo={auth.teamSettings.logo}
+                onKeyboardChange={setChatKeyboardOpen}
+                birthdayEnabled={
+                  auth.teamSettings.appearance.birthdayReportEnabled !== false
+                }
+              />
+            ) : activeTab === "profile" ? (
+              <React.Fragment key={auth.accountId + auth.teamSettings.id}>
+                <Profile
+                  {...shared}
+                  authSession={auth.demoSession ? null : auth.authSession}
+                  onOpenNotifications={() => setShowNotices(true)}
+                  teamSettings={auth.teamSettings}
+                  hasTeam={auth.hasTeam}
+                  preferences={preferences}
+                  onCreateInvite={auth.createInvite}
+                  onReadInvite={auth.readInvite}
+                  onRevokeInvite={auth.revokeInvite}
+                  onUpdateUsername={auth.updateUsername}
+                  onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
+                  onLogout={auth.logout}
+                  accountPanel={
+                    <AccountControls
+                      user={auth.user}
+                      accountId={auth.accountId}
+                      session={auth.demoSession ? null : auth.authSession}
+                      onLogout={auth.logout}
+                      onNavigate={navigate}
+                    />
+                  }
+                  appearancePanel={
+                    <AppearanceSettings preferences={preferences} />
+                  }
+                  onUpdateProfile={auth.updateProfile}
+                  onUpdateTeamName={auth.updateTeamName}
+                  onUpdateSubAdminTitle={auth.updateSubAdminTitle}
+                  onAddSubAdmin={auth.addSubAdmin}
+                  onRequestAdmin={auth.requestAdmin}
+                  onRemoveSubAdmin={auth.removeSubAdmin}
+                  onTransferOwnership={auth.transferOwnership}
+                  onApproveAdminRequest={auth.approveAdminRequest}
+                  onRejectAdminRequest={auth.rejectAdminRequest}
+                  onOpenJoinCode={() => {
+                    setJoinCodeInitial("");
+                    setShowJoinCodeModal(true);
+                  }}
+                  onOpenScanQr={() => setShowQrScanModal(true)}
+                />
+              </React.Fragment>
+            ) : !auth.activeMatch ? (
+              <EmptyTeam
+                memberships={auth.dbMemberships}
+                onSwitchTeam={auth.switchTeam}
+                switchingTeam={auth.switchingTeam}
+                unreadCount={auth.notices.filter((n) => n.unread).length}
+                onOpenNotifications={() => setShowNotices(true)}
+                teamSettings={auth.teamSettings}
+                leader={leader}
+                members={auth.teamSettings.members}
+                onAddMember={auth.addMember}
+                onRemoveMember={auth.removeMember}
+                onLinkMember={auth.demoSession ? undefined : auth.linkMember}
+                currentUserRole={auth.currentUserRole}
+                user={shared.user}
+                onCreateInvite={auth.createInvite}
+                onReadInvite={auth.readInvite}
+                onRevokeInvite={auth.revokeInvite}
+                onSaveMatch={saveMatch}
+                onNavigate={navigate}
+              />
+            ) : (
+              <PlayerDashboard
+                {...shared}
+                {...fundProps}
+                members={auth.teamSettings.members}
+                teamId={auth.teamSettings.id}
+                teamSettings={auth.teamSettings}
+                balance={auth.balance}
+                activeMatch={auth.activeMatch}
+                matches={auth.matches}
+                attendance={auth.attendance}
+                reports={auth.reports}
+                onSaveMatch={saveMatch}
+                onSetMatchStatus={auth.setMatchStatus}
+                onSelectMatch={auth.selectMatch}
+                onDeleteMatch={deleteMatch}
+                governance={governance}
+                onAddNotice={auth.addNotice}
+                onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
+                onAttendanceChange={async (status) => {
+                  await auth.setAttendance(status);
+                  await governance.refresh();
+                }}
+                onMarkPaid={auth.markFundPaid}
+                onResetPaid={auth.resetFund}
+                onOpenNotifications={() => setShowNotices(true)}
+                treasurerQr={auth.teamSettings.treasurerQr}
+                onUpdateMatchStats={auth.updateMatchStats}
+                onRemoveMember={auth.removeMember}
+                onLinkMember={auth.demoSession ? undefined : auth.linkMember}
+                onAddMember={auth.addMember}
+                onCreateInvite={auth.createInvite}
+                onReadInvite={auth.readInvite}
+                onRevokeInvite={auth.revokeInvite}
+              />
+            )}
+          </main>
+          {activeTab === "dashboard" && auth.archivedMatches.length > 0 && (
+            <details className="mx-4 my-5 settings-card">
+              <summary className="text-sm font-semibold">
+                Trận đã lưu trữ ({auth.archivedMatches.length})
+              </summary>
+              {auth.archivedMatches.map((match) => (
+                <article key={match.id} className="border-t py-3 mt-3">
+                  <p className="text-sm font-medium">{match.title}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {new Date(match.datetime).toLocaleString("vi-VN")} · Điểm
+                    danh và báo cáo được bảo toàn
+                  </p>
+                  {leader && (
+                    <button
+                      className="choice-button mt-3"
+                      onClick={async () => {
+                        try {
+                          if (governance.snapshot)
+                            await governance.mutate("restore_match", {
+                              matchId: match.id,
+                            });
+                          auth.restoreArchivedMatch(match.id);
+                        } catch {
+                          alert(
+                            "Không khôi phục được. Kiểm tra quyền và kết nối.",
+                          );
+                        }
+                      }}
+                    >
+                      Khôi phục trận
+                    </button>
+                  )}
+                </article>
+              ))}
+            </details>
+          )}
+          {navigationAvailable && (
+            <FloatingBottomNavigation
+              tabs={tabs}
+              activeTab={activeTab}
+              avatar={auth.user?.avatar}
+              visible={activeTab === "chat" ? !chatKeyboardOpen : navVisible}
+              onNavigate={navigate}
+              onReveal={revealNav}
             />
           )}
-        </main>
-        {activeTab === "dashboard" && auth.archivedMatches.length > 0 && (
-          <details className="mx-4 my-5 settings-card">
-            <summary className="text-sm font-semibold">
-              Trận đã lưu trữ ({auth.archivedMatches.length})
-            </summary>
-            {auth.archivedMatches.map((match) => (
-              <article key={match.id} className="border-t py-3 mt-3">
-                <p className="text-sm font-medium">{match.title}</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  {new Date(match.datetime).toLocaleString("vi-VN")} · Điểm danh
-                  và báo cáo được bảo toàn
-                </p>
-                {leader && (
-                  <button
-                    className="choice-button mt-3"
-                    onClick={async () => {
-                      try {
-                        if (governance.snapshot)
-                          await governance.mutate("restore_match", {
-                            matchId: match.id,
-                          });
-                        auth.restoreArchivedMatch(match.id);
-                      } catch {
-                        alert(
-                          "Không khôi phục được. Kiểm tra quyền và kết nối.",
-                        );
-                      }
-                    }}
-                  >
-                    Khôi phục trận
-                  </button>
-                )}
-              </article>
-            ))}
-          </details>
-        )}
-        {!["create-team", "invite-landing", "team-settings"].includes(
-          activeTab,
-        ) && (
-          <FloatingBottomNavigation tabs={tabs} activeTab={activeTab} avatar={auth.user?.avatar} visible={activeTab === "chat" ? !chatKeyboardOpen : navVisible} onNavigate={navigate} onReveal={revealNav} />
-        )}
-        {auth.deletedMatch && leader && (
-          <div className="match-undo" role="status">
-            <span className="flex-1 text-sm">Đã lưu trữ trận đấu</span>
-            <button
-              onClick={async () => {
-                const snapshot = auth.deletedMatch;
-                try {
-                  if (governance.snapshot)
-                    await governance.mutate("restore_match", {
-                      matchId: snapshot.match.id,
-                    });
-                  auth.undoDeleteMatch(snapshot);
-                } catch {
-                  alert("Không hoàn tác được. Kiểm tra quyền và kết nối.");
-                }
-              }}
-            >
-              Hoàn tác
-            </button>
-          </div>
-        )}
-        {showNotices && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm p-4 grid place-items-center"
-          >
-            <section className="bg-white rounded-3xl p-5 w-full max-w-md max-h-[80dvh] overflow-auto">
-              <h2 className="text-xl font-semibold mb-4">Thông báo đội</h2>
-              {auth.notices.length ? (
-                auth.notices.map((n) => (
-                  <article
-                    key={n.id}
-                    className="border-b border-slate-100 py-3"
-                  >
-                    <h3 className="font-semibold">{n.title}</h3>
-                    <p className="text-sm mt-1 text-slate-600">{n.content}</p>
-                    <time className="text-xs text-slate-500">{n.time}</time>
-                  </article>
-                ))
-              ) : (
-                <p className="text-slate-500 py-5">Chưa có thông báo mới.</p>
-              )}
+          {auth.deletedMatch && leader && (
+            <div className="match-undo" role="status">
+              <span className="flex-1 text-sm">Đã lưu trữ trận đấu</span>
               <button
-                aria-label="Đóng"
-                className="primary-button w-full mt-4"
-                onClick={() => setShowNotices(false)}
+                onClick={async () => {
+                  const snapshot = auth.deletedMatch;
+                  try {
+                    await auth.undoDeleteMatch(snapshot);
+                    await governance.refresh();
+                  } catch {
+                    alert("Không hoàn tác được. Kiểm tra quyền và kết nối.");
+                  }
+                }}
               >
-                Đóng
+                Hoàn tác
               </button>
-            </section>
-          </div>
-        )}
-        {showJoinCodeModal && (
-          <ClubCodeModal
-            isOpen={showJoinCodeModal}
-            onClose={() => {
-              setShowJoinCodeModal(false);
-              setJoinCodeInitial("");
-            }}
-            initialCode={joinCodeInitial}
-            isLoggedIn={auth.isLoggedIn}
-            currentUser={auth.user}
-            onJoinSuccess={async (payload) => {
-              await auth.joinTeamViaInvite(payload.code, payload);
-              setShowJoinCodeModal(false);
-              navigate("dashboard");
-            }}
-            onRequireAuth={({ mode = "signup" } = {}) => {
-              setShowJoinCodeModal(false);
-              setLoginInitialMode(mode);
-              navigate("login");
-            }}
-          />
-        )}
-        {showQrScanModal && (
-          <QrScannerModal
-            isOpen={showQrScanModal}
-            onClose={() => setShowQrScanModal(false)}
-            onScanSuccess={(detectedCode) => {
-              setShowQrScanModal(false);
-              const match = String(detectedCode).match(/\/invite\/([^/?#]+)/i);
-              const extracted = match ? match[1] : detectedCode;
-              setJoinCodeInitial(extracted);
-              setShowJoinCodeModal(true);
-            }}
-            onSwitchToCode={() => {
-              setShowQrScanModal(false);
-              setJoinCodeInitial("");
-              setShowJoinCodeModal(true);
-            }}
-          />
-        )}
+            </div>
+          )}
+          {showNotices && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Thông báo đội"
+              className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm p-4 grid place-items-center"
+            >
+              <section className="bg-white rounded-3xl p-5 w-full max-w-md max-h-[80dvh] overflow-auto">
+                <h2 className="text-xl font-semibold mb-4">Thông báo đội</h2>
+                {noticeReadError && (
+                  <p role="alert" className="text-sm text-rose-700">
+                    {noticeReadError}
+                  </p>
+                )}
+                {auth.notices.length ? (
+                  auth.notices.map((n) => (
+                    <article
+                      key={n.id}
+                      className="border-b border-slate-100 py-3"
+                    >
+                      <button
+                        type="button"
+                        className="w-full text-left min-h-11"
+                        onClick={async () => {
+                          if (
+                            n.matchId &&
+                            auth.matches.some((m) => m.id === n.matchId)
+                          )
+                            await auth.selectMatch(n.matchId);
+                          setShowNotices(false);
+                          navigate(
+                            [
+                              "dashboard",
+                              "fund",
+                              "profile",
+                              "lineup",
+                              "chat",
+                              "governance",
+                            ].includes(n.route)
+                              ? n.route
+                              : "dashboard",
+                          );
+                        }}
+                      >
+                        <h3 className="font-semibold">{n.title}</h3>
+                        <span className="text-xs text-emerald-700">
+                          Mở nội dung
+                        </span>
+                      </button>
+                      <p className="text-sm mt-1 text-slate-600">{n.content}</p>
+                      <time
+                        className="text-xs text-slate-500"
+                        dateTime={n.createdAt}
+                      >
+                        {n.createdAt
+                          ? new Date(n.createdAt).toLocaleString("vi-VN")
+                          : n.time}
+                      </time>
+                    </article>
+                  ))
+                ) : (
+                  <p className="text-slate-500 py-5">Chưa có thông báo mới.</p>
+                )}
+                <button
+                  aria-label="Đóng"
+                  className="primary-button w-full mt-4"
+                  onClick={() => setShowNotices(false)}
+                >
+                  Đóng
+                </button>
+              </section>
+            </div>
+          )}
+          {showJoinCodeModal && (
+            <ClubCodeModal
+              isOpen={showJoinCodeModal}
+              onClose={() => {
+                setShowJoinCodeModal(false);
+                setJoinCodeInitial("");
+              }}
+              initialCode={joinCodeInitial}
+              isLoggedIn={auth.isLoggedIn}
+              currentUser={auth.user}
+              onJoinSuccess={async (payload) => {
+                await auth.joinTeamViaInvite(payload.code, payload);
+                setShowJoinCodeModal(false);
+                navigate("dashboard");
+              }}
+              onRequireAuth={({ mode = "signup" } = {}) => {
+                setShowJoinCodeModal(false);
+                setLoginInitialMode(mode);
+                navigate("login");
+              }}
+            />
+          )}
+          {showQrScanModal && (
+            <QrScannerModal
+              isOpen={showQrScanModal}
+              onClose={() => setShowQrScanModal(false)}
+              onScanSuccess={(detectedCode) => {
+                setShowQrScanModal(false);
+                const match =
+                  String(detectedCode).match(/\/invite\/([^/?#]+)/i);
+                const extracted = match ? match[1] : detectedCode;
+                setJoinCodeInitial(extracted);
+                setShowJoinCodeModal(true);
+              }}
+              onSwitchToCode={() => {
+                setShowQrScanModal(false);
+                setJoinCodeInitial("");
+                setShowJoinCodeModal(true);
+              }}
+            />
+          )}
+        </div>
       </div>
-    </div>
     </StartupGate>
   );
 }

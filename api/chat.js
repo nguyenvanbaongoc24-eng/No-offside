@@ -1,211 +1,131 @@
-import { getAdminClient, getAuthUser, readJson, writeJson } from "./_storageHelper.js";
-import crypto from "node:crypto";
-
+import {
+  getUserClient,
+  getAuthUser,
+  apiError,
+  bearerToken,
+  getAdminClient,
+  readJson,
+} from "./_storageHelper.js";
+export const presentMessage = (m) => ({
+  id: m.id,
+  teamId: m.team_id,
+  senderId: m.sender_id,
+  clientMsgId: m.client_msg_id,
+  text: m.text,
+  createdAt: m.created_at,
+  sender: m.legacy_sender_name || undefined,
+  legacyUnverified: m.legacy_unverified || undefined,
+  status: "sent",
+});
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
+  res.setHeader("Cache-Control", "private, no-store");
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (!bearerToken(req))
+    return res
+      .status(401)
+      .json({ error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." });
   try {
-    const supabaseAdmin = getAdminClient();
-    const user = await getAuthUser(req, supabaseAdmin);
-
-    if (!user) {
-      return res.status(401).json({ error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." });
-    }
-
-    // 1. GET: Fetch messages for a team
+    const client = getUserClient(req),
+      user = await getAuthUser(req, client);
+    if (!user)
+      return res.status(401).json({ error: "Vui lòng đăng nhập lại." });
     if (req.method === "GET") {
-      const url = new URL(req.url, "http://localhost");
-      const teamId = url.searchParams.get("teamId");
-      const limit = Math.min(Number(url.searchParams.get("limit")) || 100, 200);
-      const since = url.searchParams.get("since");
-
-      if (!teamId) {
-        return res.status(400).json({ error: "Thiếu teamId." });
-      }
-
-      // Verify membership
-      const team = await readJson(supabaseAdmin, `teams/${teamId}.json`, null);
-      if (team) {
-        const isMember =
-          team.ownerId === user.id ||
-          (team.members || []).some(
-            (m) => m.id === user.id && m.membershipStatus !== "removed"
-          );
-        if (!isMember) {
-          return res.status(403).json({ error: "Bạn không phải thành viên của đội này." });
-        }
-      }
-
-      let messages = [];
-
-      // Try database table first
-      try {
-        let query = supabaseAdmin
-          .from("no_team_messages")
-          .select("id, team_id, sender_id, client_msg_id, text, created_at")
-          .eq("team_id", teamId)
-          .order("created_at", { ascending: true });
-
-        if (since) {
-          query = query.gt("created_at", since);
-        }
-
-        const { data, error } = await query.limit(limit);
-        if (!error && Array.isArray(data) && data.length > 0) {
-          messages = data.map((m) => ({
-            id: m.id,
-            teamId: m.team_id,
-            senderId: m.sender_id,
-            clientMsgId: m.client_msg_id,
-            text: m.text,
-            createdAt: m.created_at,
-            status: "sent",
-          }));
-        }
-      } catch {}
-
-      // Fallback / supplement with storage
-      if (messages.length === 0) {
-        const stored = await readJson(supabaseAdmin, `team_messages/${teamId}.json`, []);
-        if (Array.isArray(stored)) {
-          let filtered = stored;
-          if (since) {
-            filtered = filtered.filter((m) => new Date(m.createdAt) > new Date(since));
-          }
-          messages = filtered.slice(-limit).map((m) => ({ ...m, status: "sent" }));
-        }
-      }
-
-      // Sort stably by createdAt asc, id asc
-      messages.sort((a, b) => {
-        const tDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        if (tDiff !== 0) return tDiff;
-        return String(a.id).localeCompare(String(b.id));
+      const params = new URL(req.url, "http://localhost").searchParams;
+      const teamId = params.get("teamId"),
+        before = params.get("before"),
+        beforeId = params.get("beforeId");
+      if (!teamId) return res.status(400).json({ error: "Thiếu teamId." });
+      const membership = await client.rpc("no_app_is_member", {
+        p_team_id: teamId,
       });
-
-      return res.status(200).json({
-        success: true,
-        messages,
+      if (membership.error) throw membership.error;
+      if (!membership.data)
+        return res
+          .status(403)
+          .json({ error: "Bạn không có quyền đọc tin nhắn đội này." });
+      const ready = await client.rpc("no_app_chat_ready", {
+        p_team_id: teamId,
       });
-    }
-
-    // 2. POST: Send a message
-    if (req.method === "POST") {
-      let body = req.body;
-      if (typeof body === "string") {
-        try {
-          body = JSON.parse(body);
-        } catch {
-          body = {};
-        }
+      if (ready.error) throw ready.error;
+      if (!ready.data) {
+        const admin = getAdminClient(),
+          messages = await readJson(admin, `team_messages/${teamId}.json`, []);
+        const imported = await admin.rpc("no_app_import_chat", {
+          p_team_id: teamId,
+          p_messages: messages,
+        });
+        if (imported.error) throw imported.error;
       }
 
-      const { teamId, text, clientMsgId } = body || {};
-
-      if (!teamId || typeof teamId !== "string") {
-        return res.status(400).json({ error: "Thiếu teamId." });
-      }
-
-      if (!text || typeof text !== "string" || !text.trim()) {
-        return res.status(400).json({ error: "Nội dung tin nhắn không được để trống." });
-      }
-
-      if (text.length > 2000) {
-        return res.status(400).json({ error: "Tin nhắn không được vượt quá 2000 ký tự." });
-      }
-
-      const idempotencyKey = String(clientMsgId || crypto.randomUUID());
-
-      // Verify membership
-      const team = await readJson(supabaseAdmin, `teams/${teamId}.json`, null);
-      if (team) {
-        const isMember =
-          team.ownerId === user.id ||
-          (team.members || []).some(
-            (m) => m.id === user.id && m.membershipStatus !== "removed"
-          );
-        if (!isMember) {
-          return res.status(403).json({ error: "Bạn không phải thành viên của đội này." });
-        }
-      }
-
-      // Check idempotency in storage to avoid duplicates
-      const stored = await readJson(supabaseAdmin, `team_messages/${teamId}.json`, []);
-      const existing = (stored || []).find(
-        (m) => m.senderId === user.id && m.clientMsgId === idempotencyKey
+      const limit = Math.max(
+        1,
+        Math.min(Number(params.get("limit")) || 50, 100),
       );
-      if (existing) {
-        return res.status(200).json({
-          success: true,
-          message: existing,
-          duplicate: true,
-        });
+      let query = client
+        .from("no_team_messages")
+        .select(
+          "id,team_id,sender_id,client_msg_id,text,created_at,legacy_sender_name,legacy_unverified",
+        )
+        .eq("team_id", teamId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false });
+      if (before) {
+        if (
+          !Number.isFinite(Date.parse(before)) ||
+          !/^\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:\d{2})$/.test(before) ||
+          !/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(
+            beforeId || "",
+          )
+        )
+          return res
+            .status(400)
+            .json({ error: "Mốc phân trang không hợp lệ." });
+        query = query.or(
+          `created_at.lt.${new Date(before).toISOString()},and(created_at.eq.${new Date(before).toISOString()},id.lt.${beforeId})`,
+        );
       }
-
-      const serverTimestamp = new Date().toISOString();
-      const messageId = crypto.randomUUID();
-      const senderName =
-        user.user_metadata?.full_name ||
-        user.email?.split("@")[0] ||
-        "Thành viên";
-
-      const newMessage = {
-        id: messageId,
-        teamId,
-        senderId: user.id,
-        sender: senderName,
-        text: text.trim().slice(0, 2000),
-        clientMsgId: idempotencyKey,
-        createdAt: serverTimestamp,
-        status: "sent",
-      };
-
-      // 1. Persist to Postgres database table if available
-      try {
-        await supabaseAdmin.from("no_team_messages").insert({
-          id: messageId,
-          team_id: teamId,
-          sender_id: user.id,
-          client_msg_id: idempotencyKey,
-          text: newMessage.text,
-          created_at: serverTimestamp,
-        });
-      } catch {}
-
-      // 2. Persist to Storage JSON
-      try {
-        const nextStored = [...(stored || []), newMessage].slice(-1000);
-        await writeJson(supabaseAdmin, `team_messages/${teamId}.json`, nextStored);
-      } catch (err) {
-        return res.status(500).json({ error: "Không lưu được tin nhắn vào cơ sở dữ liệu." });
-      }
-
-      // 3. Broadcast to Realtime channel
-      try {
-        const channel = supabaseAdmin.channel(`team-chat:${teamId}`);
-        await channel.send({
-          type: "broadcast",
-          event: "new-message",
-          payload: newMessage,
-        });
-        await supabaseAdmin.removeChannel(channel);
-      } catch {}
-
+      const { data, error } = await query.limit(limit + 1);
+      if (error) throw error;
+      const archive = await client.rpc("no_app_chat_archive_info", {
+        p_team_id: teamId,
+      });
+      if (archive.error) throw archive.error;
+      const page = (data || []).slice(0, limit),
+        last = page.at(-1);
       return res.status(200).json({
         success: true,
-        message: newMessage,
+        messages: page.reverse().map(presentMessage),
+        hasMore: (data || []).length > limit,
+        preservedUnparsedMessages: archive.data?.unreadableCount || 0,
+        cursor: last ? { before: last.created_at, beforeId: last.id } : null,
       });
     }
-
+    if (req.method === "POST") {
+      const body =
+        typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+      if (
+        typeof body.teamId !== "string" ||
+        typeof body.text !== "string" ||
+        !body.text.trim() ||
+        body.text.length > 2000 ||
+        typeof body.clientMsgId !== "string" ||
+        !body.clientMsgId ||
+        body.clientMsgId.length > 128
+      )
+        return res.status(400).json({ error: "Tin nhắn không hợp lệ." });
+      const { data, error } = await client.rpc("no_app_send_message", {
+        p_team_id: body.teamId,
+        p_client_id: body.clientMsgId,
+        p_text: body.text,
+      });
+      if (error) throw error;
+      if (!data?.id) throw Error("Server did not acknowledge message");
+      return res
+        .status(200)
+        .json({ success: true, message: presentMessage(data) });
+    }
     return res.status(405).json({ error: "Method not allowed" });
-  } catch (err) {
-    return res.status(500).json({ error: err.message || "Lỗi xử lý tin nhắn." });
+  } catch (error) {
+    return apiError(res, error);
   }
 }

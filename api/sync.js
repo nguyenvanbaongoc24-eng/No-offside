@@ -1,114 +1,101 @@
-import { getAdminClient, getAuthUser, readJson, writeJson } from "./_storageHelper.js";
-
+import {
+  getUserClient,
+  getAuthUser,
+  apiError,
+  bearerToken,
+} from "./_storageHelper.js";
+import { snapshot } from "./_workspace.js";
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
+  res.setHeader("Cache-Control", "private, no-store");
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (!bearerToken(req))
+    return res
+      .status(401)
+      .json({ error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." });
   try {
-    const supabaseAdmin = getAdminClient();
-    const user = await getAuthUser(req, supabaseAdmin);
-
-    if (!user) {
-      return res.status(401).json({ error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." });
-    }
-
+    const client = getUserClient(req),
+      user = await getAuthUser(req, client);
+    if (!user)
+      return res
+        .status(401)
+        .json({ error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." });
     if (req.method === "GET") {
-      const url = new URL(req.url, "http://localhost");
-      const teamId = url.searchParams.get("teamId");
-
-      if (!teamId) {
-        return res.status(400).json({ error: "Thiếu teamId." });
-      }
-
-      const teamData = await readJson(supabaseAdmin, `team_data/${teamId}.json`, {
-        funds: { transactions: [], pendingApprovals: [], debtors: [] },
-        matches: [],
-        attendance: {},
-        reports: {},
-        notices: [],
+      const teamId = new URL(req.url, "http://localhost").searchParams.get(
+        "teamId",
+      );
+      if (!teamId) return res.status(400).json({ error: "Thiếu teamId." });
+      return res.status(200).json(await snapshot(client, teamId));
+    }
+    if (req.method !== "POST")
+      return res.status(405).json({ error: "Method not allowed" });
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+    if (body.action === "save-profile") {
+      const p = body.profile || {};
+      const { data, error } = await client.rpc("no_app_save_profile", {
+        p_profile: p,
       });
-
-      return res.status(200).json({ success: true, data: teamData });
+      if (error) throw error;
+      return res.status(200).json({ success: true, profile: data });
     }
-
-    if (req.method === "POST") {
-      let body = req.body;
-      if (typeof body === "string") {
-        try {
-          body = JSON.parse(body);
-        } catch {
-          body = {};
-        }
-      }
-
-      const { action = "sync-data", teamId, data: payloadData, profile } = body;
-
-      // 1. SYNC USER PROFILE
-      if (action === "save-profile" && profile) {
-        await writeJson(supabaseAdmin, `profiles/${user.id}.json`, profile);
-        // Also update Supabase user_metadata
-        try {
-          await supabaseAdmin.auth.admin.updateUserById(user.id, {
-            user_metadata: {
-              ...(user.user_metadata || {}),
-              full_name: profile.name,
-              jersey_number: profile.number,
-              position: profile.role,
-              avatar_url: profile.avatar,
-              phone: profile.phone,
-            },
-          });
-        } catch {}
-        return res.status(200).json({ success: true, profile });
-      }
-
-      // 2. SYNC TEAM DATA (Funds, Matches, Tactics, Attendance)
-      if (teamId) {
-        const team = await readJson(supabaseAdmin, `teams/${teamId}.json`, null);
-        if (!team) {
-          return res.status(404).json({ error: "Không tìm thấy đội bóng." });
-        }
-
-        const isMember =
-          team.ownerId === user.id ||
-          (team.members || []).some((m) => m.id === user.id && m.membershipStatus !== "removed");
-
-        if (!isMember) {
-          return res.status(403).json({ error: "Bạn không phải thành viên của đội này." });
-        }
-
-        if (payloadData) {
-          const currentData = await readJson(supabaseAdmin, `team_data/${teamId}.json`, {});
-          const mergedData = {
-            ...currentData,
-            ...payloadData,
-          };
-          await writeJson(supabaseAdmin, `team_data/${teamId}.json`, mergedData);
-        }
-
-        // If teamSettings properties like treasurerQr were included, update team
-        if (body.teamSettingsUpdates) {
-          const callerMember = (team.members || []).find((m) => m.id === user.id);
-          const isLeader = team.ownerId === user.id || callerMember?.roleType === "owner" || callerMember?.roleType === "admin";
-          if (isLeader) {
-            const updatedTeam = { ...team, ...body.teamSettingsUpdates };
-            await writeJson(supabaseAdmin, `teams/${teamId}.json`, updatedTeam);
-          }
-        }
-
-        return res.status(200).json({ success: true });
-      }
-
-      return res.status(400).json({ error: "Yêu cầu không hợp lệ." });
+    if (body.action === "payment" && body.teamId && body.requestKey) {
+      const { data, error } = await client.rpc("no_app_payment", {
+        p_team_id: body.teamId,
+        p_action: body.paymentAction,
+        p_payment_id: body.paymentId || "",
+        p_reason: body.reason || "",
+        p_key: body.requestKey,
+      });
+      if (error) throw error;
+      return res.status(200).json(data);
     }
-
-    return res.status(405).json({ error: "Method not allowed" });
-  } catch (err) {
-    return res.status(500).json({ error: err.message || "Lỗi máy chủ nội bộ." });
+    if (
+      body.action === "read-notices" &&
+      body.teamId &&
+      Array.isArray(body.ids)
+    ) {
+      const { data, error } = await client.rpc("no_app_read_notices", {
+        p_team_id: body.teamId,
+        p_ids: body.ids,
+      });
+      if (error) throw error;
+      return res.status(200).json(data);
+    }
+    if (body.action === "settings" && body.teamId && body.updates) {
+      const { data, error } = await client.rpc("no_app_settings", {
+        p_team_id: body.teamId,
+        p_updates: body.updates,
+      });
+      if (error) throw error;
+      return res.status(200).json(await snapshot(client, body.teamId));
+    }
+    if (
+      body.action === "commit" &&
+      body.teamId &&
+      Number.isInteger(body.revision) &&
+      body.requestKey &&
+      body.patch &&
+      !body.data &&
+      !body.teamSettingsUpdates
+    ) {
+      const { data, error } = await client.rpc("no_app_commit", {
+        p_team_id: body.teamId,
+        p_revision: body.revision,
+        p_key: body.requestKey,
+        p_patch: body.patch,
+      });
+      if (error?.code === "40001")
+        return res.status(409).json({ error: error.message });
+      if (error) throw error;
+      return res.status(200).json(data);
+    }
+    return res
+      .status(400)
+      .json({
+        error:
+          "Phiên bản ghi dữ liệu cũ không còn được hỗ trợ. Vui lòng cập nhật ứng dụng.",
+      });
+  } catch (error) {
+    return apiError(res, error);
   }
 }

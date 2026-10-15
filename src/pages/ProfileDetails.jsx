@@ -58,7 +58,7 @@ export default function ProfileDetails({
   demoSession,
   authSession,
 }) {
-  const t = text => personalText(text, preferences?.value.language);
+  const t = (text) => personalText(text, preferences?.value.language);
   // Personal Info Form State
   const [avatar, setAvatar] = useState(user.avatar);
   const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
@@ -69,9 +69,13 @@ export default function ProfileDetails({
   const [weight, setWeight] = useState(user.weight ?? "");
   const [phone, setPhone] = useState(user.phone || "");
   const [isSaved, setIsSaved] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false), [profileError, setProfileError] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false),
+    [profileError, setProfileError] = useState("");
   useEffect(() => {
-    const fail = event => { setProfileError(event.detail || "Không thể lưu dữ liệu trên thiết bị."); setIsSaved(false); };
+    const fail = (event) => {
+      setProfileError(event.detail || "Không thể lưu dữ liệu trên thiết bị.");
+      setIsSaved(false);
+    };
     window.addEventListener("storage-error", fail);
     return () => window.removeEventListener("storage-error", fail);
   }, []);
@@ -130,12 +134,18 @@ export default function ProfileDetails({
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    const profileForm = e.currentTarget;
     if (savingProfile) return;
-    setSavingProfile(true); setProfileError(""); setIsSaved(false);
+    setSavingProfile(true);
+    setProfileError("");
+    setIsSaved(false);
     let finalAvatar = avatar;
     try {
       if (selectedAvatarFile) {
-        finalAvatar = await uploadAvatarImage(selectedAvatarFile, authSession?.access_token);
+        finalAvatar = await uploadAvatarImage(
+          selectedAvatarFile,
+          authSession?.access_token,
+        );
         setAvatar(finalAvatar);
         setSelectedAvatarFile(null);
       }
@@ -146,74 +156,107 @@ export default function ProfileDetails({
         height: height === "" ? "" : Number(height),
         weight: weight === "" ? "" : Number(weight),
         avatar: finalAvatar,
-        phone: phone.trim()
+        phone: phone.trim(),
       });
+      profileForm?.dispatchEvent(
+        new Event("no-offside-form-saved", { bubbles: true }),
+      );
       setIsSaved(true);
-    } catch (err) { setProfileError(err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại."); }
-    finally { setSavingProfile(false); }
-  };
-
-
-  const handleSaveTeamName = (e) => {
-    e.preventDefault();
-    if (!editingTeamName.trim()) return;
-    if (onUpdateTeamName) {
-      onUpdateTeamName(editingTeamName.trim());
+    } catch (err) {
+      setProfileError(
+        err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại.",
+      );
+    } finally {
+      setSavingProfile(false);
     }
-    setTeamNameSaved(true);
-    setTimeout(() => setTeamNameSaved(false), 2500);
   };
 
-  const handleConfirmPromote = () => {
-    if (isOwner) {
-      if (onAddSubAdmin && selectedPromotee) {
-        onAddSubAdmin({
-          id: selectedPromotee.id,
-          name: selectedPromotee.name,
-          number: selectedPromotee.number,
-          customTitle: promoteTitle || "Đội Phó",
+  const handleSaveTeamName = async (e) => {
+    try {
+      e.preventDefault();
+      if (!editingTeamName.trim()) return;
+      if (onUpdateTeamName) {
+        await onUpdateTeamName(editingTeamName.trim());
+      }
+      setTeamNameSaved(true);
+      setTimeout(() => setTeamNameSaved(false), 2500);
+    } catch (error) {
+      setProfileError(error.message || "Không lưu được thay đổi.");
+    }
+  };
+
+  const handleConfirmPromote = async () => {
+    try {
+      if (isOwner) {
+        if (onAddSubAdmin && selectedPromotee) {
+          await onAddSubAdmin({
+            id: selectedPromotee.id,
+            name: selectedPromotee.name,
+            number: selectedPromotee.number,
+            customTitle: promoteTitle || "Đội Phó",
+          });
+        }
+        alert(
+          `Đã cấp quyền Admin với chức danh "${promoteTitle}" cho ${selectedPromotee.name} thành công!`,
+        );
+      } else {
+        await onRequestAdmin({
+          ...selectedPromotee,
+          customTitle: promoteTitle,
         });
+        alert(
+          `Đã gửi yêu cầu phong Admin (${promoteTitle}) cho ${selectedPromotee.name} tới Chủ đội phê duyệt!`,
+        );
+      }
+      setShowPromoteModal(false);
+      setSelectedPromotee(null);
+    } catch (error) {
+      setProfileError(error.message || "Không lưu được thay đổi.");
+    }
+  };
+
+  const handleConfirmRemoveAdmin = async () => {
+    try {
+      if (onRemoveSubAdmin && adminToRemove) {
+        await onRemoveSubAdmin(adminToRemove.id);
+      }
+      alert(`Đã giáng chức ${adminToRemove.name} từ Admin xuống Thành viên!`);
+      setShowRemoveAdminModal(false);
+      setAdminToRemove(null);
+    } catch (error) {
+      setProfileError(error.message || "Không lưu được thay đổi.");
+    }
+  };
+
+  const handleConfirmTransferOwner = async () => {
+    try {
+      if (!selectedNewOwner) return;
+      if (onTransferOwnership) {
+        await onTransferOwnership(selectedNewOwner.id);
       }
       alert(
-        `Đã cấp quyền Admin với chức danh "${promoteTitle}" cho ${selectedPromotee.name} thành công!`,
+        `Bạn đã nhường toàn quyền Chủ đội cho ${selectedNewOwner.name}! Vai trò của bạn hiện là Thành Viên.`,
       );
-    } else {
-      onRequestAdmin({ ...selectedPromotee, customTitle: promoteTitle });
-      alert(
-        `Đã gửi yêu cầu phong Admin (${promoteTitle}) cho ${selectedPromotee.name} tới Chủ đội phê duyệt!`,
-      );
+      setShowTransferOwnerModal(false);
+      setSelectedNewOwner(null);
+    } catch (error) {
+      setProfileError(error.message || "Không lưu được thay đổi.");
     }
-    setShowPromoteModal(false);
-    setSelectedPromotee(null);
   };
 
-  const handleConfirmRemoveAdmin = () => {
-    if (onRemoveSubAdmin && adminToRemove) {
-      onRemoveSubAdmin(adminToRemove.id);
+  const handleUpdateTitleSubmit = async () => {
+    try {
+      if (onUpdateSubAdminTitle && editingSubAdmin && customTitleInput.trim()) {
+        await onUpdateSubAdminTitle(
+          editingSubAdmin.id,
+          customTitleInput.trim(),
+        );
+      }
+      setEditingSubAdmin(null);
+      setCustomTitleInput("");
+    } catch (error) {
+      setProfileError(error.message || "Không lưu được thay đổi.");
     }
-    alert(`Đã giáng chức ${adminToRemove.name} từ Admin xuống Thành viên!`);
-    setShowRemoveAdminModal(false);
-    setAdminToRemove(null);
-  };
-
-  const handleConfirmTransferOwner = () => {
-    if (!selectedNewOwner) return;
-    if (onTransferOwnership) {
-      onTransferOwnership(selectedNewOwner.id);
-    }
-    alert(
-      `Bạn đã nhường toàn quyền Chủ đội cho ${selectedNewOwner.name}! Vai trò của bạn hiện là Thành Viên.`,
-    );
-    setShowTransferOwnerModal(false);
-    setSelectedNewOwner(null);
-  };
-
-  const handleUpdateTitleSubmit = () => {
-    if (onUpdateSubAdminTitle && editingSubAdmin && customTitleInput.trim()) {
-      onUpdateSubAdminTitle(editingSubAdmin.id, customTitleInput.trim());
-    }
-    setEditingSubAdmin(null);
-    setCustomTitleInput("");
   };
 
   return (
@@ -234,13 +277,30 @@ export default function ProfileDetails({
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
-            <label className="form-field" htmlFor="profile-avatar">{t("Ảnh đại diện")}
-              <Avatar src={avatar} name={name} className="profile-form-avatar"/>
-              {avatar !== user.avatar && <span className="field-hint">{t("Ảnh mới sẽ áp dụng khi cập nhật hồ sơ.")}</span>}
-              <input id="profile-avatar" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAvatarChange}/>
+            <label className="form-field" htmlFor="profile-avatar">
+              {t("Ảnh đại diện")}
+              <Avatar
+                src={avatar}
+                name={name}
+                className="profile-form-avatar"
+              />
+              {avatar !== user.avatar && (
+                <span className="field-hint">
+                  {t("Ảnh mới sẽ áp dụng khi cập nhật hồ sơ.")}
+                </span>
+              )}
+              <input
+                id="profile-avatar"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleAvatarChange}
+              />
             </label>
             <div>
-              <label htmlFor="profile-name" className="text-gray-600 block mb-1 font-bold">
+              <label
+                htmlFor="profile-name"
+                className="text-gray-600 block mb-1 font-bold"
+              >
                 {t("Họ và tên")}
               </label>
               <input
@@ -266,7 +326,8 @@ export default function ProfileDetails({
                   id="profile-number"
                   required
                   inputMode="numeric"
-                  min="1" max="99"
+                  min="1"
+                  max="99"
                   aria-invalid={/số áo/i.test(profileError) || undefined}
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
@@ -290,8 +351,14 @@ export default function ProfileDetails({
               </div>
             </div>
 
-            {profileError && /số áo/i.test(profileError) && <p role="alert" className="form-error">{t(profileError)}</p>}
-            <h3 className="profile-form-section">{t("Thông tin bổ sung (không bắt buộc)")}</h3>
+            {profileError && /số áo/i.test(profileError) && (
+              <p role="alert" className="form-error">
+                {t(profileError)}
+              </p>
+            )}
+            <h3 className="profile-form-section">
+              {t("Thông tin bổ sung (không bắt buộc)")}
+            </h3>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label
@@ -329,7 +396,10 @@ export default function ProfileDetails({
             </div>
 
             <div>
-              <label htmlFor="profile-phone" className="text-gray-600 block mb-1 font-bold">
+              <label
+                htmlFor="profile-phone"
+                className="text-gray-600 block mb-1 font-bold"
+              >
                 {t("Số điện thoại liên hệ (tùy chọn)")}
               </label>
               <input
@@ -354,8 +424,18 @@ export default function ProfileDetails({
             >
               {savingProfile ? t("Đang cập nhật…") : t("Cập nhật hồ sơ")}
             </motion.button>
-            {profileError && !/số áo/i.test(profileError) && <p role="alert" className="form-error">{t(profileError)}</p>}
-            {isSaved && !profileError && <p role="status" className="field-hint">{t("Đã cập nhật trong ứng dụng. Đồng bộ sử dụng cơ chế hiện có.")}</p>}
+            {profileError && !/số áo/i.test(profileError) && (
+              <p role="alert" className="form-error">
+                {t(profileError)}
+              </p>
+            )}
+            {isSaved && !profileError && (
+              <p role="status" className="field-hint">
+                {t(
+                  "Đã cập nhật trong ứng dụng. Đồng bộ sử dụng cơ chế hiện có.",
+                )}
+              </p>
+            )}
           </form>
         </section>
       )}
@@ -407,11 +487,16 @@ export default function ProfileDetails({
                 <div className="flex items-center gap-1.5">
                   <motion.button
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      if (onApproveAdminRequest) onApproveAdminRequest(req.id);
-                      alert(
-                        `Đã chấp thuận phong chức ${req.requestedTitle} cho ${req.name}!`,
-                      );
+                    onClick={async () => {
+                      try {
+                        if (onApproveAdminRequest)
+                          await onApproveAdminRequest(req.id);
+                        alert(
+                          `Đã chấp thuận phong chức ${req.requestedTitle} cho ${req.name}!`,
+                        );
+                      } catch (error) {
+                        setProfileError(error.message);
+                      }
                     }}
                     className="px-2.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm flex items-center gap-1 cursor-pointer whitespace-nowrap"
                   >
@@ -420,9 +505,14 @@ export default function ProfileDetails({
                   </motion.button>
 
                   <button
-                    onClick={() => {
-                      if (onRejectAdminRequest) onRejectAdminRequest(req.id);
-                      alert(`Đã từ chối yêu cầu của ${req.name}.`);
+                    onClick={async () => {
+                      try {
+                        if (onRejectAdminRequest)
+                          await onRejectAdminRequest(req.id);
+                        alert(`Đã từ chối yêu cầu của ${req.name}.`);
+                      } catch (error) {
+                        setProfileError(error.message);
+                      }
                     }}
                     className="p-1.5 rounded-full bg-gray-100 hover:bg-rose-100 text-gray-500 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
                     title="Từ chối"
@@ -903,7 +993,6 @@ export default function ProfileDetails({
           </div>
         </div>
       )}
-
     </div>
   );
 }

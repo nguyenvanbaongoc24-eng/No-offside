@@ -1,3 +1,4 @@
+import { createWorkbook } from "../lib/exportWorkbook";
 import React, { useState, useRef } from "react";
 import {
   MoreHorizontal,
@@ -18,6 +19,8 @@ import {
   transactionLabel,
   legacyTransactionDay,
   editTransaction,
+  filterTransactions,
+  transactionTotals,
 } from "../lib/transactionTime";
 import { formatCurrency } from "../lib/formatCurrency";
 
@@ -30,10 +33,17 @@ export default function FundManagement({
   funds,
   onChangeFunds,
   onApprove,
+  onReject,
   currentUserRole = "owner",
 }) {
   const canManage = ["owner", "admin"].includes(currentUserRole);
   const moreRef = useRef(null);
+  const [periodFilter, setPeriodFilter] = useState({
+    mode: "all",
+    month: localTransactionTime(Date.now(), timeZone).slice(0, 7),
+    from: "",
+    to: "",
+  });
   const [activeTab, setActiveTab] = useState("transactions"); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
   const [showAddTxModal, setShowAddTxModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -76,6 +86,20 @@ export default function FundManagement({
 
   // Transactions list (Có thể Edit / Sửa)
   const transactions = funds.transactions;
+  const visibleTransactions = filterTransactions(
+    transactions,
+    periodFilter,
+    timeZone,
+  );
+  const periodTotals = transactionTotals(visibleTransactions);
+  const periodLabel =
+    periodFilter.mode === "all"
+      ? "Toàn bộ giao dịch"
+      : periodFilter.mode === "month"
+        ? "Tháng " + periodFilter.month
+        : (periodFilter.from || "Từ đầu") +
+          " – " +
+          (periodFilter.to || "đến nay");
   const setTransactions = (value) =>
     onChangeFunds((prev) => ({
       ...prev,
@@ -121,38 +145,32 @@ export default function FundManagement({
       "Số Tiền (VNĐ)",
       "Người Phụ Trách",
     ];
-    const cell = (value) => {
-      const text = String(value ?? "");
-      return (
-        '"' +
-        (/^[\s]*[=+@-]/.test(text) ? "'" + text : text).replace(/"/g, '""') +
-        '"'
-      );
-    };
-
-    const rows = transactions.map((t, index) => [
+    const rows = visibleTransactions.map((t, index) => [
       index + 1,
-      cell(transactionLabel(t, timeZone)),
-      cell(t.title),
+      transactionLabel(t, timeZone),
+      t.title,
       t.type === "income" ? "Khoản Thu" : "Khoản Chi",
       t.amount,
-      cell(t.author),
+      t.author,
     ]);
 
     rows.push([]);
-    rows.push(["", "", "Tổng Thu:", "", totalIncome, ""]);
-    rows.push(["", "", "Tổng Chi:", "", totalExpense, ""]);
+    rows.push(["", "", "Tổng thu trong kỳ:", "", periodTotals.income, ""]);
+    rows.push(["", "", "Tổng chi trong kỳ:", "", periodTotals.expense, ""]);
     rows.push(["", "", "Số Dư Hiện Tại:", "", currentBalance, ""]);
 
-    const csvContent =
-      "\uFEFF" + [headers, ...rows].map((e) => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(
+      [createWorkbook([headers, ...rows, ["", "", periodLabel]])],
+      {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    );
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `No_Offside_So_Quy_FC_${new Date().toISOString().slice(0, 10)}.csv`,
+      `No_Offside_So_Quy_FC_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
     document.body.appendChild(link);
     link.click();
@@ -160,7 +178,25 @@ export default function FundManagement({
     URL.revokeObjectURL(url);
   };
 
-  const handleApprove = onApprove;
+  const handleReject = async (id) => {
+    const reason = window.prompt(
+      "Lý do từ chối khoản đóng quỹ (tối thiểu 3 ký tự):",
+    );
+    if (reason === null) return;
+    try {
+      if (!onReject) throw Error("Chưa kết nối thao tác từ chối.");
+      await onReject(id, reason);
+    } catch (error) {
+      setTxError(error.message);
+    }
+  };
+  const handleApprove = async (id) => {
+    try {
+      await onApprove(id);
+    } catch (error) {
+      setTxError(error.message || "Không duyệt được khoản đóng quỹ.");
+    }
+  };
 
   const handleSaveQrConfig = async (e) => {
     e.preventDefault();
@@ -273,6 +309,11 @@ export default function FundManagement({
   };
   return (
     <div className="fund-page">
+      {txError && !showAddTxModal && !editingTransaction && (
+        <p role="alert" className="form-error mx-4 mt-4">
+          {txError}
+        </p>
+      )}
       <header className="compact-header">
         <h1>Quỹ đội</h1>
         <details className="action-menu" ref={moreRef}>
@@ -358,8 +399,98 @@ export default function FundManagement({
                 </button>
               )}
             </div>
+            <fieldset className="ledger-filters">
+              <legend>Lọc sổ giao dịch</legend>
+              <label className="form-field">
+                Kỳ xem
+                <select
+                  value={periodFilter.mode}
+                  onChange={(e) =>
+                    setPeriodFilter((prev) => ({
+                      ...prev,
+                      mode: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="all">Toàn bộ</option>
+                  <option value="month">Theo tháng</option>
+                  <option value="range">Khoảng ngày</option>
+                </select>
+              </label>
+              {periodFilter.mode === "month" && (
+                <label className="form-field">
+                  Tháng
+                  <input
+                    type="month"
+                    value={periodFilter.month}
+                    onChange={(e) =>
+                      setPeriodFilter((prev) => ({
+                        ...prev,
+                        month: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              )}
+              {periodFilter.mode === "range" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="form-field">
+                    Từ ngày
+                    <input
+                      type="date"
+                      value={periodFilter.from}
+                      max={periodFilter.to || undefined}
+                      onChange={(e) =>
+                        setPeriodFilter((prev) => ({
+                          ...prev,
+                          from: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="form-field">
+                    Đến ngày
+                    <input
+                      type="date"
+                      value={periodFilter.to}
+                      min={periodFilter.from || undefined}
+                      onChange={(e) =>
+                        setPeriodFilter((prev) => ({
+                          ...prev,
+                          to: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+              <p className="text-sm text-slate-600">
+                {periodLabel} · {visibleTransactions.length} giao dịch
+              </p>
+              {periodFilter.mode !== "all" && (
+                <dl className="fund-period-totals">
+                  <div>
+                    <dt>Thu trong kỳ</dt>
+                    <dd>{formatCurrency(periodTotals.income)}</dd>
+                  </div>
+                  <div>
+                    <dt>Chi trong kỳ</dt>
+                    <dd>{formatCurrency(periodTotals.expense)}</dd>
+                  </div>
+                  <div>
+                    <dt>Chênh lệch kỳ</dt>
+                    <dd>{formatCurrency(periodTotals.net)}</dd>
+                  </div>
+                </dl>
+              )}
+            </fieldset>
+            {!visibleTransactions.length && (
+              <p className="panel-empty">
+                Không có giao dịch trong kỳ đã chọn.
+              </p>
+            )}
             <div className="transaction-list">
-              {transactions.map((t) => (
+              {visibleTransactions.map((t) => (
                 <article key={t.id} className="transaction-row">
                   <div className="transaction-description">
                     <p className="transaction-name">{t.title}</p>
@@ -435,12 +566,23 @@ export default function FundManagement({
                     </p>
                   </div>
                   {canManage && (
-                    <button
-                      className="primary-button shrink-0"
-                      onClick={() => handleApprove(p.id)}
-                    >
-                      Xác nhận
-                    </button>
+                    <div className="grid gap-2 shrink-0">
+                      <button
+                        className="primary-button shrink-0"
+                        onClick={() => handleApprove(p.id)}
+                      >
+                        Xác nhận
+                      </button>
+                      {onReject && (
+                        <button
+                          type="button"
+                          className="choice-button danger-action"
+                          onClick={() => handleReject(p.id)}
+                        >
+                          Từ chối
+                        </button>
+                      )}
+                    </div>
                   )}
                 </article>
               ))

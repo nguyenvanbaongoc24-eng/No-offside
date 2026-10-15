@@ -73,6 +73,24 @@ globalThis.__authFixture = {
     },
   },
 };
+// Explicit local HTTP fixture: never forwards a test token or data to production.
+globalThis.fetch=async(url,options={})=>{
+ const token=options.headers?.Authorization || '';
+ assert.match(token,/^Bearer test-/);
+ const id=token.replace('Bearer test-','');
+ const cached=JSON.parse(storage.get('no_offside_workspace_'+id) || 'null');
+ const data=JSON.parse(storage.get('no_offside_teams_v1') || '{}')[id+'::'+cached?.teamSettings?.id] || {funds:{transactions:[],pendingApprovals:[],debtors:[]},matches:[],attendance:{},reports:{},notices:[]};
+ let result;
+ if(url==='/api/teams' && !options.method)result={success:true,revision:0,team:cached?.teamSettings?.ownerId==='' ? null : cached?.teamSettings || null,data,role:cached?.teamSettings?.members?.find(m=>m.id===id)?.roleType || 'member'};
+ else{
+  const body=JSON.parse(options.body);
+  if(body.action==='commit')result={success:true,revision:1,data:{...data,...body.patch}};
+  else if(body.action==='save-profile')result={success:true,profile:body.profile};
+  else if(body.action==='create-team')result={success:true,revision:0,team:{...body.team,ownerId:id,appearance:{},members:[{id,name:cached?.user?.name || 'Owner',roleType:'owner'}],subAdmins:[],pendingAdminRequests:[]}};
+  else throw Error('Unexpected fixture request: '+url);
+ }
+ return {ok:true,json:async()=>result};
+};
 const compiled = { exports: {} };
 new Function("require", "module", "exports", bundle.outputFiles[0].text)(
   require,
@@ -358,7 +376,7 @@ test("a late completion from another account cannot expose or replay its undo sn
     "a::same-team": data("private-a"),
     "b::same-team": data("private-b"),
   });
-  session = { user: { id: "a", user_metadata: {} } };
+  session = { access_token:"test-a", user: { id: "a", user_metadata: {} } };
   userCheck = async () => ({ data: { user: session.user }, error: null });
   let value;
   function Harness() {
@@ -371,10 +389,10 @@ test("a late completion from another account cannot expose or replay its undo sn
   });
   await tick();
   const oldDelete = value.deleteMatch;
-  session = { user: { id: "b", user_metadata: {} } };
+  session = { access_token:"test-b", user: { id: "b", user_metadata: {} } };
   await act(async () => callback("SIGNED_IN", session));
   await tick();
-  await act(async () => oldDelete("private-a"));
+  await act(async () => assert.rejects(()=>oldDelete("private-a"),/Tài khoản đã thay đổi/));
   assert.equal(value.accountId, "b");
   assert.equal(value.deletedMatch, null);
   assert.equal(value.activeMatch.id, "private-b");
@@ -396,6 +414,7 @@ test("a late completion from another account cannot expose or replay its undo sn
 test("first-time Google login creates profile from Google metadata and leaves phone unverified and optional", async () => {
   storage.clear();
   session = {
+    access_token:"test-google-new-user-123",
     user: {
       id: "google-new-user-123",
       email: "player.new@gmail.com",
@@ -425,7 +444,7 @@ test("first-time Google login creates profile from Google metadata and leaves ph
 
   // Profile update updates phone as optional unverified contact info
   await act(async () => {
-    value.updateProfile({
+    await value.updateProfile({
       name: "Nguyễn Văn Nam",
       number: 10,
       phone: "0912345678",
@@ -517,6 +536,7 @@ test("auto-login defaults to off, logout disables auto-login for current user, a
   put("no_offside_workspace_" + userId, userWorkspace);
 
   session = {
+    access_token:"test-"+userId,
     user: {
       id: userId,
       email: "tu.le@gmail.com",
@@ -541,7 +561,7 @@ test("auto-login defaults to off, logout disables auto-login for current user, a
 
   // User creates team
   await act(async () => {
-    value.createTeam({
+    await value.createTeam({
       teamName: "FC Tự Do",
       teamCategory: "Sân 7",
       stadium: "Sân Chuyên Việt",
@@ -558,4 +578,3 @@ test("auto-login defaults to off, logout disables auto-login for current user, a
   assert.equal(value.isLoggedIn, false);
   await act(async () => tree.unmount());
 });
-

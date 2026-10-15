@@ -1,31 +1,45 @@
+import { beginPendingWrite } from "./pendingWrites.js";
 export async function imageDataUrl(file) {
-  if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Chọn ảnh JPG, PNG hoặc WebP.');
-  if (file.size > 2 * 1024 * 1024) throw new Error('Ảnh cần nhỏ hơn 2 MB.');
+  if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type))
+    throw new Error("Chọn ảnh JPG, PNG hoặc WebP.");
+  if (file.size > 2 * 1024 * 1024) throw new Error("Ảnh cần nhỏ hơn 2 MB.");
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Không đọc được ảnh.'));
+    reader.onerror = () => reject(new Error("Không đọc được ảnh."));
     reader.readAsDataURL(file);
   });
 }
 
-export async function compressAndResizeAvatar(file, maxDim = 400, quality = 0.85) {
-  if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    throw new Error('Chọn ảnh JPG, PNG hoặc WebP.');
+export async function compressAndResizeAvatar(
+  file,
+  maxDim = 400,
+  quality = 0.85,
+) {
+  if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("Chọn ảnh JPG, PNG hoặc WebP.");
   }
   if (file.size > 2 * 1024 * 1024) {
-    throw new Error('Ảnh cần nhỏ hơn 2 MB.');
+    throw new Error("Ảnh cần nhỏ hơn 2 MB.");
   }
 
   // If in browser environment with HTMLImageElement and Canvas
-  if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof Image !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
+  if (
+    typeof window !== "undefined" &&
+    typeof document !== "undefined" &&
+    typeof Image !== "undefined" &&
+    typeof URL !== "undefined" &&
+    URL.createObjectURL
+  ) {
     return new Promise((resolve) => {
       const img = new Image();
-      let url = '';
+      let url = "";
       try {
         url = URL.createObjectURL(file);
       } catch {
-        imageDataUrl(file).then(dataUrl => resolve({ dataUrl, mimeType: file.type })).catch(() => resolve({ dataUrl: '', mimeType: file.type }));
+        imageDataUrl(file)
+          .then((dataUrl) => resolve({ dataUrl, mimeType: file.type }))
+          .catch(() => resolve({ dataUrl: "", mimeType: file.type }));
         return;
       }
 
@@ -47,39 +61,49 @@ export async function compressAndResizeAvatar(file, maxDim = 400, quality = 0.85
           }
         }
 
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         if (!ctx) {
-          imageDataUrl(file).then(dataUrl => resolve({ dataUrl, mimeType: file.type }));
+          imageDataUrl(file).then((dataUrl) =>
+            resolve({ dataUrl, mimeType: file.type }),
+          );
           return;
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-        const mime = 'image/webp';
+        const mime = "image/webp";
 
         if (canvas.toBlob) {
           canvas.toBlob(
-            blob => {
+            (blob) => {
               if (!blob) {
-                imageDataUrl(file).then(dataUrl => resolve({ dataUrl, mimeType: file.type }));
+                imageDataUrl(file).then((dataUrl) =>
+                  resolve({ dataUrl, mimeType: file.type }),
+                );
                 return;
               }
               const reader = new FileReader();
-              reader.onload = () => resolve({ dataUrl: reader.result, mimeType: mime });
-              reader.onerror = () => imageDataUrl(file).then(dataUrl => resolve({ dataUrl, mimeType: file.type }));
+              reader.onload = () =>
+                resolve({ dataUrl: reader.result, mimeType: mime });
+              reader.onerror = () =>
+                imageDataUrl(file).then((dataUrl) =>
+                  resolve({ dataUrl, mimeType: file.type }),
+                );
               reader.readAsDataURL(blob);
             },
             mime,
-            quality
+            quality,
           );
         } else {
           try {
             const dataUrl = canvas.toDataURL(mime, quality);
             resolve({ dataUrl, mimeType: mime });
           } catch {
-            imageDataUrl(file).then(dataUrl => resolve({ dataUrl, mimeType: file.type }));
+            imageDataUrl(file).then((dataUrl) =>
+              resolve({ dataUrl, mimeType: file.type }),
+            );
           }
         }
       };
@@ -88,7 +112,9 @@ export async function compressAndResizeAvatar(file, maxDim = 400, quality = 0.85
         try {
           URL.revokeObjectURL(url);
         } catch {}
-        imageDataUrl(file).then(dataUrl => resolve({ dataUrl, mimeType: file.type }));
+        imageDataUrl(file).then((dataUrl) =>
+          resolve({ dataUrl, mimeType: file.type }),
+        );
       };
 
       img.src = url;
@@ -100,31 +126,34 @@ export async function compressAndResizeAvatar(file, maxDim = 400, quality = 0.85
 }
 
 export async function uploadAvatarImage(file, accessToken) {
-  if (typeof window !== 'undefined') {
-    window.__no_offside_busy_saving = true;
-  }
+  const finishWrite = beginPendingWrite();
   try {
     const { dataUrl, mimeType } = await compressAndResizeAvatar(file);
 
     // If demo or no access token, return dataUrl directly
-    if (!accessToken || accessToken === 'demo' || accessToken.startsWith('demo') || typeof fetch === 'undefined') {
+    if (
+      !accessToken ||
+      accessToken === "demo" ||
+      accessToken.startsWith("demo") ||
+      typeof fetch === "undefined"
+    ) {
       return dataUrl;
     }
 
-    const res = await fetch('/api/avatar', {
-      method: 'POST',
+    const res = await fetch("/api/avatar", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         imageBase64: dataUrl,
-        mimeType: mimeType || 'image/webp',
+        mimeType: mimeType || "image/webp",
       }),
     });
 
     if (!res.ok) {
-      let errorMsg = 'Lỗi tải ảnh đại diện lên máy chủ.';
+      let errorMsg = "Lỗi tải ảnh đại diện lên máy chủ.";
       try {
         const body = await res.json();
         if (body.error) errorMsg = body.error;
@@ -133,10 +162,10 @@ export async function uploadAvatarImage(file, accessToken) {
     }
 
     const data = await res.json();
+    if (!data.success || !data.avatarUrl)
+      throw Error("Server chưa xác nhận ảnh đại diện.");
     return data.avatarUrl;
   } finally {
-    if (typeof window !== 'undefined') {
-      window.__no_offside_busy_saving = false;
-    }
+    finishWrite();
   }
 }

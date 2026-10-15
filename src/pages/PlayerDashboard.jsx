@@ -1,5 +1,9 @@
+import MyAttendanceControl from "../components/MyAttendanceControl";
+import Avatar from "../components/Avatar";
+import { localTransactionTime } from "../lib/transactionTime";
+import TeamIdentityHeader from "../components/TeamIdentityHeader";
 import MatchCountdown from "../components/MatchCountdown";
-import {useTeamInvite} from "../hooks/useTeamInvite";
+import { useTeamInvite } from "../hooks/useTeamInvite";
 import LateArrivalPanel from "../components/LateArrivalPanel";
 import SwipeMatchCard from "../components/SwipeMatchCard";
 import QrPreview from "../components/QrPreview";
@@ -54,10 +58,15 @@ export default function PlayerDashboard({
   onResetPaid,
   onNavigate,
   onOpenNotifications,
+  memberships,
+  onSwitchTeam,
+  switchingTeam,
+  unreadCount,
   treasurerQr,
   onUpdateMatchStats,
   members = [],
   onRemoveMember,
+  onLinkMember,
   onAddMember,
   funds,
   onApprove,
@@ -87,9 +96,18 @@ export default function PlayerDashboard({
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const invite = useTeamInvite(teamSettings, currentUserRole, onCreateInvite, onRevokeInvite, onReadInvite);
+  const invite = useTeamInvite(
+    teamSettings,
+    currentUserRole,
+    onCreateInvite,
+    onRevokeInvite,
+    onReadInvite,
+  );
   const inviteCode = invite.code;
-  const openInvite = () => { setShowInviteModal(true); invite.load().catch(() => {}); };
+  const openInvite = () => {
+    setShowInviteModal(true);
+    invite.load().catch(() => {});
+  };
   const [attendanceActiveTab, setAttendanceActiveTab] = useState("attending"); // 'attending' | 'maybe' | 'absent' | 'unvoted'
   const [copiedField, setCopiedField] = useState("");
 
@@ -111,6 +129,7 @@ export default function PlayerDashboard({
   const matchInfo = {
     ...activeMatch,
     dateText: new Date(activeMatch.datetime).toLocaleString("vi-VN", {
+      timeZone: teamSettings.timezone || "Asia/Ho_Chi_Minh",
       weekday: "long",
       day: "2-digit",
       month: "2-digit",
@@ -136,24 +155,33 @@ export default function PlayerDashboard({
   }, [activeMatch.id]);
   const [statsSaved, setStatsSaved] = useState(false);
 
-  const handleSaveMatchReport = () => {
-    if (onUpdateMatchStats) {
-      onUpdateMatchStats(goalsReported, assistsReported);
+  const handleSaveMatchReport = async () => {
+    try {
+      if (onUpdateMatchStats) {
+        await onUpdateMatchStats(goalsReported, assistsReported);
+      }
+      setStatsSaved(true);
+    } catch (error) {
+      setMatchFormError(error.message || "Không lưu được thành tích.");
     }
-    setStatsSaved(true);
-
   };
 
   // Mock Attendance Roster with 4 tabs: [Có mặt] - [Chưa chắc] - [Báo vắng] - [Chưa điểm danh (Mới)]
-  const roster = rosterFor(members, attendance, user);
-  const rosterCount = members.length;
+  const attendanceMembers = Array.isArray(activeMatch.eligibleMembers)
+    ? activeMatch.eligibleMembers
+    : members.filter(
+        (member) =>
+          !member.membershipStatus || member.membershipStatus === "active",
+      );
+  const roster = rosterFor(attendanceMembers, attendance, user);
+  const rosterCount = attendanceMembers.length;
 
   // Create match form fields
   const [newMatchData, setNewMatchData] = useState({
     opponent: "",
-    datetime: "2026-10-24T18:30",
-    venue: "Sân bóng Chuyên Việt (Sân 3)",
-    timeoutDatetime: "2026-10-24T12:00",
+    datetime: "",
+    venue: teamSettings.venue || "",
+    timeoutDatetime: "",
     penaltyEnabled: true,
     penaltyFine: "50000",
   });
@@ -161,44 +189,40 @@ export default function PlayerDashboard({
   // Mock pending payments for Admin approval
   const pendingApprovals = funds.pendingApprovals;
 
-  const teammatesPreview = [
-    {
-      name: "Quang Hải",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=60",
-    },
-    {
-      name: "Hoàng Đức",
-      avatar:
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=60",
-    },
-    {
-      name: "Văn Lâm",
-      avatar:
-        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&auto=format&fit=crop&q=60",
-    },
-  ];
+  const teammatesPreview = members
+    .filter((member) => member.id !== user.id)
+    .slice(0, 3);
 
   const bankInfo = {
-    bankName: treasurerQr?.bankName || "MB Bank (Quân Đội)",
-    accountNumber: treasurerQr?.accountNumber || "998877665544",
-    accountHolder: treasurerQr?.accountHolder || "NGUYEN HOANG HAI (THỦ QUỸ)",
-    amount: formatCurrency(user.fundDebt || 150000),
+    bankName: treasurerQr?.bankName || "Chưa cấu hình ngân hàng",
+    accountNumber: treasurerQr?.accountNumber || "",
+    accountHolder: treasurerQr?.accountHolder || "",
+    amount: formatCurrency(Math.max(0, Number(user.fundDebt) || 0)),
     content: "NO OFFSIDE SO " + user.number + " DONG QUY " + monthKey(),
-    qrUrl: treasurerQr?.qrMode === "uploaded" ? treasurerQr.uploadedQrImage : qrUrl(
-      { ...treasurerQr, bankCode: treasurerQr?.bankCode || "970422" },
-      user.fundDebt || 150000,
-      "NO OFFSIDE SO " + user.number + " DONG QUY " + monthKey(),
-    ),
+    qrUrl:
+      treasurerQr?.qrMode === "uploaded"
+        ? treasurerQr.uploadedQrImage
+        : qrUrl(
+            { ...treasurerQr, bankCode: treasurerQr?.bankCode || "970422" },
+            Math.max(0, Number(user.fundDebt) || 0),
+            "NO OFFSIDE SO " + user.number + " DONG QUY " + monthKey(),
+          ),
   };
 
-  useEffect(() => {if(!statsSaved)return;const timer=setTimeout(()=>setStatsSaved(false),3000);return ()=>clearTimeout(timer);},[statsSaved]);
-  useEffect(() => {if(!copiedField)return;const timer=setTimeout(()=>setCopiedField(""),2000);return ()=>clearTimeout(timer);},[copiedField]);
+  useEffect(() => {
+    if (!statsSaved) return;
+    const timer = setTimeout(() => setStatsSaved(false), 3000);
+    return () => clearTimeout(timer);
+  }, [statsSaved]);
+  useEffect(() => {
+    if (!copiedField) return;
+    const timer = setTimeout(() => setCopiedField(""), 2000);
+    return () => clearTimeout(timer);
+  }, [copiedField]);
   const copyToClipboard = async (text, field) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
-
     } catch {
       alert(
         "Không sao chép được. Vui lòng chọn nội dung để sao chép thủ công.",
@@ -214,10 +238,6 @@ export default function PlayerDashboard({
     try {
       await onSaveMatch(newMatchData, editingMatchId);
       setShowCreateMatchModal(false);
-      onAddNotice(
-        editingMatchId ? "Trận đấu đã cập nhật" : "Lịch thi đấu mới",
-        newMatchData.opponent + " • " + newMatchData.datetime,
-      );
     } catch (err) {
       setMatchFormError(err.message);
     }
@@ -229,9 +249,15 @@ export default function PlayerDashboard({
       edit
         ? {
             opponent: activeMatch.title.split(" — ").at(-1),
-            datetime: activeMatch.datetime,
+            datetime: localTransactionTime(
+              activeMatch.datetime,
+              teamSettings.timezone || "Asia/Ho_Chi_Minh",
+            ),
             venue: activeMatch.venue,
-            timeoutDatetime: activeMatch.deadline,
+            timeoutDatetime: localTransactionTime(
+              activeMatch.deadline,
+              teamSettings.timezone || "Asia/Ho_Chi_Minh",
+            ),
             penaltyEnabled: activeMatch.penaltyEnabled,
             penaltyFine: activeMatch.penaltyAmount.replace(/\D/g, ""),
             lateConfig: activeMatch.lateConfig,
@@ -248,9 +274,17 @@ export default function PlayerDashboard({
     setShowCreateMatchModal(true);
   };
 
-  const handleRemindUnvoted = (playerName) => {
-    onAddNotice("Nhắc điểm danh", "Vui lòng điểm danh: " + playerName);
-    alert("Đã ghi thông báo trong đội trên thiết bị này.");
+  const handleRemindUnvoted = async (playerName) => {
+    try {
+      await onAddNotice("Nhắc điểm danh", "Vui lòng điểm danh: " + playerName);
+      alert(
+        demoSession
+          ? "Đã ghi thông báo trong bản trải nghiệm."
+          : "Đã lưu thông báo trong đội.",
+      );
+    } catch (error) {
+      setMatchFormError(error.message);
+    }
   };
 
   const handleFineUnvoted = (playerName) =>
@@ -271,61 +305,25 @@ export default function PlayerDashboard({
           - Tự động đóng sau 5 giây hoặc user bấm Đóng
           - Checkbox lưu sessionStorage 'Không nhắc lại trong phiên đăng nhập này'
           ========================================================= */}
-      <WelcomeAnnouncementModal />
 
       {/* =========================================================
           1. HEADER DARK STYLE VỚI PATTERN MỜ (SLATE-900)
           ========================================================= */}
-      <header className="dashboard-header">
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            aria-label="Xem thông tin cá nhân"
-            onClick={() => onNavigate("profile")}
-            className="shrink-0"
-          >
-            <img
-              src={teamSettings?.logo || user.avatar}
-              alt=""
-              className="w-12 h-12 rounded-2xl object-cover"
-            />
-          </button>
-          <div className="min-w-0">
-            <p className="text-xs text-slate-600 break-words">
-              {user.teamName}
-            </p>
-            <h1 className="text-xl font-semibold mt-1">{user.name}</h1>
-            <p className="text-xs text-slate-500 mt-1">
-              {isOwner ? "Chủ đội" : isAdmin ? "Quản trị viên" : "Thành viên"} ·
-              Số áo {user.number}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-1">
-          <button
-            aria-label="Tạo đội bóng mới"
-            title="Tạo đội bóng mới"
-            onClick={() => onNavigate("create-team")}
-          >
-            <PlusCircle size={20} />
-          </button>
-          {isOwner && (
-            <button
-              aria-label="Cài đặt đội bóng"
-              onClick={() => onNavigate("team-settings")}
-            >
-              <Settings size={20} />
-            </button>
-          )}
-          <button aria-label="Thông báo đội" onClick={onOpenNotifications}>
-            <Bell size={20} />
-          </button>
-        </div>
-        {demoSession && (
-          <button className="demo-role-toggle" onClick={onToggleRole}>
-            Đổi vai trò trải nghiệm
-          </button>
-        )}
-      </header>
+      <TeamIdentityHeader
+        team={teamSettings}
+        memberships={memberships}
+        onSwitchTeam={onSwitchTeam}
+        switchingTeam={switchingTeam}
+        onOpenProfile={() => onNavigate("profile")}
+        onOpenNotifications={onOpenNotifications}
+        unreadCount={unreadCount}
+      />
+      {demoSession && (
+        <button className="demo-role-toggle" onClick={onToggleRole}>
+          Đổi vai trò trải nghiệm
+        </button>
+      )}
+
       <div className="px-4 pt-3">
         <button
           className="choice-button text-sm"
@@ -336,6 +334,7 @@ export default function PlayerDashboard({
       </div>
       <MatchList
         matches={matches}
+        timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}
         activeMatchId={activeMatch.id}
         canDelete={isLeader}
         onSelect={onSelectMatch}
@@ -370,37 +369,33 @@ export default function PlayerDashboard({
 
               {/* Match Status Switcher & Controls */}
               <div className="match-controls flex flex-wrap items-center justify-between gap-3">
-                {/* Quick Status Pill */}
-                <div className="flex items-center bg-gray-100 p-0.5 rounded-full border border-gray-200 text-xs font-bold">
+                {(!isLeader || matchStatus === "completed") && (
+                  <span className="text-xs font-semibold text-slate-600">
+                    {matchStatus === "completed"
+                      ? "Đã kết thúc"
+                      : "Trận sắp đá"}
+                  </span>
+                )}
+                {isLeader && matchStatus !== "completed" && (
                   <button
                     type="button"
-                    disabled={!isLeader}
-                    aria-pressed={matchStatus === "upcoming"}
-                    onClick={() => setMatchStatus("upcoming")}
-                    className={`px-2 py-0.5 rounded-full transition-all duration-150 cursor-pointer ${
-                      matchStatus === "upcoming"
-                        ? "bg-white text-emerald-700 shadow-xs font-bold"
-                        : "text-gray-500 hover:text-gray-800"
-                    }`}
-                    title="Chuyển trạng thái: Trận sắp đá"
+                    className="choice-button text-xs"
+                    onClick={async () => {
+                      try {
+                        if (
+                          window.confirm(
+                            "Kết thúc trận này và mở báo cáo thành tích?",
+                          )
+                        )
+                          await setMatchStatus("completed");
+                      } catch (error) {
+                        setMatchFormError(error.message);
+                      }
+                    }}
                   >
-                    Sắp đá
+                    Kết thúc trận
                   </button>
-                  <button
-                    type="button"
-                    disabled={!isLeader}
-                    aria-pressed={matchStatus === "completed"}
-                    onClick={() => setMatchStatus("completed")}
-                    className={`px-2 py-0.5 rounded-full transition-all duration-150 cursor-pointer ${
-                      matchStatus === "completed"
-                        ? "bg-emerald-600 text-white shadow-xs font-bold"
-                        : "text-gray-500 hover:text-gray-800"
-                    }`}
-                    title="Chuyển trạng thái: Trận đã xong (Mở tự báo cáo bàn thắng/kiến tạo)"
-                  >
-                    Đã xong
-                  </button>
-                </div>
+                )}
 
                 {isLeader ? (
                   <div className="flex items-center gap-1">
@@ -444,22 +439,33 @@ export default function PlayerDashboard({
             </div>
 
             {/* Dòng Real-time Countdown Banner to rõ cho cả Admin & Thành viên */}
-            <div className="match-deadline mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3 flex flex-wrap gap-3 items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div>
-                  <p className="text-xs font-bold text-amber-900 ">
-                    Hạn chốt điểm danh
-                  </p>
-                  <p className="text-xs font-bold text-amber-700 tabular-nums tracking-tight">
-                    Còn <MatchCountdown deadline={activeMatch.deadline} /> để chốt danh sách
-                  </p>
+            {matchStatus === "upcoming" && (
+              <div className="match-deadline mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3 flex flex-wrap gap-3 items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-xs font-bold text-amber-900 ">
+                      Hạn chốt điểm danh
+                    </p>
+                    <p className="text-xs font-bold text-amber-700 tabular-nums tracking-tight">
+                      <MatchCountdown
+                        deadline={activeMatch.deadline}
+                        sentence
+                      />
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <span className="text-xs font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
-                {matchInfo.penaltyEnabled ? "Có phạt quỹ" : "Tự do"}
-              </span>
-            </div>
+                <span className="text-xs font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                  {matchInfo.penaltyEnabled ? "Có phạt quỹ" : "Tự do"}
+                </span>
+              </div>
+            )}
+            <MyAttendanceControl
+              status={attendance[user.id]}
+              deadline={activeMatch.deadline}
+              completed={matchStatus === "completed"}
+              onChange={onAttendanceChange}
+            />
 
             {/* Body Card 1 theo vai trò */}
             {isLeader ? (
@@ -486,7 +492,7 @@ export default function PlayerDashboard({
                             100 +
                           "%",
                       }}
-                      title="Có mặt (14)"
+                      title={`Có mặt (${roster.attending.length})`}
                     ></div>
                     <div
                       className="bg-amber-400 h-full transition-all"
@@ -496,7 +502,7 @@ export default function PlayerDashboard({
                             100 +
                           "%",
                       }}
-                      title="Chưa chắc (2)"
+                      title={`Chưa chắc (${roster.maybe.length})`}
                     ></div>
                     <div
                       className="bg-rose-400 h-full transition-all"
@@ -506,7 +512,7 @@ export default function PlayerDashboard({
                             100 +
                           "%",
                       }}
-                      title="Vắng (2)"
+                      title={`Vắng (${roster.absent.length})`}
                     ></div>
                     <div
                       className="bg-gray-400 h-full transition-all"
@@ -516,7 +522,7 @@ export default function PlayerDashboard({
                             100 +
                           "%",
                       }}
-                      title="Chưa điểm danh"
+                      title={`Chưa điểm danh (${roster.unvoted.length})`}
                     ></div>
                   </div>
 
@@ -557,60 +563,20 @@ export default function PlayerDashboard({
                 id="match-attendance"
                 className="mt-3.5 pt-3 border-t border-gray-100"
               >
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    aria-pressed={attendance[user.id] === "attending"}
-                    onClick={() => onAttendanceChange("attending")}
-                    className={`rounded-full py-2.5 px-2 flex items-center justify-center gap-1 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
-                      attendance[user.id] === "attending"
-                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-600/20"
-                        : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60"
-                    }`}
-                  >
-                    <span> Có mặt</span>
-                    {attendance[user.id] === "attending" && (
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    )}
-                  </button>
-
-                  <button
-                    aria-pressed={attendance[user.id] === "maybe"}
-                    onClick={() => onAttendanceChange("maybe")}
-                    className={`rounded-full py-2.5 px-2 flex items-center justify-center gap-1 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
-                      attendance[user.id] === "maybe"
-                        ? "bg-amber-500 text-white shadow-md shadow-amber-500/30 ring-2 ring-amber-500/20"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200/80 border border-gray-200"
-                    }`}
-                  >
-                    <span> Chưa chắc</span>
-                  </button>
-
-                  <button
-                    aria-pressed={attendance[user.id] === "absent"}
-                    onClick={() => onAttendanceChange("absent")}
-                    className={`rounded-full py-2.5 px-2 flex items-center justify-center gap-1 text-xs font-bold transition-all duration-200 active:scale-95 cursor-pointer ${
-                      attendance[user.id] === "absent"
-                        ? "bg-rose-500 text-white shadow-md shadow-rose-500/30 ring-2 ring-rose-500/20"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200/80 border border-gray-200"
-                    }`}
-                  >
-                    <span> Báo vắng</span>
-                  </button>
-                </div>
-
                 {/* Roster trigger button */}
-                <div
+                <button
+                  type="button"
                   onClick={() => setShowAttendanceModal(true)}
                   className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs cursor-pointer hover:bg-gray-50/80 p-1.5 rounded-xl transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <div className="flex -space-x-2">
-                      {teammatesPreview.map((tm, idx) => (
-                        <img
-                          key={idx}
+                      {teammatesPreview.map((tm) => (
+                        <Avatar
+                          key={tm.id}
                           className="w-6 h-6 rounded-full ring-2 ring-white object-cover"
                           src={tm.avatar}
-                          alt={tm.name}
+                          name={tm.name}
                         />
                       ))}
                     </div>
@@ -621,7 +587,7 @@ export default function PlayerDashboard({
                   <span className="text-xs font-bold text-emerald-600 flex items-center gap-0.5">
                     Xem 4 tab <ChevronRight className="w-3.5 h-3.5" />
                   </span>
-                </div>
+                </button>
               </div>
             )}
             {governance && (
@@ -824,7 +790,11 @@ export default function PlayerDashboard({
                     Thành viên đội
                   </h3>
                   <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 tabular-nums">
-                    {members.filter((m) => m.membershipStatus !== "removed").length} người
+                    {
+                      members.filter((m) => m.membershipStatus !== "removed")
+                        .length
+                    }{" "}
+                    người
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
@@ -876,7 +846,9 @@ export default function PlayerDashboard({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MÃ CLUB:</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  MÃ CLUB:
+                </span>
                 <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-400 tracking-wider truncate block max-w-[160px] sm:max-w-[200px]">
                   {inviteCode || "Chưa có mã mời"}
                 </span>
@@ -890,7 +862,18 @@ export default function PlayerDashboard({
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={async () => {if(!inviteCode){openInvite();return;}try{const valid=await invite.load();await copyToClipboard(valid.code,"clubCode");}catch{setShowInviteModal(true);}}}
+              onClick={async () => {
+                if (!inviteCode) {
+                  openInvite();
+                  return;
+                }
+                try {
+                  const valid = await invite.load();
+                  await copyToClipboard(valid.code, "clubCode");
+                } catch {
+                  setShowInviteModal(true);
+                }
+              }}
               className="px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 outline-none"
             >
               {copiedField === "clubCode" ? (
@@ -916,8 +899,6 @@ export default function PlayerDashboard({
             </button>
           </div>
         </div>
-
-
 
         {/* =========================================================
             THẺ THỐNG KÊ CÁ NHÂN (SELF-REPORTING SAU TRẬN)
@@ -1077,6 +1058,7 @@ export default function PlayerDashboard({
         <div
           role="dialog"
           aria-modal="true"
+          aria-label="Danh sách điểm danh"
           className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200"
         >
           <div className="w-full max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-5 max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 animate-in slide-in-from-bottom duration-300">
@@ -1089,11 +1071,12 @@ export default function PlayerDashboard({
                     Danh sách điểm danh
                   </h3>
                   <p className="text-xs text-gray-400">
-                    Trận thứ 6 • 20 thành viên toàn đội
+                    {activeMatch.title} · {rosterCount} cầu thủ đủ điều kiện
                   </p>
                 </div>
               </div>
               <button
+                aria-label="Đóng danh sách điểm danh"
                 onClick={() => setShowAttendanceModal(false)}
                 className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all"
               >
@@ -1334,7 +1317,10 @@ export default function PlayerDashboard({
             </div>
 
             <div className="mt-3.5 p-3.5 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100">
-              <QrPreview src={bankInfo.qrUrl} uploaded={treasurerQr?.qrMode === "uploaded"}/>
+              <QrPreview
+                src={bankInfo.qrUrl}
+                uploaded={treasurerQr?.qrMode === "uploaded"}
+              />
               <p className="text-xs text-gray-500 font-semibold mt-2 text-center">
                 QR: {bankInfo.amount} • số áo #{user.number}
               </p>
@@ -1388,13 +1374,13 @@ export default function PlayerDashboard({
 
             <div className="mt-4 pt-2">
               <button
-                onClick={() => {
-                  onMarkPaid();
-                  onAddNotice(
-                    "Đóng quỹ chờ duyệt",
-                    "Bạn đã báo chuyển khoản. Thủ quỹ cần kiểm tra trước khi xác nhận.",
-                  );
-                  setShowQrModal(false);
+                onClick={async () => {
+                  try {
+                    await onMarkPaid();
+                    setShowQrModal(false);
+                  } catch (error) {
+                    setMatchFormError(error.message);
+                  }
                 }}
                 className="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all duration-200 active:scale-95 cursor-pointer"
               >
@@ -1567,6 +1553,7 @@ export default function PlayerDashboard({
         members={members}
         currentUserRole={currentUserRole}
         onRemoveMember={onRemoveMember}
+        onLinkMember={onLinkMember}
         onOpenInvite={() => {
           setShowTeamManagerModal(false);
           openInvite();
@@ -1590,13 +1577,20 @@ export default function PlayerDashboard({
         teamLogo={teamSettings?.logo || ""}
         teamCode={inviteCode}
         inviteStatus={invite.status}
-        loading={invite.loading} error={invite.error} onRetry={() => invite.load()}
+        loading={invite.loading}
+        error={invite.error}
+        onRetry={() => invite.load()}
         isLeader={["owner", "admin"].includes(currentUserRole)}
         onRegenerateCode={() => invite.load(true)}
         onRevokeCode={invite.revoke}
         onPreviewLanding={() => {
           setShowInviteModal(false);
-          if (inviteCode) window.open(`/invite/${encodeURIComponent(inviteCode)}`, "_blank", "noopener,noreferrer");
+          if (inviteCode)
+            window.open(
+              `/invite/${encodeURIComponent(inviteCode)}`,
+              "_blank",
+              "noopener,noreferrer",
+            );
         }}
       />
     </div>

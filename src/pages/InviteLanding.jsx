@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Users,
@@ -9,12 +9,12 @@ import {
   Loader2,
   LogIn,
   UserPlus,
-} from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { savePendingJoin } from '../lib/pendingJoin';
+} from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { savePendingJoin } from "../lib/pendingJoin";
 
 export default function InviteLanding({
-  inviteCode = '',
+  inviteCode = "",
   teamData: initialTeamData = null,
   authenticated = false,
   currentUser = null,
@@ -24,21 +24,22 @@ export default function InviteLanding({
 }) {
   const [loading, setLoading] = useState(!initialTeamData);
   const [teamData, setTeamData] = useState(initialTeamData);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [joining, setJoining] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pendingAuthPrompt, setPendingAuthPrompt] = useState(false);
 
   const [profile, setProfile] = useState({
-    name: currentUser?.name || '',
+    name: currentUser?.name || "",
     number:
       currentUser?.number !== undefined && currentUser?.number !== null
         ? String(currentUser.number)
-        : '',
-    role: currentUser?.role || 'Tiền đạo (ST)',
+        : "",
+    role: currentUser?.role || "Tiền đạo (ST)",
   });
 
-  const update = (key, value) => setProfile((prev) => ({ ...prev, [key]: value }));
+  const update = (key, value) =>
+    setProfile((prev) => ({ ...prev, [key]: value }));
 
   // Load invite data if only code was provided in URL
   useEffect(() => {
@@ -50,29 +51,32 @@ export default function InviteLanding({
 
     const code = inviteCode.trim().toUpperCase();
     if (!code) {
-      setError('Mã mời không hợp lệ.');
+      setError("Mã mời không hợp lệ.");
       setLoading(false);
       return;
     }
 
     async function loadInvite() {
       setLoading(true);
-      setError('');
+      setError("");
       try {
         // 1. Try Supabase RPC first if available
         if (supabase) {
           try {
-            const { data, error: rpcError } = await supabase.rpc('no_gov_get_invite', {
-              p_code: code,
-            });
+            const { data, error: rpcError } = await supabase.rpc(
+              "no_gov_get_invite",
+              {
+                p_code: code,
+              },
+            );
             if (!rpcError && data && data.valid) {
               setTeamData({
                 id: data.teamId,
                 name: data.teamName,
-                logo: data.logo || '',
-                category: data.category || 'Sân 7',
-                venue: data.venue || '',
-                captain: data.captain || 'Đội trưởng',
+                logo: data.logo || "",
+                category: data.category || "Sân 7",
+                venue: data.venue || "",
+                captain: data.captain || "Đội trưởng",
                 membersCount: data.memberCount || 1,
                 takenNumbers: data.takenNumbers || [],
                 code: data.code || code,
@@ -87,17 +91,19 @@ export default function InviteLanding({
 
         // 2. Cloud API fallback (/api/invites) for cross-device QR scanning
         try {
-          const resp = await fetch(`/api/invites?code=${encodeURIComponent(code)}`);
+          const resp = await fetch(
+            `/api/invites?code=${encodeURIComponent(code)}`,
+          );
           if (resp.ok) {
             const data = await resp.json();
             if (data && data.valid) {
               setTeamData({
                 id: data.teamId,
                 name: data.teamName,
-                logo: data.logo || '',
-                category: data.category || 'Sân 7',
-                venue: data.venue || '',
-                captain: data.captain || 'Đội trưởng',
+                logo: data.logo || "",
+                category: data.category || "Sân 7",
+                venue: data.venue || "",
+                captain: data.captain || "Đội trưởng",
                 membersCount: data.membersCount || 1,
                 takenNumbers: data.takenNumbers || [],
                 code: data.code || code,
@@ -109,37 +115,19 @@ export default function InviteLanding({
             }
           }
         } catch (apiErr) {
-          if (apiErr.message && !apiErr.message.includes('fetch')) {
+          if (apiErr.message && !apiErr.message.includes("fetch")) {
             throw apiErr;
           }
         }
 
-        // 3. Local storage fallback for offline / same-device testing
-        try {
-          const localRaw =
-            window?.localStorage?.getItem(`no_offside_team_${code.toLowerCase()}`) ||
-            window?.localStorage?.getItem(`no_offside_team_${code.toUpperCase()}`);
-          if (localRaw) {
-            const t = JSON.parse(localRaw);
-            setTeamData({
-              id: t.id,
-              name: t.teamName,
-              logo: t.logo || '',
-              category: t.teamCategory || 'Sân 7',
-              venue: t.venue || '',
-              captain: t.members?.find((m) => m.roleType === 'owner')?.name || 'Đội trưởng',
-              membersCount: t.members?.length || 1,
-              takenNumbers: (t.members || []).map((m) => Number(m.number)),
-              code,
-            });
-            setLoading(false);
-            return;
-          }
-        } catch {}
-
-        throw new Error('Mã Club không hợp lệ hoặc lời mời đã hết hạn / bị thu hồi.');
+        throw new Error(
+          "Mã Club không hợp lệ hoặc lời mời đã hết hạn / bị thu hồi.",
+        );
       } catch (err) {
-        setError(err.message || 'Mã Club không hợp lệ hoặc lời mời đã hết hạn / bị thu hồi.');
+        setError(
+          err.message ||
+            "Mã Club không hợp lệ hoặc lời mời đã hết hạn / bị thu hồi.",
+        );
       } finally {
         setLoading(false);
       }
@@ -149,7 +137,7 @@ export default function InviteLanding({
   }, [inviteCode, initialTeamData]);
 
   const isNumberTaken = (num) => {
-    if (!teamData?.takenNumbers || num === '' || num === undefined) {
+    if (!teamData?.takenNumbers || num === "" || num === undefined) {
       return false;
     }
     return teamData.takenNumbers.includes(Number(num));
@@ -157,22 +145,24 @@ export default function InviteLanding({
 
   const submit = async (event) => {
     event.preventDefault();
-    setError('');
+    setError("");
 
     const cleanName = profile.name.trim();
     if (!cleanName) {
-      setError('Vui lòng nhập họ và tên của bạn.');
+      setError("Vui lòng nhập họ và tên của bạn.");
       return;
     }
 
     const numberVal = Number(profile.number);
     if (!Number.isInteger(numberVal) || numberVal < 0 || numberVal > 99) {
-      setError('Số áo phải là số nguyên từ 0 đến 99.');
+      setError("Số áo phải là số nguyên từ 0 đến 99.");
       return;
     }
 
     if (isNumberTaken(numberVal)) {
-      setError(`Số áo ${numberVal} đã có thành viên sử dụng. Vui lòng chọn số khác.`);
+      setError(
+        `Số áo ${numberVal} đã có thành viên sử dụng. Vui lòng chọn số khác.`,
+      );
       return;
     }
 
@@ -201,7 +191,7 @@ export default function InviteLanding({
         await onJoinSuccess(payload);
       }
     } catch (err) {
-      setError(err.message || 'Gia nhập đội thất bại. Vui lòng thử lại.');
+      setError(err.message || "Gia nhập đội thất bại. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
     }
@@ -212,7 +202,9 @@ export default function InviteLanding({
       <div className="min-h-screen grid place-items-center bg-slate-50">
         <div className="text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto" />
-          <p className="text-xs text-slate-500 font-medium">Đang tải thông tin đội bóng...</p>
+          <p className="text-xs text-slate-500 font-medium">
+            Đang tải thông tin đội bóng...
+          </p>
         </div>
       </div>
     );
@@ -225,7 +217,9 @@ export default function InviteLanding({
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 mx-auto flex items-center justify-center">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h1 className="text-lg font-bold text-slate-900">Không tìm thấy lời mời</h1>
+          <h1 className="text-lg font-bold text-slate-900">
+            Không tìm thấy lời mời
+          </h1>
           <p className="text-xs text-slate-600 leading-relaxed">{error}</p>
           <button
             onClick={onBackToApp}
@@ -267,7 +261,10 @@ export default function InviteLanding({
             </div>
             <h1 className="text-xl font-bold break-words">{teamData.name}</h1>
             <p className="text-xs text-slate-300 mt-0.5 truncate">
-              Đội trưởng: <span className="font-semibold text-white">{teamData.captain}</span>
+              Đội trưởng:{" "}
+              <span className="font-semibold text-white">
+                {teamData.captain}
+              </span>
             </p>
           </div>
         </div>
@@ -298,14 +295,18 @@ export default function InviteLanding({
                 Tạo tài khoản để hoàn tất gia nhập đội
               </h2>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Thông tin hồ sơ tại {teamData.name} (Số áo #{profile.number}) đã được ghi nhận. Hãy đăng nhập hoặc đăng ký để lưu giữ tư cách thành viên.
+                Thông tin hồ sơ tại {teamData.name} (Số áo #{profile.number}) đã
+                được ghi nhận. Hãy đăng nhập hoặc đăng ký để lưu giữ tư cách
+                thành viên.
               </p>
             </div>
 
             <div className="space-y-2.5 pt-2">
               <button
                 type="button"
-                onClick={() => onRequireAuth && onRequireAuth({ mode: 'register' })}
+                onClick={() =>
+                  onRequireAuth && onRequireAuth({ mode: "register" })
+                }
                 className="w-full h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
               >
                 <UserPlus className="w-4 h-4" />
@@ -314,7 +315,9 @@ export default function InviteLanding({
 
               <button
                 type="button"
-                onClick={() => onRequireAuth && onRequireAuth({ mode: 'login' })}
+                onClick={() =>
+                  onRequireAuth && onRequireAuth({ mode: "login" })
+                }
                 className="w-full h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 active:scale-95 transition-all cursor-pointer"
               >
                 <LogIn className="w-4 h-4 text-slate-600" />
@@ -337,7 +340,8 @@ export default function InviteLanding({
                 Tham gia cùng {teamData.name}
               </h2>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Điền thông tin thành viên (họ tên, số áo thi đấu) để hoàn tất gia nhập đội bóng.
+                Điền thông tin thành viên (họ tên, số áo thi đấu) để hoàn tất
+                gia nhập đội bóng.
               </p>
             </div>
             <button
@@ -348,7 +352,10 @@ export default function InviteLanding({
             </button>
           </div>
         ) : (
-          <form onSubmit={submit} className="settings-card p-5 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+          <form
+            onSubmit={submit}
+            className="settings-card p-5 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-4"
+          >
             <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">
               Hồ sơ thành viên trong đội
             </h2>
@@ -360,7 +367,7 @@ export default function InviteLanding({
                 autoComplete="name"
                 placeholder="Nhập họ và tên"
                 value={profile.name}
-                onChange={(e) => update('name', e.target.value)}
+                onChange={(e) => update("name", e.target.value)}
                 className="w-full h-11 px-3 mt-1.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </label>
@@ -374,11 +381,11 @@ export default function InviteLanding({
                 max="99"
                 placeholder="Chọn số áo"
                 value={profile.number}
-                onChange={(e) => update('number', e.target.value)}
+                onChange={(e) => update("number", e.target.value)}
                 className={`w-full h-11 px-3 mt-1.5 rounded-xl border text-xs font-bold focus:outline-none focus:ring-2 ${
                   isNumberTaken(profile.number)
-                    ? 'border-rose-400 bg-rose-50/50 text-rose-900 focus:ring-rose-500'
-                    : 'border-slate-200 bg-slate-50 focus:bg-white focus:ring-emerald-500'
+                    ? "border-rose-400 bg-rose-50/50 text-rose-900 focus:ring-rose-500"
+                    : "border-slate-200 bg-slate-50 focus:bg-white focus:ring-emerald-500"
                 }`}
               />
               {isNumberTaken(profile.number) ? (
@@ -397,10 +404,15 @@ export default function InviteLanding({
               Vị trí sở trường (tùy chọn)
               <select
                 value={profile.role}
-                onChange={(e) => update('role', e.target.value)}
+                onChange={(e) => update("role", e.target.value)}
                 className="w-full h-11 px-3 mt-1.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                {['Tiền đạo (ST)', 'Tiền vệ (MF)', 'Hậu vệ (DF)', 'Thủ môn (GK)'].map((r) => (
+                {[
+                  "Tiền đạo (ST)",
+                  "Tiền vệ (MF)",
+                  "Hậu vệ (DF)",
+                  "Thủ môn (GK)",
+                ].map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
@@ -409,7 +421,10 @@ export default function InviteLanding({
             </label>
 
             {error && (
-              <div role="alert" className="p-3 rounded-2xl bg-rose-50 text-rose-700 text-xs flex items-start gap-2">
+              <div
+                role="alert"
+                className="p-3 rounded-2xl bg-rose-50 text-rose-700 text-xs flex items-start gap-2"
+              >
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
@@ -417,7 +432,12 @@ export default function InviteLanding({
 
             <button
               type="submit"
-              disabled={submitting || isNumberTaken(profile.number) || !profile.name.trim() || profile.number === ''}
+              disabled={
+                submitting ||
+                isNumberTaken(profile.number) ||
+                !profile.name.trim() ||
+                profile.number === ""
+              }
               className="primary-button w-full h-12 text-xs font-bold flex items-center justify-center gap-2 mt-2"
             >
               {submitting ? (

@@ -1,3 +1,9 @@
+import {
+  transactionInstant,
+  localTransactionTime,
+} from "../lib/transactionTime";
+import { serverRequest } from "../lib/serverRequest";
+import { withPendingWrite, pendingWriteCount } from "../lib/pendingWrites";
 import { useState, useEffect, useRef } from "react";
 import { readStored, writeStored } from "../lib/storage";
 import { usePersistentState } from "./usePersistentState";
@@ -16,7 +22,11 @@ import {
   restoreTeamMatch,
 } from "../lib/teamModel";
 import { defaultLate } from "../lib/governance";
-import { getPendingJoin, clearPendingJoin, savePendingJoin } from "../lib/pendingJoin";
+import {
+  getPendingJoin,
+  clearPendingJoin,
+  savePendingJoin,
+} from "../lib/pendingJoin";
 
 function readSession(key, fallback = null) {
   try {
@@ -471,8 +481,12 @@ export function useAuth() {
     () => readStored("no_offside_user", INITIAL_USER).id,
   );
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
-  const [startupError,setStartupError]=useState("");
-  const [workspaceBoot,setWorkspaceBoot]=useState({account:"",status:"ready",error:""});
+  const [startupError, setStartupError] = useState("");
+  const [workspaceBoot, setWorkspaceBoot] = useState({
+    account: "",
+    status: "ready",
+    error: "",
+  });
   const [storageError, setStorageError] = useState("");
   const [deletedMatch, setDeletedMatch] = useState(null);
   const [user, setUser] = usePersistentState("no_offside_user", INITIAL_USER);
@@ -501,8 +515,41 @@ export function useAuth() {
   );
   const [teams, setTeams] = usePersistentState("no_offside_teams_v1", {});
   const [dbMemberships, setDbMemberships] = useState([]);
+  const revisions = useRef(new Map());
+  const teamsRef = useRef(teams);
+  teamsRef.current = teams;
+  const writeQueue = useRef(Promise.resolve());
+  const createRequest = useRef(null);
+  const workspaceSequence = useRef(0),
+    liveAccount = useRef(authSession?.user?.id),
+    activeWorkspace = useRef(null),
+    switchingRef = useRef(false);
+  liveAccount.current = authSession?.user?.id;
+  const [switchingTeam, setSwitchingTeam] = useState(false);
+  const [teamRestriction, setTeamRestriction] = useState(null);
+
+  const postServer = async (url, body) =>
+    withPendingWrite(async () => {
+      if (!authSession?.access_token) throw Error("Vui lòng đăng nhập lại.");
+      const { response, data: result } = await serverRequest(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authSession.access_token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok || !result.success)
+        throw Error(result.error || "Server chưa xác nhận lưu dữ liệu.");
+      return result;
+    });
+
   const loadDatabaseMemberships = async () => {
-    if (!supabase || typeof supabase.rpc !== "function" || !authSession?.user?.id) {
+    if (
+      !supabase ||
+      typeof supabase.rpc !== "function" ||
+      !authSession?.user?.id
+    ) {
       return [];
     }
     try {
@@ -515,62 +562,229 @@ export function useAuth() {
     return [];
   };
 
-  useEffect(() => {
-    let live=true;
-    if (authSession?.user?.id && !demoSession) {
-      loadDatabaseMemberships();
-      if (authSession.access_token && typeof fetch !== "undefined") {
-        const bootAccount=authSession.user.id;
-        setWorkspaceBoot(prev=>prev.account===bootAccount && prev.status==="ready" ? prev : {account:bootAccount,status:"pending",error:""});
-        fetch("/api/teams", {
-          headers: { Authorization: `Bearer ${authSession.access_token}` },
-        })
-          .then(async r=>{if(r.ok===false)throw Error("Không tải được thông tin đội.");return r.json();})
-          .then((res) => {
-            if(!live)return;
-            if(res?.success===false || res?.error)throw Error("Không tải được thông tin đội. Vui lòng thử lại.");
-            if (res?.success && res.team) {
-              setTeamSettings(res.team);
-              if (res.data) {
-                setTeams((prev) => ({
-                  ...prev,
-                  [authSession.user.id + "::" + res.team.id]: res.data,
-                }));
-              }
-              if (res.role) {
-                setCurrentUserRole(res.role);
-              }
-              setDbMemberships((prev) => {
-                if (prev.some((m) => m.team_id === res.team.id)) return prev;
-                return [
-                  ...prev,
-                  {
-                    team_id: res.team.id,
-                    role: res.role || "owner",
-                    name: res.team.teamName,
-                  },
-                ];
-              });
-              writeStored("no_offside_team_" + res.team.id, res.team);
-              writeStored("no_offside_workspace_" + authSession.user.id, {
-                user,
-                teamSettings: res.team,
-              });
-            }
-            setWorkspaceBoot({account:bootAccount,status:"ready",error:""});
-          })
-          .catch(() => {if(live)setWorkspaceBoot(prev=>prev.account===bootAccount && prev.status==="ready" ? prev : {account:bootAccount,status:"error",error:"Không tải được thông tin đội. Kiểm tra kết nối rồi thử lại."});});
-      }
-    } else {
-      setDbMemberships([]);
+  const fetchWorkspace = async (targetTeamId, signal) => {
+    const ownerAccount = authSession?.user?.id,
+      token = authSession?.access_token;
+    if (!token || !ownerAccount) throw Error("Vui lòng đăng nhập lại.");
+    const sequence = ++workspaceSequence.current;
+    let { response, data: result } = await serverRequest(
+      "/api/teams" +
+        (targetTeamId ? "?teamId=" + encodeURIComponent(targetTeamId) : ""),
+      { headers: { Authorization: `Bearer ${token}` }, signal },
+    );
+    if (response.status === 403 && targetTeamId)
+      ({ response, data: result } = await serverRequest("/api/teams", {
+        headers: { Authorization: `Bearer ${token}` },
+        signal,
+      }));
+    if (response.status === 401) {
+      await supabase.auth.signOut({ scope: "local" });
+      throw Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
     }
-    return ()=>{live=false;};
+    if (response.ok === false || !result.success || result.error)
+      throw Error(result.error || "Không tải được thông tin đội.");
+    if (
+      signal?.aborted ||
+      sequence !== workspaceSequence.current ||
+      liveAccount.current !== ownerAccount
+    )
+      return null;
+    if (
+      result.team &&
+      result.revision <
+        (revisions.current.get(ownerAccount + "::" + result.team.id) ?? -1)
+    )
+      return null;
+    const settings = result.team
+      ? {
+          ...result.team,
+          appearance: {
+            ...INITIAL_TEAM_SETTINGS.appearance,
+            ...result.team.appearance,
+          },
+          treasurerQr: result.team.treasurerQr || {},
+          pendingAdminRequests: result.team.pendingAdminRequests || [],
+        }
+      : {
+          ...INITIAL_TEAM_SETTINGS,
+          id: "workspace_" + ownerAccount,
+          teamName: "Đội của tôi",
+          teamCategory: "",
+          venue: "",
+          schedule: "",
+          logo: "",
+          ownerId: "",
+          members: [],
+          subAdmins: [],
+          pendingAdminRequests: [],
+          treasurerQr: {},
+        };
+    const own = settings.members.find((m) => m.id === ownerAccount),
+      profile = result.profile;
+    setUser((previous) => {
+      const base =
+        previous.id === ownerAccount
+          ? previous
+          : {
+              ...INITIAL_USER,
+              id: ownerAccount,
+              avatar: "",
+              phone: "",
+              number: null,
+              role: "",
+              nextMatchAttendance: null,
+            };
+      const statsBase = { matches: 0, goals: 0, assists: 0 };
+      return {
+        ...base,
+        ...(profile
+          ? {
+              name: profile.full_name || base.name,
+              username: profile.username || "",
+              avatar: profile.avatar_url || "",
+              phone: profile.phone || "",
+              height: profile.height || "",
+              weight: profile.weight || "",
+            }
+          : {}),
+        number:
+          own?.number ??
+          profile?.jersey_number ??
+          (profile ? null : base.number),
+        role: own?.role || profile?.position || (profile ? "" : base.role),
+        teamName: settings.teamName,
+        teamCategory: settings.teamCategory,
+        isCaptain: result.role === "owner",
+        baseStats: statsBase,
+        stats: reportTotals(
+          statsBase,
+          result.data?.reports?.[ownerAccount] || {},
+        ),
+      };
+    });
+    setTeamRestriction(
+      result.restricted
+        ? { status: result.membershipStatus, until: result.restrictionUntil }
+        : null,
+    );
+    setTeamSettings(settings);
+    setCurrentUserRole(result.role || "member");
+    setDbMemberships(
+      result.userTeams ||
+        (result.team
+          ? [
+              {
+                teamId: result.team.id,
+                teamName: result.team.teamName,
+                role: result.role,
+                status: "active",
+              },
+            ]
+          : []),
+    );
+    if (result.team && result.data) {
+      const key = ownerAccount + "::" + result.team.id;
+      const confirmed = {
+        ...result.data,
+        activeMatchId:
+          teamsRef.current[key]?.activeMatchId || result.data.activeMatchId,
+      };
+      revisions.current.set(key, result.revision);
+      teamsRef.current = { ...teamsRef.current, [key]: confirmed };
+      setTeams((previous) => ({ ...previous, [key]: confirmed }));
+      writeStored("no_offside_selected_team_" + ownerAccount, result.team.id);
+    }
+    return result;
+  };
+  useEffect(() => {
+    if (!authSession?.user?.id || demoSession) {
+      setDbMemberships([]);
+      return;
+    }
+    if (!authSession.access_token) return;
+    const account = authSession.user.id,
+      controller = new AbortController();
+    setWorkspaceBoot({ account, status: "pending", error: "" });
+    fetchWorkspace(
+      readStored("no_offside_selected_team_" + account, null),
+      controller.signal,
+    )
+      .then((result) => {
+        if (result) setWorkspaceBoot({ account, status: "ready", error: "" });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted && liveAccount.current === account)
+          setWorkspaceBoot({
+            account,
+            status: "error",
+            error:
+              error.message ||
+              "Không tải được thông tin đội. Kiểm tra kết nối rồi thử lại.",
+          });
+      });
+    return () => controller.abort();
   }, [authSession?.user?.id, authSession?.access_token, demoSession]);
 
   const teamId = teamSettings.id || "fc-no-offside-99";
   const accountId = demoSession ? "demo" : authSession?.user.id || "anonymous";
-  const inviteAccountRef=useRef(accountId);inviteAccountRef.current=accountId;
+  const inviteAccountRef = useRef(accountId);
+  inviteAccountRef.current = accountId;
   const dataKey = accountId + "::" + teamId;
+  activeWorkspace.current = dataKey;
+  useEffect(() => {
+    if (
+      typeof document === "undefined" ||
+      demoSession ||
+      !authSession?.access_token ||
+      teamId.startsWith("workspace_")
+    )
+      return;
+    let live = true;
+    const controller = new AbortController();
+    const refresh = () => {
+      if (
+        !live ||
+        document.visibilityState === "hidden" ||
+        switchingRef.current ||
+        pendingWriteCount() > 0
+      )
+        return;
+      fetchWorkspace(teamId, controller.signal).catch((error) => {
+        if (live && !controller.signal.aborted)
+          setStorageError(error.message || "Chưa đồng bộ được dữ liệu mới.");
+      });
+    };
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const timer = setInterval(refresh, 30000);
+    return () => {
+      live = false;
+      controller.abort();
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [accountId, teamId, authSession?.access_token, demoSession]);
+  const switchTeam = async (target) => {
+    if (switchingRef.current || target === teamId) return;
+    if (pendingWriteCount() > 0)
+      throw Error("Đang lưu dữ liệu. Đợi lưu xong rồi chuyển đội.");
+    switchingRef.current = true;
+    setSwitchingTeam(true);
+    setStorageError("");
+    try {
+      await fetchWorkspace(target);
+    } catch (error) {
+      setStorageError(error.message);
+      throw error;
+    } finally {
+      switchingRef.current = false;
+      setSwitchingTeam(false);
+    }
+  };
+
   const data = teams[dataKey] ||
     (demoSession ||
     (accountId === legacyAccount && teamSettings.ownerId === accountId)
@@ -589,47 +803,61 @@ export function useAuth() {
   const activeMatch =
     data.matches.find((m) => m.id === data.activeMatchId && !m.archivedAt) ||
     data.matches.find((m) => !m.archivedAt);
-  const setData = (fn) =>
-    setTeams((prev) => ({ ...prev, [dataKey]: fn(prev[dataKey] || data) }));
-  const setFunds = (fn) => {
-    if (!isLeaderRole(currentUserRole)) throw new Error("Không có quyền sửa quỹ.");
-    const nextFunds = typeof fn === "function" ? fn(data.funds) : fn;
-    const nextTeams = { ...teams, [dataKey]: { ...data, funds:nextFunds } };
-    if (!writeStored("no_offside_teams_v1",nextTeams)) throw new Error("Không lưu được quỹ trên thiết bị. Kiểm tra dung lượng rồi thử lại.");
-    setTeams(nextTeams);
+  const setData = (fn) => {
+    if (demoSession) {
+      setTeams((prev) => ({ ...prev, [dataKey]: fn(prev[dataKey] || data) }));
+      return Promise.resolve();
+    }
+    const operation = writeQueue.current
+      .catch(() => {})
+      .then(async () => {
+        if (liveAccount.current !== accountId)
+          throw Error("Tài khoản đã thay đổi; thao tác cũ đã được hủy.");
+        const current = teamsRef.current[dataKey] || data;
+        const next = fn(current);
+        const patch = Object.fromEntries(
+          Object.entries(next).filter(
+            ([key, value]) =>
+              key !== "activeMatchId" &&
+              JSON.stringify(value) !== JSON.stringify(current[key]),
+          ),
+        );
+        if (!Object.keys(patch).length) {
+          teamsRef.current = { ...teamsRef.current, [dataKey]: next };
+          setTeams((prev) => ({ ...prev, [dataKey]: next }));
+          return;
+        }
+        try {
+          const result = await postServer("/api/sync", {
+            action: "commit",
+            teamId,
+            revision: revisions.current.get(dataKey),
+            requestKey: uid(),
+            patch,
+          });
+          acceptReceipt(result, next.activeMatchId);
+          if (activeWorkspace.current === dataKey) setStorageError("");
+          return result;
+        } catch (error) {
+          if (activeWorkspace.current === dataKey)
+            setStorageError(error.message || "Không lưu được dữ liệu.");
+          throw error;
+        }
+      });
+    writeQueue.current = operation;
+    // Event handlers may omit awaiting; errors remain visible and no data is committed locally.
+    operation.catch(() => {});
+    return operation;
+  };
+  const setFunds = async (fn) => {
+    if (!isLeaderRole(currentUserRole))
+      throw new Error("Không có quyền sửa quỹ.");
+    return setData((prev) => ({
+      ...prev,
+      funds: typeof fn === "function" ? fn(prev.funds) : fn,
+    }));
   };
   const leader = isLeaderRole(currentUserRole);
-
-  // Persist team business data (funds, matches, attendance) to cloud storage
-  useEffect(() => {
-    if (
-      !authSession?.access_token ||
-      demoSession ||
-      !teamSettings?.id ||
-      teamSettings.id.startsWith("workspace_") ||
-      typeof fetch === "undefined"
-    )
-      return;
-    const currentData = teams[dataKey];
-    if (!currentData) return;
-
-    const timer = setTimeout(() => {
-      fetch("/api/sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authSession.access_token}`,
-        },
-        body: JSON.stringify({
-          action: "sync-data",
-          teamId: teamSettings.id,
-          data: currentData,
-        }),
-      }).catch(() => {});
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [teams, dataKey, teamSettings?.id, authSession?.access_token, demoSession]);
 
   useEffect(() => {
     setDeletedMatch(null);
@@ -690,7 +918,7 @@ export function useAuth() {
     supabase.auth
       .getSession()
       .then(({ data, error }) => {
-        if(error)throw error;
+        if (error) throw error;
         if (live) {
           const session = data.session;
           if (session) {
@@ -722,7 +950,8 @@ export function useAuth() {
                     setAuthSession(session);
                     setIsUnlocked(true);
                     setVerifiedAccount(userData.user.id);
-                    if (isAutoLogin) writeSession("no_offside_app_unlocked", "true");
+                    if (isAutoLogin)
+                      writeSession("no_offside_app_unlocked", "true");
                     setDemoSession(false);
                     setAuthLoading(false);
                   })
@@ -753,7 +982,12 @@ export function useAuth() {
         }
       })
       .catch(() => {
-        if (live) {setStartupError("Không khôi phục được phiên đăng nhập. Kiểm tra kết nối rồi thử lại.");setAuthLoading(false);}
+        if (live) {
+          setStartupError(
+            "Không khôi phục được phiên đăng nhập. Kiểm tra kết nối rồi thử lại.",
+          );
+          setAuthLoading(false);
+        }
       });
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -798,11 +1032,15 @@ export function useAuth() {
       const saved = readStored("no_offside_workspace_" + account.id, null);
       if (saved?.user) {
         if (account.email) saved.user.email = account.email;
-        if (account.user_metadata?.username) saved.user.username = account.user_metadata.username;
+        if (account.user_metadata?.username)
+          saved.user.username = account.user_metadata.username;
       }
       const profile = saved?.user || {
         ...INITIAL_USER,
         id: account.id,
+        number: account.user_metadata?.jersey_number ?? null,
+        role: account.user_metadata?.position || "",
+        nextMatchAttendance: null,
         name:
           account.user_metadata?.full_name ||
           account.user_metadata?.name ||
@@ -813,7 +1051,7 @@ export function useAuth() {
         avatar:
           account.user_metadata?.avatar_url ||
           account.user_metadata?.picture ||
-          INITIAL_USER.avatar,
+          "",
         email: account.email || account.user_metadata?.email || "",
         phone: account.phone || account.user_metadata?.phone || "",
         phoneVerified: false,
@@ -897,6 +1135,9 @@ export function useAuth() {
       writeStored("no_offside_workspace_" + user.id, { user, teamSettings });
   }, [user, teamSettings, demoSession, authSession?.user?.id]);
 
+  const linkMember = (manualId, userId) =>
+    memberAction("link-member", manualId, { userId });
+
   const addNotice = (title, content) =>
     setData((prev) => ({
       ...prev,
@@ -917,14 +1158,14 @@ export function useAuth() {
         prev === "owner" ? "admin" : prev === "admin" ? "member" : "owner",
       );
   };
-  const setAttendance = (status) => {
+  const setAttendance = async (status) => {
     if (!["attending", "maybe", "absent"].includes(status) || !activeMatch)
       return;
     if (new Date(activeMatch.deadline).getTime() <= Date.now()) {
       alert("Đã hết hạn điểm danh. Liên hệ ban quản trị để điều chỉnh.");
       return;
     }
-    setData((prev) => ({
+    await setData((prev) => ({
       ...prev,
       attendance: {
         ...prev.attendance,
@@ -934,21 +1175,58 @@ export function useAuth() {
         },
       },
     }));
-    setUser((prev) => ({ ...prev, nextMatchAttendance: status }));
+    if (activeWorkspace.current === dataKey)
+      setUser((prev) => ({ ...prev, nextMatchAttendance: status }));
   };
-  const markFundPaid = () => {
+  const acceptReceipt = (result, selectedId) => {
+    if (activeWorkspace.current !== dataKey) return false;
+    const currentRevision = revisions.current.get(dataKey) ?? -1;
+    if (result.revision < currentRevision) return false;
+    revisions.current.set(dataKey, result.revision);
+    const confirmed = {
+      ...result.data,
+      activeMatchId:
+        selectedId ||
+        teamsRef.current[dataKey]?.activeMatchId ||
+        data.activeMatchId,
+    };
+    teamsRef.current = { ...teamsRef.current, [dataKey]: confirmed };
+    setTeams((prev) => ({ ...prev, [dataKey]: confirmed }));
+    return true;
+  };
+  const paymentAction = async (action, paymentId = "", reason = "") => {
+    const operation = writeQueue.current
+      .catch(() => {})
+      .then(async () => {
+        if (liveAccount.current !== accountId)
+          throw Error("Tài khoản đã thay đổi.");
+        const result = await postServer("/api/sync", {
+          action: "payment",
+          teamId,
+          paymentAction: action,
+          paymentId,
+          reason,
+          requestKey: uid(),
+        });
+        acceptReceipt(result);
+        return result;
+      });
+    writeQueue.current = operation;
+    operation.catch((error) => {
+      if (activeWorkspace.current === dataKey) setStorageError(error.message);
+    });
+    return operation;
+  };
+  const markFundPaid = async () => {
+    if (!demoSession) return paymentAction("request");
     const month = monthKey();
-    if (!(user.fundDebt > 0)) {
-      alert("Bạn chưa có khoản quỹ cần nộp.");
-      return;
-    }
     if (
       funds.pendingApprovals.some(
         (p) => p.playerId === user.id && p.month === month,
       )
     )
       return;
-    setData((prev) => ({
+    await setData((prev) => ({
       ...prev,
       funds: {
         ...prev.funds,
@@ -958,29 +1236,55 @@ export function useAuth() {
             id: uid(),
             playerId: user.id,
             month,
-            name: user.name + " (#" + user.number + ")",
+            name: user.name,
             amount: user.fundDebt || 150000,
-            bank: teamSettings.treasurerQr.bankName,
             time: "Vừa gửi",
-            memo: "NO OFFSIDE DONG QUY",
           },
         ],
       },
     }));
     setUser((prev) => ({ ...prev, fundPaymentPending: true }));
   };
-  const approveFundPayment = (id) => {
-    if (!leader) return;
-    const item = funds.pendingApprovals.find((p) => p.id === id);
-    setFunds((prev) => approvePayment(prev, id, user.name));
-    if (item?.playerId === user.id)
-      setUser((prev) => ({
-        ...prev,
-        isFundPaid: true,
-        fundDebt: 0,
-        fundPaymentPending: false,
-      }));
+  const approveFundPayment = async (id, reason = "") => {
+    if (!leader) throw Error("Không có quyền đối soát quỹ.");
+    if (!demoSession) return paymentAction("approve", id, reason);
+    return setFunds((prev) => approvePayment(prev, id, user.name));
   };
+  const rejectFundPayment = async (id, reason) => {
+    if (!reason?.trim() || reason.trim().length < 3)
+      throw Error("Nhập lý do từ chối tối thiểu 3 ký tự.");
+    if (!demoSession) return paymentAction("reject", id, reason);
+    return setFunds((prev) => ({
+      ...prev,
+      pendingApprovals: prev.pendingApprovals.filter((p) => p.id !== id),
+      rejectedPayments: [
+        ...(prev.rejectedPayments || []),
+        {
+          ...prev.pendingApprovals.find((p) => p.id === id),
+          reason,
+          status: "rejected",
+        },
+      ],
+    }));
+  };
+  const markNoticesRead = async () => {
+    const ids = (data.notices || []).filter((n) => n.unread).map((n) => n.id);
+    if (!ids.length) return;
+    if (demoSession) {
+      await setData((prev) => ({
+        ...prev,
+        notices: prev.notices.map((n) => ({ ...n, unread: false })),
+      }));
+      return;
+    }
+    const result = await postServer("/api/sync", {
+      action: "read-notices",
+      teamId,
+      ids,
+    });
+    acceptReceipt(result);
+  };
+
   const resetFund = () => {
     if (demoSession)
       setUser((prev) => ({
@@ -990,7 +1294,7 @@ export function useAuth() {
         fundPaymentPending: false,
       }));
   };
-  const updateMatchStats = (goals = 0, assists = 0) => {
+  const updateMatchStats = async (goals = 0, assists = 0) => {
     if (!activeMatch || activeMatch.status !== "completed") return;
     if (
       ![goals, assists].every(
@@ -1011,15 +1315,16 @@ export function useAuth() {
         user.stats.assists -
         Object.values(previous).reduce((n, r) => n + r.assists, 0),
     };
-    setData((prev) => ({
+    await setData((prev) => ({
       ...prev,
       reports: { ...prev.reports, [user.id]: reports },
     }));
-    setUser((prev) => ({
-      ...prev,
-      baseStats: base,
-      stats: reportTotals(base, reports),
-    }));
+    if (activeWorkspace.current === dataKey)
+      setUser((prev) => ({
+        ...prev,
+        baseStats: base,
+        stats: reportTotals(base, reports),
+      }));
   };
   const updateProfile = async (updates) => {
     if (
@@ -1049,6 +1354,12 @@ export function useAuth() {
       name: updates.name.trim(),
       number: Number(updates.number),
     };
+    if (!demoSession)
+      await postServer("/api/sync", {
+        action: "save-profile",
+        profile: { ...profile, teamId },
+      });
+    if (activeWorkspace.current !== dataKey) return;
     setUser((prev) => ({ ...prev, ...profile }));
     setTeamSettings((prev) => ({
       ...prev,
@@ -1056,219 +1367,200 @@ export function useAuth() {
         m.id === user.id ? { ...m, ...profile } : m,
       ),
     }));
-
-    if (authSession?.access_token && !demoSession && typeof fetch !== "undefined") {
-      try {
-        await fetch("/api/sync", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({
-            action: "save-profile",
-            profile,
-          }),
-        });
-      } catch {}
-    }
   };
 
-  const updateTeamSettings = (updates) => {
-    if (currentUserRole !== "owner") return;
-    setTeamSettings((prev) => ({ ...prev, ...updates }));
-    if (updates.teamName)
+  const persistSettings = async (updates) => {
+    if (demoSession) {
+      setTeamSettings((prev) => ({ ...prev, ...updates }));
+      return;
+    }
+    const result = await postServer("/api/sync", {
+      action: "settings",
+      teamId,
+      updates,
+    });
+    if (acceptReceipt(result)) setTeamSettings(result.team);
+  };
+  const updateTeamSettings = async (updates) => {
+    if (currentUserRole !== "owner")
+      throw Error("Chỉ chủ đội được sửa cài đặt này.");
+    await persistSettings(updates);
+    if (activeWorkspace.current === dataKey && updates.teamName)
       setUser((prev) => ({ ...prev, teamName: updates.teamName }));
   };
   const updateTeamName = (teamName) => updateTeamSettings({ teamName });
-  const updateTreasurerQr = (updates) => {
-    if (!leader) throw new Error("Không có quyền sửa tài khoản nhận quỹ.");
-    const next = { ...teamSettings, treasurerQr: { ...teamSettings.treasurerQr, ...updates } };
-    if (!writeStored("no_offside_workspace_" + accountId,{user,teamSettings:next})) throw new Error("Không lưu được ảnh QR trên thiết bị. Giảm dung lượng ảnh rồi thử lại.");
-    setTeamSettings(next);
+  const updateTreasurerQr = async (updates) => {
+    if (!leader) throw Error("Không có quyền sửa tài khoản nhận quỹ.");
+    const next = { ...teamSettings.treasurerQr, ...updates };
+    if (!demoSession) {
+      if (
+        typeof next.uploadedQrImage === "string" &&
+        next.uploadedQrImage.startsWith("data:image/")
+      ) {
+        const uploaded = await postServer("/api/team-assets", {
+          teamId,
+          kind: "qr",
+          imageBase64: next.uploadedQrImage,
+        });
+        next.uploadedQrPath = uploaded.path;
+      } else if (next.uploadedQrImage === "") next.uploadedQrPath = "";
+      delete next.uploadedQrImage;
+      delete next.qrImageUrl;
+    }
+    await persistSettings({ treasurerQr: next });
   };
-  const addSubAdmin = (member) => {
-    if (currentUserRole === "owner")
-      setTeamSettings((prev) =>
-        promoteMember(prev, member.id, member.customTitle),
-      );
+  const memberAction = async (action, memberId, payload = {}) => {
+    try {
+      const result = await postServer("/api/members", {
+        action,
+        teamId,
+        memberId,
+        payload,
+        requestKey: uid(),
+      });
+      if (acceptReceipt(result)) {
+        setTeamSettings(result.team);
+        setCurrentUserRole(result.role);
+        setStorageError("");
+      }
+      return result;
+    } catch (error) {
+      setStorageError(error.message);
+      throw error;
+    }
   };
-  const requestAdmin = (member) => {
-    if (
-      !leader ||
-      teamSettings.pendingAdminRequests.some((r) => r.memberId === member.id)
-    )
-      return;
+  const addSubAdmin = async (member) => {
+    if (!demoSession)
+      return memberAction("promote", member.id, { title: member.customTitle });
+    setTeamSettings((prev) =>
+      promoteMember(prev, member.id, member.customTitle),
+    );
+  };
+  const requestAdmin = async (member) => {
+    if (!demoSession)
+      return memberAction("request-admin", member.id, {
+        title: member.customTitle,
+      });
     setTeamSettings((prev) => ({
       ...prev,
       pendingAdminRequests: [
         ...prev.pendingAdminRequests,
         {
           ...member,
-          memberId: member.id,
           id: uid(),
+          memberId: member.id,
           requestedTitle: member.customTitle,
           requestedBy: user.name,
-          time: "Vừa gửi",
         },
       ],
     }));
   };
-  const removeSubAdmin = (id) => {
-    if (currentUserRole === "owner")
-      setTeamSettings((prev) => ({
+  const removeSubAdmin = async (id) => {
+    if (!demoSession) return memberAction("demote", id);
+    setTeamSettings((prev) => ({
+      ...prev,
+      subAdmins: prev.subAdmins.filter((m) => m.id !== id),
+      members: prev.members.map((m) =>
+        m.id === id ? { ...m, roleType: "member", customTitle: "Cầu thủ" } : m,
+      ),
+    }));
+  };
+  const updateSubAdminTitle = async (id, title) => {
+    if (!demoSession) return memberAction("title", id, { title });
+    setTeamSettings((prev) => ({
+      ...prev,
+      members: prev.members.map((m) =>
+        m.id === id ? { ...m, customTitle: title } : m,
+      ),
+      subAdmins: prev.subAdmins.map((m) =>
+        m.id === id ? { ...m, customTitle: title } : m,
+      ),
+    }));
+  };
+  const transferOwnership = async (id) => {
+    if (!demoSession) await memberAction("transfer", id);
+    else {
+      setTeamSettings((prev) => transferOwner(prev, user.id, id));
+      setCurrentUserRole("member");
+    }
+    if (activeWorkspace.current === dataKey)
+      setUser((prev) => ({
         ...prev,
-        subAdmins: prev.subAdmins.filter((m) => m.id !== id),
-        members: prev.members.map((m) =>
-          m.id === id
-            ? { ...m, roleType: "member", customTitle: "Cầu thủ" }
-            : m,
-        ),
+        isCaptain: false,
+        customTitle: "Cầu thủ",
       }));
   };
-  const updateSubAdminTitle = (id, title) => {
-    if (currentUserRole === "owner")
-      setTeamSettings((prev) => ({
-        ...prev,
-        subAdmins: prev.subAdmins.map((m) =>
-          m.id === id ? { ...m, customTitle: title } : m,
-        ),
-        members: prev.members.map((m) =>
-          m.id === id ? { ...m, customTitle: title } : m,
-        ),
-      }));
-  };
-  const transferOwnership = (id) => {
-    if (
-      currentUserRole !== "owner" ||
-      !teamSettings.members.some((m) => m.id === id && m.roleType === "admin")
-    )
-      return;
-    setTeamSettings((prev) => transferOwner(prev, user.id, id));
-    setUser((prev) => ({ ...prev, isCaptain: false, customTitle: "Cầu thủ" }));
-    setCurrentUserRole("member");
-  };
-  const approveAdminRequest = (id) => {
-    if (currentUserRole !== "owner") return;
+  const approveAdminRequest = async (id) => {
+    if (!demoSession) return memberAction("approve-admin", id);
     setTeamSettings((prev) => {
       const request = prev.pendingAdminRequests.find((r) => r.id === id);
       if (!request) return prev;
-      const updated = promoteMember(
-        prev,
-        request.memberId || request.id,
-        request.requestedTitle,
-      );
       return {
-        ...updated,
+        ...promoteMember(prev, request.memberId, request.requestedTitle),
         pendingAdminRequests: prev.pendingAdminRequests.filter(
           (r) => r.id !== id,
         ),
       };
     });
   };
-  const rejectAdminRequest = (id) => {
-    if (currentUserRole === "owner")
-      setTeamSettings((prev) => ({
-        ...prev,
-        pendingAdminRequests: prev.pendingAdminRequests.filter(
-          (r) => r.id !== id,
-        ),
-      }));
+  const rejectAdminRequest = async (id) => {
+    if (!demoSession) return memberAction("reject-admin", id);
+    setTeamSettings((prev) => ({
+      ...prev,
+      pendingAdminRequests: prev.pendingAdminRequests.filter(
+        (r) => r.id !== id,
+      ),
+    }));
   };
-  const removeMember = (id) => {
-    const target = teamSettings.members.find((m) => m.id === id);
-    if (
-      !leader ||
-      !target ||
-      target.roleType === "owner" ||
-      (currentUserRole === "admin" && target.roleType !== "member")
-    )
-      return;
+  const removeMember = async (id) => {
+    if (!demoSession) return memberAction("remove-member", id);
     setTeamSettings((prev) => ({
       ...prev,
       members: prev.members.map((m) =>
-        m.id === id
-          ? {
-              ...m,
-              membershipStatus: "removed",
-              removedAt: new Date().toISOString(),
-              removedBy: user.id,
-            }
+        m.id === id && m.roleType !== "owner"
+          ? { ...m, membershipStatus: "removed" }
           : m,
       ),
-      subAdmins: prev.subAdmins.filter((m) => m.id !== id),
     }));
   };
   const addMember = async (member) => {
-    if (!leader) throw new Error("Chỉ Ban quản trị mới có quyền thêm thành viên.");
-    if (!member?.name?.trim()) throw new Error("Vui lòng nhập họ và tên thành viên.");
-    const num = Number(member.number);
-    if (!Number.isInteger(num) || num < 1 || num > 99)
-      throw new Error("Số áo phải từ 1 đến 99.");
+    if (!leader) throw Error("Chỉ ban quản trị được thêm thành viên.");
     if (
-      teamSettings.members.some(
-        (m) => m.membershipStatus !== "removed" && Number(m.number) === num,
-      )
+      !member.name?.trim() ||
+      !Number.isInteger(Number(member.number)) ||
+      Number(member.number) < 1 ||
+      Number(member.number) > 99
     )
-      throw new Error(`Số áo #${num} đã có thành viên sử dụng.`);
-
-    let created = {
-      ...member,
-      id: member.id || uid(),
-      name: member.name.trim(),
-      number: num,
-      role: member.role || "Tiền Đạo (ST)",
-      roleType: "member",
-      customTitle: "Cầu thủ",
-      joinedDate: "Thủ công",
-      isManual: true,
-      linkedUserId: null,
-    };
-
-    if (authSession?.access_token && !demoSession && typeof fetch !== "undefined") {
-      try {
-        const res = await fetch("/api/members", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({
-            action: "add-member",
-            teamId: teamSettings.id,
-            member: {
-              name: member.name.trim(),
-              number: num,
-              role: member.role || "Tiền Đạo (ST)",
-              phone: member.phone || "",
-            },
-          }),
-        });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "Không thể lưu thành viên vào hệ thống.");
-        }
-
-        const data = await res.json();
-        if (data?.member) created = data.member;
-      } catch (err) {
-        if (!err.message?.includes("fetch")) throw err;
-      }
+      throw Error("Nhập tên và số áo từ 1 đến 99.");
+    if (!demoSession) {
+      const result = await memberAction("add-member", "", member);
+      return result.member;
     }
-
+    const created = {
+      ...member,
+      id: uid(),
+      number: Number(member.number),
+      roleType: "member",
+      isManual: true,
+      avatar: "",
+      linkedUserId: null,
+      customTitle: "Cầu thủ",
+    };
     setTeamSettings((prev) => ({
       ...prev,
-      members: [
-        ...prev.members.filter((m) => m.id !== created.id),
-        created,
-      ],
+      members: [...prev.members, created],
     }));
     return created;
   };
 
   const createTeam = async (team) => {
-    const id = uid();
+    const signature = JSON.stringify([accountId, team]);
+    if (createRequest.current?.signature !== signature)
+      createRequest.current = { signature, id: uid() };
+    const id = createRequest.current.id;
+    if (!demoSession && !authSession?.access_token)
+      throw Error("Vui lòng đăng nhập để tạo đội.");
+    let confirmedData = null;
     let settings = {
       ...INITIAL_TEAM_SETTINGS,
       id,
@@ -1277,7 +1569,14 @@ export function useAuth() {
       teamCategory: team.teamCategory,
       venue: team.stadium,
       logo: team.teamLogo,
-      members: [{ ...user, roleType: "owner", customTitle: "Đội trưởng", isCaptain: true }],
+      members: [
+        {
+          ...user,
+          roleType: "owner",
+          customTitle: "Đội trưởng",
+          isCaptain: true,
+        },
+      ],
       subAdmins: [],
       pendingAdminRequests: [],
       treasurerQr: {
@@ -1288,48 +1587,50 @@ export function useAuth() {
       },
     };
 
-    if (authSession?.access_token && !demoSession && typeof fetch !== "undefined") {
+    if (
+      authSession?.access_token &&
+      !demoSession &&
+      typeof fetch !== "undefined"
+    ) {
       try {
-        const response = await fetch("/api/teams", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
+        const resData = await postServer("/api/teams", {
+          action: "create-team",
+          team: {
+            id,
+            teamName: team.teamName,
+            teamCategory: team.teamCategory,
+            stadium: team.stadium,
+            teamLogo: team.teamLogo,
           },
-          body: JSON.stringify({
-            action: "create-team",
-            team: {
-              id,
-              teamName: team.teamName,
-              teamCategory: team.teamCategory,
-              stadium: team.stadium,
-              teamLogo: team.teamLogo,
-            },
-          }),
         });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || "Không thể lưu đội bóng trên hệ thống. Vui lòng thử lại.");
-        }
-
-        const resData = await response.json();
-        if (resData.team) {
-          settings = resData.team;
-        }
+        if (!resData.success || !resData.team)
+          throw Error("Server chưa xác nhận tạo đội.");
+        settings = {
+          ...resData.team,
+          appearance: {
+            ...INITIAL_TEAM_SETTINGS.appearance,
+            ...resData.team.appearance,
+          },
+          treasurerQr: resData.team.treasurerQr || {},
+        };
+        confirmedData = resData.data;
+        revisions.current.set(accountId + "::" + settings.id, resData.revision);
       } catch (err) {
-        if (!err.message?.includes("fetch")) {
-          throw err;
-        }
+        throw err;
       }
     }
 
+    if (!demoSession && liveAccount.current !== accountId)
+      throw Error("Tài khoản đã thay đổi. Đội được giữ ở tài khoản đã tạo.");
     setTeamSettings(settings);
     writeStored("no_offside_team_" + settings.id, settings);
-    writeStored("no_offside_workspace_" + accountId, { user, teamSettings: settings });
+    writeStored("no_offside_workspace_" + accountId, {
+      user,
+      teamSettings: settings,
+    });
     setTeams((prev) => ({
       ...prev,
-      [accountId + "::" + settings.id]: {
+      [accountId + "::" + settings.id]: confirmedData || {
         funds: { transactions: [], pendingApprovals: [], debtors: [] },
         matches: [],
         attendance: {},
@@ -1344,8 +1645,12 @@ export function useAuth() {
       isCaptain: true,
       customTitle: "Đội trưởng",
     }));
+    createRequest.current = null;
+    setTeamRestriction(null);
     setCurrentUserRole("owner");
-    setDbMemberships([{ team_id: settings.id, role: "owner", name: settings.teamName }]);
+    setDbMemberships([
+      { team_id: settings.id, role: "owner", name: settings.teamName },
+    ]);
     return settings;
   };
   useEffect(() => {
@@ -1372,6 +1677,8 @@ export function useAuth() {
     if (profile && !profile.demo) setUser((prev) => ({ ...prev, ...profile }));
   };
   const joinTeam = (settings, profile) => {
+    if (!demoSession)
+      throw Error("Hãy gia nhập bằng mã mời đã được server xác thực.");
     const id = authSession?.user.id || uid();
     if (
       settings.members.some(
@@ -1399,34 +1706,36 @@ export function useAuth() {
 
   const createInvite = async (targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
-    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id && !demoSession) {
+    if (
+      supabase &&
+      typeof supabase.rpc === "function" &&
+      authSession?.user?.id &&
+      !demoSession
+    ) {
       let { data, error } = await supabase.rpc("no_gov_create_invite", {
         p_team_id: tId,
       });
 
-      if (error && (currentUserRole === "owner" || user?.isCaptain || user?.roleType === "owner")) {
-        try {
-          await supabase.rpc("no_gov_create_team", {
-            p_team_id: tId,
-            p_name: teamSettings?.teamName || user?.teamName || "FC No Offside",
-          });
-          const retry = await supabase.rpc("no_gov_create_invite", {
-            p_team_id: tId,
-          });
-          if (!retry.error && retry.data?.code) {
-            data = retry.data;
-            error = null;
-          }
-        } catch {}
-      }
-
+      if (error) throw Error(error.message || "Không tạo được mã mời.");
       if (!error && data?.code) {
-        setTeamSettings((prev) => prev.id === tId && inviteAccountRef.current===accountId ? ({ ...prev, inviteCode: data.code, inviteStatus: "active" }) : prev);
+        setTeamSettings((prev) =>
+          prev.id === tId && inviteAccountRef.current === accountId
+            ? { ...prev, inviteCode: data.code, inviteStatus: "active" }
+            : prev,
+        );
         return { ...data, teamId: tId };
       }
     }
-    const code = teamSettings?.inviteCode || ("NO" + Math.random().toString(36).substring(2, 6).toUpperCase());
-    setTeamSettings((prev) => prev.id === tId && inviteAccountRef.current===accountId ? ({ ...prev, inviteCode: code, inviteStatus: "active" }) : prev);
+    if (!demoSession)
+      throw Error("Server chưa xác nhận mã mời. Vui lòng thử lại.");
+    const code =
+      teamSettings?.inviteCode ||
+      "NO" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    setTeamSettings((prev) =>
+      prev.id === tId && inviteAccountRef.current === accountId
+        ? { ...prev, inviteCode: code, inviteStatus: "active" }
+        : prev,
+    );
     if (tId) {
       writeStored("no_offside_team_" + String(code).toLowerCase(), {
         ...teamSettings,
@@ -1440,36 +1749,56 @@ export function useAuth() {
   const readInvite = async (code, targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
     if (!supabase || !authSession?.user?.id || demoSession) {
-      return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
+      if (!demoSession) throw Error("Chưa xác thực được lời mời trên server.");
+      return {
+        valid: true,
+        code,
+        status: teamSettings?.inviteStatus || "active",
+        teamId: tId,
+      };
     }
-    try {
-      const { data, error } = await supabase.rpc("no_gov_get_invite", {p_code: code});
-      if (!error && data?.valid) {
-        if (data.teamId && data.teamId !== tId) throw new Error("Mã mời không thuộc đội đang chọn.");
-        return data;
-      }
-    } catch (err) {
-      if (err.message?.includes("không thuộc đội đang chọn")) throw err;
-    }
-    return { valid: true, code, status: teamSettings?.inviteStatus || 'active', teamId: tId };
+    const { data, error } = await supabase.rpc("no_gov_get_invite", {
+      p_code: code,
+    });
+    if (error) throw Error(error.message);
+    if (!data?.valid || data.teamId !== tId)
+      throw Error("Mã mời không hợp lệ cho đội này.");
+    return data;
   };
 
   const revokeInvite = async (targetTeamId) => {
     const tId = targetTeamId || teamSettings.id;
-    if (supabase && typeof supabase.rpc === "function" && authSession?.user?.id && !demoSession) {
+    if (
+      supabase &&
+      typeof supabase.rpc === "function" &&
+      authSession?.user?.id &&
+      !demoSession
+    ) {
       const { data, error } = await supabase.rpc("no_gov_revoke_invite", {
         p_team_id: tId,
       });
       if (error) throw new Error(error.message);
-      if (data?.success) setTeamSettings(prev => prev.id === tId && inviteAccountRef.current===accountId ? {...prev,inviteStatus:"revoked"} : prev);
+      if (data?.success)
+        setTeamSettings((prev) =>
+          prev.id === tId && inviteAccountRef.current === accountId
+            ? { ...prev, inviteStatus: "revoked" }
+            : prev,
+        );
       return data;
     }
-    setTeamSettings(prev => prev.id === tId && inviteAccountRef.current===accountId ? {...prev,inviteStatus:"revoked"} : prev);
+    if (!demoSession) throw Error("Server chưa xác nhận thu hồi mã mời.");
+    setTeamSettings((prev) =>
+      prev.id === tId && inviteAccountRef.current === accountId
+        ? { ...prev, inviteStatus: "revoked" }
+        : prev,
+    );
     return { success: true, revoked: true, teamId: tId };
   };
 
   const joinTeamViaInvite = async (code, memberProfile) => {
-    const cleanCode = String(code || "").trim().toUpperCase();
+    const cleanCode = String(code || "")
+      .trim()
+      .toUpperCase();
     if (!cleanCode) throw new Error("Mã Club không được để trống.");
 
     const name = String(memberProfile.name || "").trim();
@@ -1506,7 +1835,9 @@ export function useAuth() {
             teamName: teamObj.name,
             logo: teamObj.logo || teamSettings.logo,
             members: [
-              ...(teamSettings.members || []).filter((m) => m.id !== me.user_id),
+              ...(teamSettings.members || []).filter(
+                (m) => m.id !== me.user_id,
+              ),
               {
                 id: me.user_id,
                 name: me.name,
@@ -1531,7 +1862,7 @@ export function useAuth() {
           }));
           setCurrentUserRole(me.role || "member");
 
-          await loadDatabaseMemberships();
+          await fetchWorkspace(teamObj.id);
           return data;
         }
         if (error) {
@@ -1554,7 +1885,9 @@ export function useAuth() {
       }
     }
 
-    // Fallback join for demo / offline
+    if (!demoSession)
+      throw Error("Server chưa xác nhận gia nhập đội. Vui lòng thử lại.");
+    // Local joining exists only in the explicitly labelled demo.
     const fallbackTeamKey = "no_offside_team_" + cleanCode.toLowerCase();
     const existingTeam = readStored(fallbackTeamKey, teamSettings);
     joinTeam(existingTeam, { ...memberProfile, name, number, role: position });
@@ -1581,7 +1914,8 @@ export function useAuth() {
       if (currentUserId) {
         writeStored("no_offside_autologin_" + currentUserId, false);
         if (
-          readStored("no_offside_last_autologin_account", null) === currentUserId
+          readStored("no_offside_last_autologin_account", null) ===
+          currentUserId
         ) {
           writeStored("no_offside_last_autologin_account", null);
         }
@@ -1593,6 +1927,7 @@ export function useAuth() {
         if (error) throw error;
       }
       setDemoSession(false);
+      setTeamRestriction(null);
       setAuthSession(null);
       setVerifiedAccount(null);
       setDeletedMatch(null);
@@ -1608,8 +1943,11 @@ export function useAuth() {
       Number(form.penaltyFine) < 0
     )
       throw new Error("Tiền phạt phải là số nguyên không âm.");
-    const start = new Date(form.datetime),
-      deadline = new Date(form.timeoutDatetime);
+    const zone = teamSettings.timezone || "Asia/Ho_Chi_Minh";
+    const kickoffInstant = transactionInstant(form.datetime, zone),
+      deadlineInstant = transactionInstant(form.timeoutDatetime, zone);
+    const start = new Date(kickoffInstant),
+      deadline = new Date(deadlineInstant);
     if (
       !form.opponent.trim() ||
       !form.venue.trim() ||
@@ -1646,8 +1984,8 @@ export function useAuth() {
       id: editId || options.id || uid(),
       title: "Kèo " + teamSettings.teamCategory + " — " + form.opponent.trim(),
       category: teamSettings.teamCategory,
-      datetime: form.datetime,
-      deadline: form.timeoutDatetime,
+      datetime: kickoffInstant,
+      deadline: deadlineInstant,
       venue: form.venue,
       penaltyEnabled: form.penaltyEnabled,
       penaltyAmount: Number(form.penaltyFine).toLocaleString("vi-VN") + " đ",
@@ -1655,7 +1993,7 @@ export function useAuth() {
       lateConfig,
     };
     if (options.persist !== false)
-      setData((prev) => ({
+      return setData((prev) => ({
         ...prev,
         matches: editId
           ? prev.matches.map((m) => (m.id === editId ? match : m))
@@ -1666,7 +2004,7 @@ export function useAuth() {
   };
   const setMatchStatus = (status) => {
     if (leader && activeMatch && ["upcoming", "completed"].includes(status))
-      setData((prev) => ({
+      return setData((prev) => ({
         ...prev,
         matches: prev.matches.map((m) =>
           m.id === activeMatch.id ? { ...m, status } : m,
@@ -1679,7 +2017,7 @@ export function useAuth() {
     if (!leader) return;
     const index = data.matches.findIndex((match) => match.id === id);
     if (index < 0) return;
-    setDeletedMatch({
+    const undoSnapshot = {
       accountId,
       teamId,
       index,
@@ -1690,8 +2028,14 @@ export function useAuth() {
           .filter(([, reports]) => reports[id])
           .map(([playerId, reports]) => [playerId, reports[id]]),
       ),
-    });
-    setData((prev) => deleteTeamMatch(prev, id, user.id));
+    };
+    const saved = setData((prev) => deleteTeamMatch(prev, id, user.id));
+    saved
+      .then(() => {
+        if (activeWorkspace.current === dataKey) setDeletedMatch(undoSnapshot);
+      })
+      .catch(() => {});
+    return saved;
   };
   const undoDeleteMatch = (snapshot = deletedMatch) => {
     if (
@@ -1701,14 +2045,15 @@ export function useAuth() {
       snapshot.accountId !== accountId
     )
       return;
-    setData((prev) => restoreTeamMatch(prev, snapshot));
-    setDeletedMatch(null);
+    const saved = setData((prev) => restoreTeamMatch(prev, snapshot));
+    saved.then(() => setDeletedMatch(null)).catch(() => {});
+    return saved;
   };
   const restoreArchivedMatch = (id) => {
     const archived = data.matches.find((m) => m.id === id && m.archivedAt);
     if (!leader || !archived) return;
     const { archivedAt, archivedBy, archiveReason, ...match } = archived;
-    setData((prev) => restoreTeamMatch(prev, { match, index: 0 }));
+    return setData((prev) => restoreTeamMatch(prev, { match, index: 0 }));
   };
   const updateUsername = async (newUsername) => {
     if (!newUsername || !newUsername.trim()) {
@@ -1744,18 +2089,26 @@ export function useAuth() {
   };
   const hasTeam = Boolean(
     demoSession ||
-      dbMemberships.length > 0 ||
-      (teamSettings?.ownerId &&
-        teamSettings.id !== "workspace_" + accountId &&
-        teamSettings.members &&
-        teamSettings.members.length > 0) ||
-      (teamSettings?.members &&
-        teamSettings.members.some(
-          (m) =>
-            m.id === (authSession?.user?.id || user.id) &&
-            m.membershipStatus !== "removed",
-        )),
+    dbMemberships.length > 0 ||
+    (teamSettings?.ownerId &&
+      teamSettings.id !== "workspace_" + accountId &&
+      teamSettings.members &&
+      teamSettings.members.length > 0) ||
+    (teamSettings?.members &&
+      teamSettings.members.some(
+        (m) =>
+          m.id === (authSession?.user?.id || user.id) &&
+          m.membershipStatus !== "removed",
+      )),
   );
+  const saveLineups = (lineups, base) =>
+    setData((prev) => {
+      if (JSON.stringify(prev.lineups) !== JSON.stringify(base))
+        throw Error(
+          "Sơ đồ đã thay đổi trên thiết bị khác. Mở lại Chiến thuật để đối chiếu.",
+        );
+      return { ...prev, lineups };
+    });
   const isLoggedIn = Boolean(demoSession || (authSession && isUnlocked));
   return {
     user,
@@ -1774,13 +2127,24 @@ export function useAuth() {
         Boolean(authSession) &&
         (verifiedAccount !== authSession.user.id ||
           user.id !== authSession.user.id)),
-    startupPending: Boolean(!demoSession && authSession?.access_token && (workspaceBoot.account!==authSession.user.id || workspaceBoot.status==="pending")),
-    startupError: startupError || (!demoSession && workspaceBoot.account===authSession?.user?.id ? workspaceBoot.error : ""),
+    startupPending: Boolean(
+      !demoSession &&
+      authSession?.access_token &&
+      (workspaceBoot.account !== authSession.user.id ||
+        workspaceBoot.status === "pending"),
+    ),
+    startupError:
+      startupError ||
+      (!demoSession && workspaceBoot.account === authSession?.user?.id
+        ? workspaceBoot.error
+        : ""),
     demoSession,
     storageError,
     setAttendance,
     markFundPaid,
     approveFundPayment,
+    rejectFundPayment,
+    markNoticesRead,
     resetFund,
     updateMatchStats,
     updateProfile,
@@ -1799,6 +2163,7 @@ export function useAuth() {
     removeSubAdmin,
     removeMember,
     addMember,
+    linkMember,
     transferOwnership,
     approveAdminRequest,
     rejectAdminRequest,
@@ -1809,9 +2174,14 @@ export function useAuth() {
     readInvite,
     revokeInvite,
     dbMemberships,
+    switchTeam,
+    switchingTeam,
+    teamRestriction,
     loadDatabaseMemberships,
     login,
     logout,
+    lineups: data.lineups,
+    saveLineups,
     funds,
     setFunds,
     balance: fundBalance(funds.transactions),

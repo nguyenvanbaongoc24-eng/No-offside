@@ -24,6 +24,8 @@ export default function LineupBuilder({
   accountId = "demo",
   members = [],
   currentUserRole,
+  serverLineups,
+  onSaveLineups,
 }) {
   const pitchRef = useRef(null);
   const [draggedPlayer, setDraggedPlayer] = useState(null);
@@ -51,14 +53,17 @@ export default function LineupBuilder({
                 : "2-3-1",
             )
           : "2-3-1",
-    ),
+      ),
   );
   const [activeFormationId, setActiveFormationId] = usePersistentState(
     "no_offside_lineup_active_" + accountId + "::" + teamId,
     () =>
       readStored(
         "no_offside_lineup_active_" + accountId + "::" + teamId,
-        readStored("no_offside_lineup_selected_" + accountId + "::" + teamId, "2-3-1"),
+        readStored(
+          "no_offside_lineup_selected_" + accountId + "::" + teamId,
+          "2-3-1",
+        ),
       ),
   );
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -73,7 +78,7 @@ export default function LineupBuilder({
   const teamRoster = members.map((m) => ({ ...m, name: m.name, role: m.role }));
 
   // Formations state (Each player has top/left % and drag support)
-  const [formationsList, setFormationsList] = usePersistentState(
+  const [formationsList, setFormationsDraft] = usePersistentState(
     "no_offside_lineups_" + accountId + "::" + teamId,
     () =>
       readStored(
@@ -297,6 +302,33 @@ export default function LineupBuilder({
       ),
   );
 
+  const dirtyDraft = useRef(false),
+    serverBase = useRef(serverLineups),
+    lastServer = useRef("");
+  const setFormationsList = (change) => {
+    dirtyDraft.current = true;
+    setSaveSuccessNotice(false);
+    setFormationsDraft(change);
+  };
+  useEffect(() => {
+    if (accountId === "demo" || !serverLineups?.formations?.length) return;
+    const signature = JSON.stringify(serverLineups);
+    if (signature === lastServer.current) return;
+    if (dirtyDraft.current) {
+      setSaveError(
+        "Đội hình đã thay đổi trên server. Đóng rồi mở lại Chiến thuật để đối chiếu trước khi lưu.",
+      );
+      return;
+    }
+    lastServer.current = signature;
+    serverBase.current = serverLineups;
+    setFormationsDraft(serverLineups.formations);
+    setActiveFormationId(serverLineups.activeId || "");
+    setSelectedFormationId(
+      serverLineups.activeId || serverLineups.formations[0].id,
+    );
+  }, [serverLineups, accountId]);
+
   const currentFormation =
     formationsList.find((f) => f.id === selectedFormationId) ||
     formationsList[0];
@@ -415,34 +447,53 @@ export default function LineupBuilder({
   };
 
   // Nút Lưu Đội Hình
-  const handleSaveLineupCoordinates = () => {
-    if (!canEdit) return;
-    if (
-      !writeStored(
-        "no_offside_lineups_" + accountId + "::" + teamId,
-        formationsList,
-      ) ||
-      !writeStored(
-        "no_offside_lineup_selected_" + accountId + "::" + teamId,
+  const handleSaveLineupCoordinates = async () => {
+    try {
+      if (!canEdit) return;
+      if (
+        !writeStored(
+          "no_offside_lineups_" + accountId + "::" + teamId,
+          formationsList,
+        ) ||
+        !writeStored(
+          "no_offside_lineup_selected_" + accountId + "::" + teamId,
+          selectedFormationId,
+        )
+      ) {
+        setSaveError(
+          "Không lưu được sơ đồ. Kiểm tra dung lượng thiết bị rồi thử lại.",
+        );
+        return;
+      }
+      if (accountId !== "demo") {
+        if (!onSaveLineups)
+          throw Error("Chưa kết nối chức năng lưu sơ đồ trên server.");
+        const published = {
+          formations: formationsList,
+          activeId: selectedFormationId,
+        };
+        await onSaveLineups(published, serverBase.current);
+        serverBase.current = published;
+        lastServer.current = JSON.stringify(published);
+      }
+      dirtyDraft.current = false;
+      setActiveFormationId(selectedFormationId);
+      writeStored(
+        "no_offside_lineup_active_" + accountId + "::" + teamId,
         selectedFormationId,
-      )
-    ) {
-      setSaveError(
-        "Không lưu được sơ đồ. Kiểm tra dung lượng thiết bị rồi thử lại.",
       );
-      return;
+      setSaveError("");
+      setSaveSuccessNotice(true);
+    } catch (error) {
+      setSaveError(error.message || "Không lưu được sơ đồ trên server.");
     }
-    setActiveFormationId(selectedFormationId);
-    writeStored(
-      "no_offside_lineup_active_" + accountId + "::" + teamId,
-      selectedFormationId,
-    );
-    setSaveError("");
-    setSaveSuccessNotice(true);
-
   };
 
-  useEffect(()=>{if(!saveSuccessNotice)return;const timer=setTimeout(()=>setSaveSuccessNotice(false),2500);return ()=>clearTimeout(timer);},[saveSuccessNotice]);
+  useEffect(() => {
+    if (!saveSuccessNotice) return;
+    const timer = setTimeout(() => setSaveSuccessNotice(false), 2500);
+    return () => clearTimeout(timer);
+  }, [saveSuccessNotice]);
   return (
     <div className="tactics-page relative bg-slate-50 text-gray-900 font-sans antialiased">
       {/* 1. Header Dark Geometric Style */}
@@ -648,7 +699,11 @@ export default function LineupBuilder({
         <div className="space-y-2.5">
           {formationsList.map((item) => {
             const isSelected = item.id === selectedFormationId;
-            const isCurrentInUse = item.id === activeFormationId;
+            const isCurrentInUse =
+              item.id ===
+              (accountId === "demo"
+                ? activeFormationId
+                : serverLineups?.activeId);
 
             return (
               <div

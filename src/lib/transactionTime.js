@@ -20,7 +20,10 @@ export function transactionInstant(value, zone = "Asia/Ho_Chi_Minh") {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))
     throw new Error("Thời gian giao dịch không hợp lệ.");
   const target = Date.parse(value + ":00Z");
-  if (!Number.isFinite(target) || new Date(target).toISOString().slice(0,16) !== value)
+  if (
+    !Number.isFinite(target) ||
+    new Date(target).toISOString().slice(0, 16) !== value
+  )
     throw new Error("Thời gian giao dịch không hợp lệ.");
   let candidate = target;
   for (let i = 0; i < 4; i++)
@@ -88,4 +91,35 @@ export function editTransaction(
       },
     ],
   };
+}
+
+export function transactionDay(tx, zone = "Asia/Ho_Chi_Minh") {
+  if (tx.occurredAt && Number.isFinite(new Date(tx.occurredAt).getTime()))
+    return localTransactionTime(tx.occurredAt, zone).slice(0, 10);
+  return legacyTransactionDay(tx);
+}
+export function filterTransactions(
+  transactions,
+  filter,
+  zone = "Asia/Ho_Chi_Minh",
+) {
+  if (!filter || filter.mode === "all") return transactions;
+  return transactions.filter((tx) => {
+    const day = transactionDay(tx, zone);
+    if (!day) return false;
+    return filter.mode === "month"
+      ? day.startsWith(filter.month + "-")
+      : (!filter.from || day >= filter.from) &&
+          (!filter.to || day <= filter.to);
+  });
+}
+export function transactionTotals(transactions) {
+  return transactions.reduce(
+    (totals, tx) => {
+      totals[tx.type === "income" ? "income" : "expense"] += Number(tx.amount);
+      totals.net = totals.income - totals.expense;
+      return totals;
+    },
+    { income: 0, expense: 0, net: 0 },
+  );
 }

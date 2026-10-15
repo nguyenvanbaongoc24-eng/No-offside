@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo } from "react";
+import { matchesMemberSearch } from "../lib/memberSearch";
+import Avatar from "../components/Avatar";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   Search,
@@ -11,39 +13,42 @@ import {
   Cake,
   AlertTriangle,
   QrCode,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function TeamManager({
   isOpen = true,
   onClose,
   members = [],
-  currentUserRole = 'owner',
+  currentUserRole = "owner",
   onRemoveMember,
   onOpenInvite,
   onOpenAddMember,
+  onLinkMember,
 }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterRole, setFilterRole] = useState('all'); // 'all' | 'leaders' | 'members'
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState("all"); // 'all' | 'leaders' | 'members'
   const [memberToDelete, setMemberToDelete] = useState(null);
+  const [linking, setLinking] = useState(null);
+  const [linkTarget, setLinkTarget] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [removeError, setRemoveError] = useState("");
 
-  const isOwner = currentUserRole === 'owner';
+  const isOwner = currentUserRole === "owner";
 
   // Lọc thành viên theo từ khóa tìm kiếm và tab
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
-      const matchSearch =
-        m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        String(m.number).includes(searchQuery) ||
-        (m.role && m.role.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (m.customTitle && m.customTitle.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchSearch = matchesMemberSearch(m, searchQuery);
 
       if (!matchSearch) return false;
 
-      if (filterRole === 'leaders') {
-        return m.roleType === 'owner' || m.roleType === 'admin';
+      if (filterRole === "leaders") {
+        return m.roleType === "owner" || m.roleType === "admin";
       }
-      if (filterRole === 'members') {
-        return m.roleType === 'member';
+      if (filterRole === "members") {
+        return m.roleType === "member";
       }
       return true;
     });
@@ -54,7 +59,9 @@ export default function TeamManager({
     if (!birthdayStr) return null;
     const bday = new Date(birthdayStr);
     const today = new Date();
-    const isToday = bday.getDate() === today.getDate() && bday.getMonth() === today.getMonth();
+    const isToday =
+      bday.getDate() === today.getDate() &&
+      bday.getMonth() === today.getMonth();
     const isThisMonth = bday.getMonth() === today.getMonth();
 
     if (isToday) {
@@ -74,11 +81,18 @@ export default function TeamManager({
     return null;
   };
 
-  const handleConfirmDelete = () => {
-    if (memberToDelete && onRemoveMember) {
-      onRemoveMember(memberToDelete.id);
+  const handleConfirmDelete = async () => {
+    if (!memberToDelete || !onRemoveMember || removeBusy) return;
+    setRemoveBusy(true);
+    setRemoveError("");
+    try {
+      await onRemoveMember(memberToDelete.id);
+      setMemberToDelete(null);
+    } catch (error) {
+      setRemoveError(error.message || "Không cập nhật được thành viên.");
+    } finally {
+      setRemoveBusy(false);
     }
-    setMemberToDelete(null);
   };
 
   if (!isOpen) return null;
@@ -94,9 +108,9 @@ export default function TeamManager({
         <div className="absolute inset-0" onClick={onClose} />
 
         <motion.div
-          initial={{ opacity: 0, y: '100%' }}
+          initial={{ opacity: 0, y: "100%" }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: '100%' }}
+          exit={{ opacity: 0, y: "100%" }}
           transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
           className="member-sheet relative w-full max-w-lg max-h-[92vh] sm:max-h-[85vh] bg-white dark:bg-slate-900 rounded-t-[36px] sm:rounded-[36px] flex flex-col overflow-hidden text-slate-900 dark:text-white z-10 border border-slate-200/80 dark:border-slate-800 shadow-2xl"
         >
@@ -157,7 +171,7 @@ export default function TeamManager({
               />
               {searchQuery && (
                 <button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery("")}
                   className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -169,39 +183,46 @@ export default function TeamManager({
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="member-filters flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-full text-xs font-bold">
                 <button
-                  onClick={() => setFilterRole('all')}
+                  onClick={() => setFilterRole("all")}
                   className={`px-3 py-1 rounded-full transition-all cursor-pointer whitespace-nowrap ${
-                    filterRole === 'all'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    filterRole === "all"
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
                   Tất cả ({members.length})
                 </button>
                 <button
-                  onClick={() => setFilterRole('leaders')}
+                  onClick={() => setFilterRole("leaders")}
                   className={`px-2.5 py-1 rounded-full transition-all cursor-pointer whitespace-nowrap ${
-                    filterRole === 'leaders'
-                      ? 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    filterRole === "leaders"
+                      ? "bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-xs font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  BQL ({members.filter((m) => m.roleType === 'owner' || m.roleType === 'admin').length})
+                  BQL (
+                  {
+                    members.filter(
+                      (m) => m.roleType === "owner" || m.roleType === "admin",
+                    ).length
+                  }
+                  )
                 </button>
                 <button
-                  onClick={() => setFilterRole('members')}
+                  onClick={() => setFilterRole("members")}
                   className={`px-2.5 py-1 rounded-full transition-all cursor-pointer whitespace-nowrap ${
-                    filterRole === 'members'
-                      ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-xs font-bold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    filterRole === "members"
+                      ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-xs font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  Cầu thủ ({members.filter((m) => m.roleType === 'member').length})
+                  Cầu thủ (
+                  {members.filter((m) => m.roleType === "member").length})
                 </button>
               </div>
 
               {/* Action Buttons */}
-              {(isOwner || currentUserRole === 'admin') && (
+              {(isOwner || currentUserRole === "admin") && (
                 <div className="flex items-center gap-1.5">
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -235,16 +256,92 @@ export default function TeamManager({
 
           {/* Members List Container */}
           <div className="flex-1 overflow-y-auto p-4 space-y-2.5 max-h-[55vh]">
+            {linking && (
+              <section
+                className="settings-card p-3"
+                aria-label="Liên kết hồ sơ cầu thủ"
+              >
+                <h3 className="font-semibold">
+                  Liên kết {linking.name} · #{linking.number}
+                </h3>
+                <p className="text-sm text-slate-600 my-2">
+                  Chọn tài khoản đã đăng ký và gia nhập đội của cùng cầu thủ. Số
+                  áo được chuyển sang tài khoản này; hồ sơ gốc và lịch sử được
+                  giữ lại.
+                </p>
+                <label className="text-sm">
+                  Tài khoản cầu thủ
+                  <select
+                    value={linkTarget}
+                    onChange={(e) => setLinkTarget(e.target.value)}
+                    className="w-full my-2"
+                    disabled={linkBusy}
+                  >
+                    <option value="">Chọn tài khoản</option>
+                    {members
+                      .filter(
+                        (m) =>
+                          !m.isManual &&
+                          m.membershipStatus !== "locked" &&
+                          (isOwner || m.roleType === "member"),
+                      )
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} · #{m.number}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                {linkError && (
+                  <p role="alert" className="text-sm text-rose-700">
+                    {linkError}
+                  </p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={!linkTarget || linkBusy}
+                    onClick={async () => {
+                      setLinkBusy(true);
+                      setLinkError("");
+                      try {
+                        await onLinkMember(linking.id, linkTarget);
+                        setLinking(null);
+                        setLinkTarget("");
+                      } catch (e) {
+                        setLinkError(e.message || "Không liên kết được hồ sơ.");
+                      } finally {
+                        setLinkBusy(false);
+                      }
+                    }}
+                  >
+                    {linkBusy ? "Đang lưu…" : "Xác nhận liên kết"}
+                  </button>
+                  <button
+                    type="button"
+                    className="choice-button"
+                    disabled={linkBusy}
+                    onClick={() => setLinking(null)}
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </section>
+            )}
             {filteredMembers.length === 0 ? (
               <div className="text-center py-12 text-slate-400 dark:text-slate-500 text-xs">
                 Không tìm thấy thành viên nào phù hợp với "{searchQuery}"
               </div>
             ) : (
               filteredMembers.map((member) => {
-                const isMemberOwner = member.roleType === 'owner';
-                const isMemberAdmin = member.roleType === 'admin';
+                const isMemberOwner = member.roleType === "owner";
+                const isMemberAdmin = member.roleType === "admin";
                 const canDelete =
-                  !isMemberOwner && (isOwner || member.roleType === 'member');
+                  !isMemberOwner &&
+                  (isOwner ||
+                    (currentUserRole === "admin" &&
+                      member.roleType === "member"));
 
                 return (
                   <motion.div
@@ -258,12 +355,9 @@ export default function TeamManager({
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Avatar with Shirt number badge */}
                       <div className="relative shrink-0">
-                        <img
-                          src={
-                            member.avatar ||
-                            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80'
-                          }
-                          alt={member.name}
+                        <Avatar
+                          src={member.avatar}
+                          name={member.name}
                           className="w-11 h-11 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-700"
                         />
                         <span className="absolute -bottom-1 -right-1 bg-slate-900 dark:bg-emerald-950 text-emerald-400 dark:text-emerald-300 tabular-nums font-bold text-xs px-1.5 py-0.2 rounded-full border border-white dark:border-slate-800 shadow-xs">
@@ -273,6 +367,21 @@ export default function TeamManager({
 
                       {/* Info: Name, Role, Birthday */}
                       <div className="min-w-0">
+                        {member.isManual &&
+                          onLinkMember &&
+                          ["owner", "admin"].includes(currentUserRole) && (
+                            <button
+                              type="button"
+                              className="text-xs text-emerald-700 min-h-11"
+                              onClick={() => {
+                                setLinking(member);
+                                setLinkTarget("");
+                                setLinkError("");
+                              }}
+                            >
+                              Liên kết tài khoản
+                            </button>
+                          )}
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                             {member.name}
@@ -287,7 +396,7 @@ export default function TeamManager({
                           ) : isMemberAdmin ? (
                             <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/50 font-bold text-[11px] inline-flex items-center gap-1 shadow-2xs whitespace-nowrap">
                               <Shield className="w-2.5 h-2.5 text-emerald-600" />
-                              <span>{member.customTitle || 'Admin'}</span>
+                              <span>{member.customTitle || "Admin"}</span>
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-[11px] whitespace-nowrap">
@@ -301,13 +410,15 @@ export default function TeamManager({
 
                         {/* Sub info: Position & Birthday date */}
                         <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400 font-medium flex-wrap">
-                          <span>{member.role || 'Cầu thủ'}</span>
+                          <span>{member.role || "Cầu thủ"}</span>
                           <span>•</span>
                           <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 tabular-nums">
                             <Cake className="w-3 h-3 text-pink-500" />
                             {member.birthday
-                              ? new Date(member.birthday).toLocaleDateString('vi-VN')
-                              : 'Chưa cập nhật'}
+                              ? new Date(member.birthday).toLocaleDateString(
+                                  "vi-VN",
+                                )
+                              : "Chưa cập nhật"}
                           </span>
                         </div>
                       </div>
@@ -360,11 +471,21 @@ export default function TeamManager({
                 </h3>
 
                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed font-medium">
-                  Bạn có chắc chắn muốn xóa <strong>{memberToDelete.name} (#{memberToDelete.number})</strong> khỏi danh sách đội bóng?
+                  Bạn có chắc chắn muốn xóa{" "}
+                  <strong>
+                    {memberToDelete.name} (#{memberToDelete.number})
+                  </strong>{" "}
+                  khỏi danh sách đội bóng?
                 </p>
 
                 <div className="mt-5 space-y-2">
+                  {removeError && (
+                    <p role="alert" className="text-sm text-rose-700">
+                      {removeError}
+                    </p>
+                  )}
                   <motion.button
+                    disabled={removeBusy}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleConfirmDelete}
                     className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-md shadow-rose-600/20 cursor-pointer whitespace-nowrap outline-none"

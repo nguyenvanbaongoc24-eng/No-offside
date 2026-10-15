@@ -1,3 +1,4 @@
+import { withPendingWrite } from "../lib/pendingWrites";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { defaultPolicy } from "../lib/governance";
@@ -70,7 +71,13 @@ function writeLocalGov(teamId, snapshot) {
   } catch {}
 }
 
-export function useGovernance(accountId, teamId, demo, role = "owner", members = []) {
+export function useGovernance(
+  accountId,
+  teamId,
+  demo,
+  role = "owner",
+  members = [],
+) {
   const scope = accountId + "::" + teamId;
   const activeScope = useRef(scope);
   activeScope.current = scope;
@@ -87,7 +94,12 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
   });
 
   const enableLocalMode = useCallback(() => {
-    const local = readLocalGov(teamId, accountId, roleRef.current, membersRef.current);
+    const local = readLocalGov(
+      teamId,
+      accountId,
+      roleRef.current,
+      membersRef.current,
+    );
     setState({
       scope,
       snapshot: local,
@@ -98,14 +110,28 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
   }, [teamId, accountId, scope]);
 
   const refresh = useCallback(async () => {
-    if (demo || !supabase) {
-      const local = readLocalGov(teamId, accountId, roleRef.current, membersRef.current);
+    if (demo) {
+      const local = readLocalGov(
+        teamId,
+        accountId,
+        roleRef.current,
+        membersRef.current,
+      );
       setState({
         scope,
         snapshot: local,
         loading: false,
         receivedAt: Date.now(),
         error: "",
+      });
+      return;
+    }
+    if (!supabase) {
+      setState({
+        scope,
+        snapshot: null,
+        loading: false,
+        error: "Chua ket noi server quan tri.",
       });
       return;
     }
@@ -119,14 +145,12 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
     }
     if (activeScope.current === scope) {
       if (error) {
-        // Fallback to local governance snapshot so team can create & edit rules
-        const local = readLocalGov(teamId, accountId, roleRef.current, membersRef.current);
         setState({
           scope,
-          snapshot: local,
+          snapshot: null,
           receivedAt: Date.now(),
           loading: false,
-          error: "",
+          error: "Không tải được dữ liệu quản trị từ server. Vui lòng thử lại.",
         });
       } else {
         setState({
@@ -143,8 +167,13 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
   useEffect(() => {
     let live = true;
     setState({ scope, snapshot: null, loading: true, error: "" });
-    if (demo || !supabase) {
-      const local = readLocalGov(teamId, accountId, roleRef.current, membersRef.current);
+    if (demo) {
+      const local = readLocalGov(
+        teamId,
+        accountId,
+        roleRef.current,
+        membersRef.current,
+      );
       setState({
         scope,
         snapshot: local,
@@ -154,18 +183,27 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
       });
       return;
     }
+    if (!supabase) {
+      setState({
+        scope,
+        snapshot: null,
+        loading: false,
+        error: "Chua ket noi server quan tri.",
+      });
+      return;
+    }
     supabase
       .rpc("no_gov_snapshot", { p_team_id: teamId })
       .then(({ data, error }) => {
         if (!live) return;
         if (error) {
-          const local = readLocalGov(teamId, accountId, roleRef.current, membersRef.current);
           setState({
             scope,
-            snapshot: local,
+            snapshot: null,
             receivedAt: Date.now(),
             loading: false,
-            error: "",
+            error:
+              "Không tải được dữ liệu quản trị từ server. Vui lòng thử lại.",
           });
         } else {
           setState({
@@ -179,13 +217,12 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
       })
       .catch(() => {
         if (!live) return;
-        const local = readLocalGov(teamId, accountId, roleRef.current, membersRef.current);
         setState({
           scope,
-          snapshot: local,
+          snapshot: null,
           receivedAt: Date.now(),
           loading: false,
-          error: "",
+          error: "Không kết nối được server quản trị. Vui lòng thử lại.",
         });
       });
     return () => {
@@ -205,7 +242,9 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
     if (state.scope !== scope || !state.snapshot)
       throw new Error("Chưa có dữ liệu server đã xác thực.");
 
-    if (state.snapshot?.isLocal || demo || !supabase) {
+    if (!demo && (!supabase || state.snapshot?.isLocal))
+      throw Error("Chưa có server xác nhận nghiệp vụ.");
+    if (demo) {
       // Local mutation execution
       const current = { ...state.snapshot };
       if (action === "rules") {
@@ -288,18 +327,32 @@ export function useGovernance(accountId, teamId, demo, role = "owner", members =
       return { success: true };
     }
 
-    const { data, error } = await supabase.rpc("no_gov_mutate", {
-      p_team_id: teamId,
-      p_action: action,
-      p_payload: payload,
-      p_key: key,
-    });
+    const { data, error } = await withPendingWrite(() =>
+      supabase.rpc("no_gov_mutate", {
+        p_team_id: teamId,
+        p_action: action,
+        p_payload: payload,
+        p_key: key,
+      }),
+    );
     if (error) throw new Error(error.message);
     await refresh();
     return data;
   };
 
   return state.scope === scope
-    ? { ...state, mutate, refresh, enableLocalMode }
-    : { snapshot: null, loading: true, error: "", mutate, refresh, enableLocalMode };
+    ? {
+        ...state,
+        mutate,
+        refresh,
+        enableLocalMode: demo ? enableLocalMode : undefined,
+      }
+    : {
+        snapshot: null,
+        loading: true,
+        error: "",
+        mutate,
+        refresh,
+        enableLocalMode: demo ? enableLocalMode : undefined,
+      };
 }

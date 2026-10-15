@@ -23,7 +23,10 @@ const result = await build({
     import SwipeMatchCard from './src/components/SwipeMatchCard.jsx';
     import TeamManager from './src/pages/TeamManager.jsx';
     import Login from './src/pages/Login.jsx';
-    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam,Governance,AppearanceSettings,SwipeMatchCard,TeamManager,Login}[name],props));
+    import Dashboard from './src/pages/PlayerDashboard.jsx';
+    import MyAttendance from './src/components/MyAttendanceControl.jsx';
+    import Countdown from './src/components/MatchCountdown.jsx';
+    export const render = (name, props) => renderToStaticMarkup(React.createElement({Fund,PersonalFund,MatchForm,EmptyTeam,Governance,AppearanceSettings,SwipeMatchCard,TeamManager,Login,Dashboard,MyAttendance,Countdown}[name],props));
   `,
   },
   bundle: true,
@@ -39,6 +42,24 @@ new Function("require", "module", "exports", result.outputFiles[0].text)(
 );
 const { render } = compiled.exports;
 const noop = () => {};
+
+test("expired countdown closes explicitly; completed attendance remains read-only", () => {
+  assert.match(render("Countdown", {deadline:"2020-01-01T00:00:00Z", sentence:true}), /Đã chốt điểm danh/);
+  const html = render("MyAttendance", {status:"attending", deadline:"2099-01-01T00:00:00Z", completed:true, onChange:noop});
+  assert.equal((html.match(/disabled=""/g)||[]).length, 3);
+  assert.equal((html.match(/aria-pressed="true"/g)||[]).length, 1);
+});
+
+test("owner has personal attendance; completed match hides countdown and keeps eligible roster snapshot", () => {
+  const owner={id:"owner",name:"Chủ đội",number:1,stats:{matches:0,goals:0,assists:0}};
+  const match={id:"m",title:"Trận đã xong",datetime:"2026-01-01T12:00:00Z",deadline:"2026-01-01T10:00:00Z",status:"completed",eligibleMembers:[owner,{id:"historical",name:"Thành viên cũ",number:19}]};
+  const html=render("Dashboard", {user:owner,currentUserRole:"owner",teamSettings:{teamName:"Đội",members:[owner],appearance:{}},members:[owner],activeMatch:match,matches:[match],attendance:{owner:"attending"},reports:{},funds:{transactions:[],pendingApprovals:[],debtors:[]},balance:0});
+  assert.match(html, /Điểm danh của bạn/);
+  assert.doesNotMatch(html, /Hạn chốt điểm danh|Còn .*để chốt/);
+  assert.match(html, /title="Có mặt \(1\)"/);
+  assert.match(html, /title="Chưa điểm danh \(1\)"/);
+  assert.match(html, /2 người/);
+});
 
 test("fund overview shows each amount once and retains the full ledger totals", () => {
   const html = render("Fund", {
@@ -218,4 +239,3 @@ test("login screen renders Google OAuth button and omits SMS and email OTP field
   assert.doesNotMatch(html, /Gửi mã đăng nhập/);
   assert.doesNotMatch(html, /autoComplete="one-time-code"/);
 });
-

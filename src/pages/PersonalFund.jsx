@@ -1,10 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { Wallet, Check, Clock } from "lucide-react";
 import { qrUrl, monthKey } from "../lib/teamModel";
 import QrPreview from "../components/QrPreview";
 import { formatCurrency } from "../lib/formatCurrency";
 
 export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
+  const [error, setError] = useState(""),
+    [sending, setSending] = useState(false);
+  const report = async () => {
+    if (sending) return;
+    setSending(true);
+    setError("");
+    try {
+      await onMarkPaid();
+    } catch (error) {
+      setError(error.message || "Chưa gửi được yêu cầu.");
+    } finally {
+      setSending(false);
+    }
+  };
   const memo = `NO OFFSIDE SO ${user.number} DONG QUY ${monthKey()}`;
   const uploaded = treasurerQr?.qrMode === "uploaded";
   const image = uploaded
@@ -15,6 +29,11 @@ export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
       <header className="compact-header !p-0">
         <h1>Quỹ đội</h1>
       </header>
+      {error && (
+        <p role="alert" className="form-error">
+          {error}
+        </p>
+      )}
       <section className="settings-card mt-5">
         <Wallet size={24} className="text-emerald-700" />
         <h2 className="mt-3">Khoản đóng của bạn</h2>
@@ -31,9 +50,11 @@ export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
             ? "Đã được xác nhận"
             : user.fundPaymentPending
               ? "Đang chờ duyệt"
-              : user.fundDebt > 0
-                ? "Chưa gửi xác nhận"
-                : "Chưa có khoản cần đóng"}
+              : user.fundRejection
+                ? "Bị từ chối: " + user.fundRejection.reason
+                : user.fundDebt > 0
+                  ? "Chưa gửi xác nhận"
+                  : "Chưa có khoản cần đóng"}
         </p>
         {!user.isFundPaid && user.fundDebt > 0 && (
           <div className="mt-5 space-y-3">
@@ -49,8 +70,8 @@ export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
                 <p className="text-sm break-words">Nội dung: {memo}</p>
                 <button
                   className="primary-button w-full"
-                  disabled={user.fundPaymentPending}
-                  onClick={onMarkPaid}
+                  disabled={user.fundPaymentPending || sending}
+                  onClick={report}
                 >
                   Đã chuyển tiền · gửi chờ duyệt
                 </button>

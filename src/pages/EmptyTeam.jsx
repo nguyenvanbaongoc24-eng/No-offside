@@ -1,3 +1,4 @@
+import TeamIdentityHeader from "../components/TeamIdentityHeader";
 import { copyToClipboard } from "../lib/clipboard";
 import { useTeamInvite } from "../hooks/useTeamInvite";
 import React, { useState, useEffect } from "react";
@@ -23,6 +24,7 @@ export default function EmptyTeam({
   members = [],
   onAddMember,
   onRemoveMember,
+  onLinkMember,
   currentUserRole = "player",
   user,
   onCreateInvite,
@@ -30,6 +32,11 @@ export default function EmptyTeam({
   onRevokeInvite,
   onSaveMatch,
   onNavigate,
+  memberships,
+  onSwitchTeam,
+  switchingTeam,
+  onOpenNotifications,
+  unreadCount,
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
@@ -37,7 +44,7 @@ export default function EmptyTeam({
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
-  const [copyError,setCopyError]=useState("");
+  const [copyError, setCopyError] = useState("");
 
   const [form, setForm] = useState({
     opponent: "",
@@ -49,16 +56,21 @@ export default function EmptyTeam({
   });
 
   const isLeader =
-    leader ||
-    currentUserRole === "owner" ||
-    currentUserRole === "admin";
+    leader || currentUserRole === "owner" || currentUserRole === "admin";
 
-  const invite = useTeamInvite(teamSettings, currentUserRole, onCreateInvite, onRevokeInvite, onReadInvite);
-  const inviteCode = invite.code;
-  const openInvite = () => {setShowInviteModal(true); invite.load().catch(() => {});};
-  const activeMembers = members.filter(
-    (m) => m.membershipStatus !== "removed",
+  const invite = useTeamInvite(
+    teamSettings,
+    currentUserRole,
+    onCreateInvite,
+    onRevokeInvite,
+    onReadInvite,
   );
+  const inviteCode = invite.code;
+  const openInvite = () => {
+    setShowInviteModal(true);
+    invite.load().catch(() => {});
+  };
+  const activeMembers = members.filter((m) => m.membershipStatus !== "removed");
 
   const handleCopyCode = async () => {
     const codeToCopy = inviteCode || invite.code || teamSettings?.inviteCode;
@@ -75,7 +87,7 @@ export default function EmptyTeam({
     } else {
       setCopyError(
         result.message ||
-          "Trình duyệt chặn sao chép tự động. Vui lòng nhấn giữ mã để sao chép hoặc mở Mã QR."
+          "Trình duyệt chặn sao chép tự động. Vui lòng nhấn giữ mã để sao chép hoặc mở Mã QR.",
       );
     }
   };
@@ -91,15 +103,15 @@ export default function EmptyTeam({
   }, [copyError]);
   return (
     <section className="empty-team p-4 max-w-lg mx-auto space-y-4">
-      {/* HEADER ĐỘI BÓNG */}
-      <div className="pt-2">
-        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase">
-          {teamSettings.teamName || "Đội bóng của bạn"}
-        </p>
-        <h1 className="text-2xl font-extrabold mt-0.5 text-slate-900 dark:text-white tracking-tight">
-          Trang chủ
-        </h1>
-      </div>
+      <TeamIdentityHeader
+        team={teamSettings}
+        memberships={memberships}
+        onSwitchTeam={onSwitchTeam}
+        switchingTeam={switchingTeam}
+        onOpenProfile={() => onNavigate("profile")}
+        onOpenNotifications={onOpenNotifications}
+        unreadCount={unreadCount}
+      />
 
       {/* CARD 1: CHƯA CÓ TRẬN SẮP TỚI */}
       <div className="bg-white dark:bg-slate-900/90 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-soft text-center transition-all">
@@ -174,8 +186,8 @@ export default function EmptyTeam({
             const roleLabel = isOwner
               ? "Chủ đội"
               : isAdmin
-              ? "Quản trị viên"
-              : "Cầu thủ";
+                ? "Quản trị viên"
+                : "Cầu thủ";
             return (
               <div
                 key={m.id || m.number}
@@ -199,8 +211,8 @@ export default function EmptyTeam({
                     isOwner
                       ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-600/50"
                       : isAdmin
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/50"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/50"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                   }`}
                 >
                   {roleLabel}
@@ -282,7 +294,11 @@ export default function EmptyTeam({
         </div>
       </div>
 
-      {copyError && <p role="alert" className="form-error">{copyError}</p>}
+      {copyError && (
+        <p role="alert" className="form-error">
+          {copyError}
+        </p>
+      )}
       {/* FOOTER LINK XEM PROFILE */}
       <button
         className="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 w-full py-2 cursor-pointer transition-colors outline-none"
@@ -327,13 +343,20 @@ export default function EmptyTeam({
         teamCode={inviteCode}
         clubCode={inviteCode}
         inviteStatus={invite.status}
-        loading={invite.loading} error={invite.error} onRetry={() => invite.load()}
+        loading={invite.loading}
+        error={invite.error}
+        onRetry={() => invite.load()}
         currentUserRole={currentUserRole}
         onCreateInvite={() => invite.load(true)}
         onRevokeInvite={invite.revoke}
         onPreviewLanding={() => {
           setShowInviteModal(false);
-          if (inviteCode) window.open(`/invite/${encodeURIComponent(inviteCode)}`, "_blank", "noopener,noreferrer");
+          if (inviteCode)
+            window.open(
+              `/invite/${encodeURIComponent(inviteCode)}`,
+              "_blank",
+              "noopener,noreferrer",
+            );
         }}
       />
 
@@ -345,6 +368,7 @@ export default function EmptyTeam({
           currentUserRole={currentUserRole}
           onClose={() => setShowTeamManagerModal(false)}
           onRemoveMember={onRemoveMember}
+          onLinkMember={onLinkMember}
           onOpenInvite={() => {
             setShowTeamManagerModal(false);
             openInvite();

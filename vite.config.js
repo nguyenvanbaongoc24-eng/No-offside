@@ -40,14 +40,14 @@ export default defineConfig({
     react(),
     versionMetadataPlugin(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       workbox: {
         globIgnores: ['**/version.json', '**/api/**'],
         navigateFallbackDenylist: [/^\/api\//, /^\/version\.json/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true
+        skipWaiting: false
       },
       manifest: {
         name: 'No Offside',
@@ -87,4 +87,3 @@ export default defineConfig({
     host: true
   }
 })
-

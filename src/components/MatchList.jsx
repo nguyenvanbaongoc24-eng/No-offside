@@ -1,11 +1,49 @@
-import React from "react";
+import React, { useState } from "react";
 import { CalendarDays, Check } from "lucide-react";
-export default function MatchList({ matches, activeMatchId, onSelect }) {
+export default function MatchList({
+  matches,
+  activeMatchId,
+  onSelect,
+  timeZone = "Asia/Ho_Chi_Minh",
+}) {
+  const [filter, setFilter] = useState("upcoming");
+  const visible = matches.filter(
+    (match) =>
+      !match.archivedAt &&
+      (filter === "completed"
+        ? match.status === "completed"
+        : match.status !== "completed"),
+  );
   return (
-    <section aria-label="Danh sách trận đấu" className="mx-4 my-4">
-      <h2 className="text-sm font-semibold">Trận đấu ({matches.length})</h2>
+    <details aria-label="Danh sách trận đấu" className="match-picker mx-4 my-4">
+      <summary className="text-sm font-semibold">
+        Chọn trận · {matches.filter((match) => !match.archivedAt).length} trận
+      </summary>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-sm font-semibold">Trận đấu ({visible.length})</h2>
+        <div className="match-filter" role="group" aria-label="Lọc trận đấu">
+          {[
+            ["upcoming", "Sắp đá"],
+            ["completed", "Đã xong"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={filter === value}
+              onClick={() => setFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {visible.length === 0 && (
+        <p className="text-sm text-slate-600 mt-3" role="status">
+          Chưa có trận {filter === "completed" ? "đã xong" : "sắp đá"}.
+        </p>
+      )}
       <ul className="space-y-2 mt-3">
-        {matches.map((match) => (
+        {visible.map((match) => (
           <li key={match.id}>
             <button
               type="button"
@@ -23,6 +61,7 @@ export default function MatchList({ matches, activeMatchId, onSelect }) {
                   className="block mt-1 text-xs text-slate-600"
                 >
                   {new Date(match.datetime).toLocaleString("vi-VN", {
+                    timeZone,
                     day: "2-digit",
                     month: "2-digit",
                     hour: "2-digit",
@@ -36,6 +75,6 @@ export default function MatchList({ matches, activeMatchId, onSelect }) {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }

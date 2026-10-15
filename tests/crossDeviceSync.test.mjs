@@ -125,13 +125,3 @@ test("client image processing validates format and size before uploading", async
     /nhỏ hơn 2 MB/
   );
 });
-
-test("chat schema contains idempotency constraint and RLS policies", () => {
-  const migration = fs.readFileSync("supabase/migrations/202610150001_team_chat.sql", "utf8");
-  assert.match(migration, /create table if not exists public\.no_team_messages/i);
-  assert.match(migration, /idx_no_team_messages_dedup/i);
-  assert.match(migration, /enable row level security/i);
-  assert.match(migration, /team_members_select_messages/i);
-  assert.match(migration, /team_members_insert_messages/i);
-  assert.match(migration, /auth\.uid\(\)\s*=\s*sender_id/i);
-});

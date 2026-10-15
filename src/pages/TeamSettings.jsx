@@ -15,23 +15,30 @@ export default function TeamSettings({
     setSaved(false);
     setDraft((p) => ({ ...p, [key]: value }));
   };
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault();
     if (currentUserRole !== "owner") return;
-    onUpdateTeamSettings({
-      ...Object.fromEntries(
-        ["teamName", "teamCategory", "venue", "schedule", "logo"].map((k) => [
-          k,
-          draft[k],
-        ]),
-      ),
-      appearance: {
-        ...teamSettings.appearance,
-        birthdayReportEnabled:
-          draft.appearance?.birthdayReportEnabled !== false,
-      },
-    });
-    setSaved(true);
+    const form = e.currentTarget;
+    setError("");
+    try {
+      await onUpdateTeamSettings({
+        ...Object.fromEntries(
+          ["teamName", "teamCategory", "venue", "schedule", "logo"].map((k) => [
+            k,
+            draft[k],
+          ]),
+        ),
+        appearance: {
+          ...teamSettings.appearance,
+          birthdayReportEnabled:
+            draft.appearance?.birthdayReportEnabled !== false,
+        },
+      });
+      form.dispatchEvent(new Event("no-offside-form-saved", { bubbles: true }));
+      setSaved(true);
+    } catch (error) {
+      setError(error.message || "Không lưu được cài đặt đội.");
+    }
   };
   return (
     <div className="settings-page pb-8">

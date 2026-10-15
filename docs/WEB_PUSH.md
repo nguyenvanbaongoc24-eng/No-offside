@@ -65,7 +65,7 @@ Theo dõi DB bằng truy vấn quản trị chỉ lấy số lượng theo state
 
 `npm test`, `npm run build`, `npm audit --omit=dev`. Test SQL chạy PGlite cô lập với user/đội giả; không ghi tin hoặc subscription thử vào production. Có kiểm tra interleaving ranh giới đọc/tin đến, retry idempotent, quyền chéo đội, subscription private, hai installation, detach, locked, provider 410/backoff, preview, throttle/coalesce, nhóm thực tế, safe link và SW đổi tài khoản. Đây là mô phỏng trình tự, không phải load test PostgreSQL nhiều connection hay xác nhận giao nhận push thật.
 
-UI kiểm tra riêng bằng fixture không kết nối dữ liệu thật. Chưa kiểm chứng iPhone Home Screen/Android thật, trạng thái đóng app và giao nhận provider end-to-end: chờ đội và hai tài khoản test do chủ app chỉ định; không gửi thử tới người dùng khác. Không suy ra iPhone hoạt động từ test desktop.
+UI có kiểm tra riêng bằng fixture không kết nối dữ liệu thật. Kết quả kiểm thử iPhone sau khi chủ app chỉ định đội/tài khoản được ghi bên dưới. Không suy ra Android hoạt động từ iPhone hoặc test desktop; không gửi thử tới người dùng ngoài phạm vi được chỉ định.
 
 ### Kết quả triển khai ngày 15/10/2026
 
@@ -73,4 +73,16 @@ UI kiểm tra riêng bằng fixture không kết nối dữ liệu thật. Chưa
 - Migration receipt `push-20261015`, SHA256 `36066ce1fd35969853401b254638e42c6d9d49956ed026a6068d7b6f6909b367`. Transaction xác nhận giữ nguyên 3 đội, 6 membership, 8 tin nhắn tại thời điểm chạy; tạo 6 marker baseline. Không thêm tài khoản, tin nhắn hay subscription thử vào production.
 - Kiểm tra production: RLS bật, authenticated không SELECT được subscription, không EXECUTE được worker; RPC unread bằng quyền authenticated chỉ nhìn marker của chính mình. Lúc áp dụng chưa có installation đăng ký/job gửi.
 - Preview fixture Light/Dark 320/360/390/430 px: không tràn ngang, badge tuyệt đối cao 17 px, 100 tin đọc thành `99+`, accessible name giữ 100; vùng chạm navigation tối thiểu 54 × 56 px.
-- Chưa kiểm chứng giao nhận Web Push trên iPhone/Android thật; chờ đội và hai tài khoản test do chủ app cung cấp.
+- Tại thời điểm triển khai ban đầu chưa kiểm chứng giao nhận trên thiết bị thật; kết quả bổ sung được ghi dưới đây.
+
+### Bổ sung kiểm thử thực tế trên iPhone — 15/10/2026
+
+Chủ app đã chỉ định đội kiểm thử và hai tài khoản A/B. Đối chiếu backend xác định đúng đội có hai tài khoản đó, tránh đội khác trùng tên; không có người nhận push ngoài phạm vi. Không ghi mật khẩu, thông tin subscription hoặc định danh tài khoản vào báo cáo Git.
+
+- Người dùng xác nhận bật được thông báo trên iPhone.
+- Gửi đúng một tin rõ nhãn `[Kiểm thử No Offside 01]` từ A tới đội kiểm thử. Tin được lưu thành công; có đúng một job tới installation của B, `accepted`, một lần thử, provider trả HTTP `201`.
+- Người dùng xác nhận thông báo đã hiển thị **ngoài app trên iPhone**. Đây là xác nhận giao nhận thực tế, tách biệt với trạng thái `accepted` của provider.
+- Backend sau đó ghi nhận B đã đọc qua tin kiểm thử và còn 0 tin chưa đọc trong đội. A không tăng số chưa đọc vì tin do mình gửi; navigation của A giữ badge ẩn.
+- Kiểm tra lại repository ở commit `342029a`: 159/159 kiểm tra tự động đạt.
+
+Chưa có xác nhận riêng về thao tác chạm push mở đúng đội/chat, tin nhắn trả lời chiều ngược lại và đồng bộ giữa nhiều thiết bị cùng một tài khoản. Chưa kiểm thử Android thật hoặc xác định phiên bản iOS. Không coi các bước này là đã đạt từ một lần nhận push thành công.

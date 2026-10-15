@@ -31,3 +31,13 @@ test('old whole-workspace sync and privilege fields are rejected before any writ
  let calls=0;setTestAdminClient({userClient:()=>({auth:{getUser:async()=>({data:{user:{id:userId}}})},rpc:async()=>{calls++;return {data:{success:true}};}})});
  const res=response();await syncHandler({method:'POST',headers:{authorization:'Bearer verified-test-token'},body:{action:'sync-data',teamId:'team-a',data:{funds:{}},teamSettingsUpdates:{ownerId:userId}}},res);assert.equal(res.statusCode,400);assert.equal(calls,0);setTestAdminClient(null);
 });
+test('account lookup uses canonical RPCs, returns no fake availability on outage, and omits private identity fields',async()=>{
+ const availability=(await import('../api/check-availability.js')).default,resolve=(await import('../api/resolve-username.js')).default;
+ let fault=true,calls=[];
+ setTestAdminClient({userClient:()=>({rpc:async(name,args)=>{calls.push([name,args]);return fault?{error:{code:'PGRST202'}}:{data:name==='no_auth_check_availability'?{usernameAvailable:false,emailAvailable:true}:{email:'player@example.test',id:userId,name:'Private profile'}};}})});
+ try{
+  let res=response();await availability({method:'POST',headers:{},body:{username:'player'}},res);assert.equal(res.statusCode,503);assert.equal(res.body.usernameAvailable,undefined);
+  fault=false;res=response();await availability({method:'POST',headers:{},body:{username:'Player'}},res);assert.equal(res.body.usernameAvailable,false);assert.equal(calls.at(-1)[1].p_username,'player');
+  res=response();await resolve({method:'POST',headers:{},body:{username:'Player'}},res);assert.deepEqual(res.body,{email:'player@example.test'});assert.match(res.headers['Cache-Control'],/no-store/);
+ }finally{setTestAdminClient(null);}
+});

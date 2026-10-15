@@ -1,82 +1,45 @@
-import { createClient } from "@supabase/supabase-js";
-
+import { getUserClient, apiError } from "./_storageHelper.js";
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
+  res.setHeader("Cache-Control", "private, no-store");
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
-  }
-
   try {
-    let body = req.body;
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch {
-        body = {};
-      }
-    }
-    const cleanUsername = (body?.username || "").trim().toLowerCase();
-    const cleanEmail = (body?.email || "").trim().toLowerCase();
-
-    const supabaseUrl =
-      process.env.VITE_SUPABASE_URL ||
-      process.env.SUPABASE_URL ||
-      "https://xofcoycdndyuuuxtwcwl.supabase.co";
-    const secretKey =
-      process.env.SUPABASE_SECRET_KEY ||
-      process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !secretKey) {
-      return res.status(200).json({ usernameAvailable: true, emailAvailable: true });
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, secretKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    let usernameAvailable = true;
-    let emailAvailable = true;
-    let page = 1;
-
-    while (page <= 5) {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-        page,
-        perPage: 100,
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+    if (
+      (body.username != null && typeof body.username !== "string") ||
+      (body.email != null && typeof body.email !== "string")
+    )
+      return res.status(400).json({ error: "Invalid account details" });
+    const username = body.username?.trim().toLowerCase() || null,
+      email = body.email?.trim().toLowerCase() || null;
+    if (
+      (!username && !email) ||
+      (username && username.length > 20) ||
+      (email && email.length > 254)
+    )
+      return res.status(400).json({ error: "Invalid account details" });
+    const { data, error } = await getUserClient(req).rpc(
+      "no_auth_check_availability",
+      { p_username: username, p_email: email },
+    );
+    if (error) throw error;
+    if (
+      typeof data?.usernameAvailable !== "boolean" ||
+      typeof data?.emailAvailable !== "boolean"
+    )
+      throw Object.assign(
+        Error("Server did not acknowledge account availability"),
+        { status: 503 },
+      );
+    return res
+      .status(200)
+      .json({
+        usernameAvailable: data.usernameAvailable,
+        emailAvailable: data.emailAvailable,
       });
-
-      if (error || !data?.users?.length) break;
-
-      for (const u of data.users) {
-        if (
-          cleanUsername &&
-          (u.user_metadata?.username || "").toLowerCase() === cleanUsername
-        ) {
-          usernameAvailable = false;
-        }
-        if (cleanEmail && (u.email || "").toLowerCase() === cleanEmail) {
-          emailAvailable = false;
-        }
-      }
-
-      if (
-        (!cleanUsername || !usernameAvailable) &&
-        (!cleanEmail || !emailAvailable)
-      ) {
-        break;
-      }
-      if (data.users.length < 100) break;
-      page++;
-    }
-
-    return res.status(200).json({ usernameAvailable, emailAvailable });
-  } catch (err) {
-    return res.status(200).json({ usernameAvailable: true, emailAvailable: true });
+  } catch (error) {
+    return apiError(res, error);
   }
 }

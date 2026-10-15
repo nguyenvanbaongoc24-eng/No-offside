@@ -75,7 +75,7 @@ Rollback/containment: xem `master-release-runbook.md`. Không drop bảng mới 
 
 ## Kiểm chứng và preview
 
-- `npm test`: 137/137 qua trên bản cuối, gồm timeout/loading Chat.
+- `npm test`: 138/138 qua trên bản cuối, gồm timeout/loading Chat.
 - Build Vite/PWA qua. Không thêm dependency. Có warning import.meta trong test CJS; không phải lỗi production build.
 - 252 tổ hợp fixture: 12 màn chính ở 320/360/390/430/768/1280 Light/Dark; thêm 27 trạng thái ở320/430 Light/Dark. Không document overflow ngang. Đã phát hiện select15px và sửa về16px; 16 ca dropdown mobile đã retest trên bản cuối: không control chữ dưới16px, không tràn ngang.
 - Vùng chạm5tab ở320px: khoảng51px rộng ×56px cao; không button nhỏ hơn44px ở Home đã đo.
@@ -83,3 +83,7 @@ Rollback/containment: xem `master-release-runbook.md`. Không drop bảng mới 
 - Chưa có thiết bị Safari iOS/Android thật; không dùng kết quả Chromium viewport để thay chứng nhận thiết bị thật.
 
 Preview minh họa 390px: master-home-light.jpg / master-home-dark.jpg trong thư mục artifact của chat. Tổng 268 lượt đo gồm 252 ca khảo sát và16 ca retest font. Tap cầu thủ mở picker và không tạo dịch chuyển vị trí trong browser; cảm ứng thật chưa kiểm chứng.
+
+Kiểm tra bổ sung AUTH-01: API availability/resolve bỏ quét danh sách Auth users và dùng RPC canonical, bỏ kết quả available=true khi backend lỗi, chỉ trả email cần thiết thay vì ID/tên hồ sơ. Test outage trả503 và không giả boolean đã qua. Chính sách đúng6số không đổi. Thiết kế bảo mật username-resolution/rate limit hiện có chưa được coi là nghiệm thu cơ chế bảo mật mới.
+
+Deployment đầu đã xác minh: 00faeffaaa7c1b1462de5681e37a5fbc1cf2b3c4, dpl_CKh71Py6qNGBDfkDnnNzqkhhqKRg. Phải promote vì alias vẫn ở bản cũ dù build production đã Ready; sau promote domain trả đúngversion, APIteams/sync/chat401 vàprivate,no-store. Đã kiểm tra theme/ngôn ngữ và refresh trực tiếp ởproduction, giữ lại lựa chọn ban đầu. Bản bổ sung lookup cần deployment mới cùng kiểm tra version.

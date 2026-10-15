@@ -1,3 +1,4 @@
+import {BASIC_EMOJI,mentionAt,mentionCandidates,mentionLabel,insertComposerText,messageParts} from '../lib/chatComposer';
 import Pressable from '../components/Pressable';
 import {useViewedMessages} from '../hooks/useViewedMessages';
 import { serverRequest } from "../lib/serverRequest";
@@ -18,6 +19,8 @@ import {
   ArrowDown,
   AlertCircle,
   RefreshCw,
+  Smile,
+  X,
 } from "lucide-react";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { uid } from "../lib/teamModel";
@@ -75,6 +78,12 @@ function ScopedChat({
   );
 
   const [input, setInput] = useState(() => readStored(draftKey, ""));
+  const [caret,setCaret]=useState(null),[emojiOpen,setEmojiOpen]=useState(false),[mentionClosed,setMentionClosed]=useState(false),[mentionIndex,setMentionIndex]=useState(0);
+  const pendingCaret=useRef(null);
+  const mention=mentionClosed?null:mentionAt(input,caret ?? input.length);
+  const candidates=mention?mentionCandidates(members,mention.query):[];
+  const activeMention=Math.min(mentionIndex,Math.max(0,candidates.length-1));
+
   const inputRef = useRef(input);
   inputRef.current = input;
 
@@ -127,8 +136,16 @@ function ScopedChat({
   const handleInputChange = (e) => {
     const val = e.target.value;
     setInput(val);
+    setCaret(e.target.selectionStart ?? val.length);setMentionClosed(false);setMentionIndex(0);
     writeStored(draftKey, val);
   };
+
+  const insertText=(addition,from=textarea.current?.selectionStart ?? input.length,to=textarea.current?.selectionEnd ?? from)=>{
+    const next=insertComposerText(input,from,to,addition);if(!next){setError('Tin nhắn tối đa 2000 ký tự.');return;}
+    setInput(next.text);writeStored(draftKey,next.text);setCaret(next.caret);pendingCaret.current=next.caret;setMentionClosed(true);setEmojiOpen(false);
+  };
+  const chooseMention=member=>{if(mention)insertText('@'+mentionLabel(member)+' ',mention.start,mention.end);};
+  useChatLayoutEffect(()=>{if(pendingCaret.current===null)return;const cursor=pendingCaret.current;pendingCaret.current=null;textarea.current?.focus?.();textarea.current?.setSelectionRange?.(cursor,cursor);},[input]);
 
   // Listen for save-active-drafts event (triggered on auto-update)
   useEffect(() => {
@@ -252,7 +269,8 @@ function ScopedChat({
   useEffect(() => {
     if (!supabase || !teamId || accountId === "demo") return;
 
-    let channel = null;
+    let channel = null, reconnectPoll = null, disposed=false;
+    const stopPoll=()=>{if(reconnectPoll){clearInterval(reconnectPoll);reconnectPoll=null;}};
     try {
       channel = supabase
         .channel(`team-chat:${teamId}`)
@@ -267,11 +285,15 @@ function ScopedChat({
           () => fetchRemoteMessages(),
         )
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") fetchRemoteMessages();
+          if(disposed)return;
+          if (status === "SUBSCRIBED") {stopPoll();fetchRemoteMessages();}
+          else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status) && !reconnectPoll) reconnectPoll=setInterval(()=>{if(document.visibilityState!=='hidden')fetchRemoteMessages();},8000);
         });
     } catch {}
 
     return () => {
+      disposed=true;
+      stopPoll();
       if (channel && supabase) {
         try {
           supabase.removeChannel(channel);
@@ -346,7 +368,7 @@ function ScopedChat({
     if (!textarea.current) return;
     textarea.current.style.height = "auto";
     textarea.current.style.height =
-      Math.min(124, textarea.current.scrollHeight) + "px";
+      Math.min(124, textarea.current.scrollHeight + 2) + "px";
   }, [input]);
 
   useEffect(() => {
@@ -692,7 +714,7 @@ function ScopedChat({
                       {m.sender || sender?.name || "Thành viên"}
                     </p>
                   )}
-                  <p className="chat-message-text">{m.text}</p>
+                  <p className="chat-message-text">{messageParts(m.text,members).map((part,index)=>part.mention?<mark className="chat-mention" key={index}>{part.text}</mark>:part.text)}</p>
                   {m.legacyUnverified && (
                     <span className="chat-legacy-label">
                       Lịch sử cũ · tác giả chưa xác minh
@@ -747,6 +769,8 @@ function ScopedChat({
             {t(error)}
           </p>
         )}
+        {candidates.length>0 && <div className="chat-mention-menu" role="listbox" id="chat-mentions" aria-label="Gắn tên thành viên">{candidates.map((member,index)=><Pressable type="button" role="option" aria-selected={index===activeMention} id={'chat-mention-'+index} key={member.id} onPointerDown={e=>e.preventDefault()} onClick={()=>chooseMention(member)}><Avatar src={member.avatar} name={member.name}/><span><strong>{member.name}</strong><small>@{mentionLabel(member)}{member.number?' · #'+member.number:''}</small></span></Pressable>)}</div>}
+        {emojiOpen && <div className="chat-emoji-tray" role="group" aria-label="Biểu cảm"><header><strong>Biểu cảm</strong><Pressable type="button" aria-label="Đóng biểu cảm" onClick={()=>setEmojiOpen(false)}><X size={18}/></Pressable></header><div>{BASIC_EMOJI.map(emoji=><Pressable type="button" aria-label={'Chèn '+emoji} key={emoji} onPointerDown={e=>e.preventDefault()} onClick={()=>insertText(emoji)}>{emoji}</Pressable>)}</div></div>}
         <form
           className="chat-composer"
           onSubmit={(e) => {
@@ -754,6 +778,7 @@ function ScopedChat({
             send(input);
           }}
         >
+          <Pressable type="button" className="chat-emoji-toggle" aria-label="Mở biểu cảm" aria-expanded={emojiOpen} onPointerDown={e=>e.preventDefault()} onClick={()=>{setEmojiOpen(v=>!v);setMentionClosed(true);}}><Smile size={22}/></Pressable>
           <label className="sr-only" htmlFor="chat-input">
             {t("Tin nhắn")}
           </label>
@@ -766,6 +791,11 @@ function ScopedChat({
             value={input}
             maxLength={2000}
             onChange={handleInputChange}
+            onSelect={e=>setCaret(e.target.selectionStart)}
+            aria-autocomplete="list"
+            aria-controls={candidates.length?'chat-mentions':undefined}
+            aria-activedescendant={candidates.length?'chat-mention-'+activeMention:undefined}
+            onKeyDown={e=>{if(e.nativeEvent?.isComposing || e.isComposing || !candidates.length)return;if(e.key==='Escape'){e.preventDefault();setMentionClosed(true);}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();setMentionIndex((activeMention+(e.key==='ArrowDown'?1:candidates.length-1))%candidates.length);}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();chooseMention(candidates[activeMention]);}}}
           />
           <Pressable
             type="submit"

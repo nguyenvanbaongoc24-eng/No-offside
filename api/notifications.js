@@ -24,6 +24,7 @@ export default async function handler(req,res){
   if(req.method==='GET'){result=await client.rpc('no_chat_unread');if(!result.error)await dispatchAfterCommit();}
   else if(req.method==='POST'){
    switch(body.action){
+    case 'settings':result=await client.rpc('no_notification_settings',{p_patch:body.preferences ?? null});break;
     case 'read':result=await client.rpc('no_chat_mark_read',{p_team_id:body.teamId,p_message_id:body.messageId});break;
     case 'presence':result=await client.rpc('no_chat_presence_update',{p_id:body.installationId,p_team_id:body.teamId,p_visible:body.visible===true});break;
     case 'state':result=await client.rpc('no_push_device_state',{p_id:body.installationId,p_secret:body.installationSecret});break;

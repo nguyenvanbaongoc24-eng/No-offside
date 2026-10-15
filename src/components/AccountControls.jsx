@@ -1,3 +1,4 @@
+import {notify} from '../lib/feedback';
 import Pressable from './Pressable';
 import React, { useEffect, useState } from "react";
 import { ArrowRightLeft, LogOut, Plus, Check, X, User, Trash2 } from "lucide-react";
@@ -35,8 +36,8 @@ export default function AccountControls({
   }, [accountId]);
 
   const handleToggleAutoLogin = (enabled) => {
-    setAutoLogin(enabled);
-    writeStored("no_offside_autologin_" + accountId, enabled);
+    if(!writeStored("no_offside_autologin_" + accountId, enabled)){notify("Không lưu được tùy chọn đăng nhập.","error");return;}
+    setAutoLogin(enabled);notify("Đã lưu tùy chọn đăng nhập trên thiết bị này");
     if (enabled) {
       writeStored("no_offside_last_autologin_account", accountId);
     } else {

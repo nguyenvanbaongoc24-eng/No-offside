@@ -1,3 +1,4 @@
+import {notify} from '../lib/feedback';
 import { useLayoutEffect, useState } from "react";
 import { readStored, writeStored } from "../lib/storage";
 export const defaultAppearance = { theme: "system", fontFamily: "Be Vietnam Pro", fontSize: "medium" };
@@ -19,9 +20,11 @@ export function usePersonalAppearance(accountId) {
     const next = { ...value, ...patch };
     if (!writeStored(key, next)) {
       setError("Không lưu được tùy chọn. Giao diện vẫn giữ lựa chọn trước đó.");
+      notify("Không lưu được tùy chọn giao diện.","error");
       return;
     }
     setState({ key, value: next });
+    notify("Đã lưu tùy chọn giao diện trên thiết bị này");
     setError("");
   };
   return { value, update, error };

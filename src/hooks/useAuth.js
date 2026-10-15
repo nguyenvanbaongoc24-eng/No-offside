@@ -2058,6 +2058,15 @@ export function useAuth() {
     const { archivedAt, archivedBy, archiveReason, ...match } = archived;
     return setData((prev) => restoreTeamMatch(prev, { match, index: 0 }));
   };
+  const exitTeam = async (action, confirmation) => withPendingWrite(async () => {
+    if(demoSession || !authSession?.access_token || !teamSettings.id)throw Error('Vui lòng đăng nhập vào đội trước khi thao tác.');
+    const actor=authSession.user.id,scope=dataKey;
+    const {response,data:result}=await serverRequest('/api/teams',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${authSession.access_token}`},body:JSON.stringify({action:action==='dissolve'?'dissolve-team':'leave-team',teamId:teamSettings.id,confirmation})});
+    if(!response.ok || !result.success)throw Error(result.error || 'Không cập nhật được đội.');
+    // Do not overwrite the workspace if the account changed during the request.
+    if(liveAccount.current!==actor || activeWorkspace.current!==scope)return;
+    await fetchWorkspace();
+  });
   const updateUsername = async (newUsername) => {
     if (!newUsername || !newUsername.trim()) {
       throw new Error("Tên đăng nhập không được để trống.");
@@ -2124,6 +2133,7 @@ export function useAuth() {
     isUnlocked,
     hasTeam,
     updateUsername,
+    exitTeam,
     authLoading:
       authLoading ||
       (!demoSession &&

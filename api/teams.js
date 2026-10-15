@@ -56,8 +56,15 @@ export default async function handler(req, res) {
     }
     if (req.method !== "POST")
       return res.status(405).json({ error: "Method not allowed" });
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+    let body;
+    try {body=typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};} catch {return res.status(400).json({error:'Dữ liệu không hợp lệ.'});}
+    if(!body || typeof body!=='object' || Array.isArray(body))return res.status(400).json({error:'Dữ liệu không hợp lệ.'});
+    if (['leave-team','dissolve-team'].includes(body.action)) {
+      if(typeof body.teamId!=='string' || body.teamId.length>100)return res.status(400).json({error:'Đội không hợp lệ.'});
+      const {data,error}=await client.rpc('no_app_exit_team',{p_team_id:body.teamId,p_dissolve:body.action==='dissolve-team',p_confirmation:typeof body.confirmation==='string'?body.confirmation:''});
+      if(error)throw error;
+      return res.status(200).json(data);
+    }
     if (body.action === "create-team") {
       const team = body.team || {};
       if (

@@ -1,3 +1,5 @@
+import FeedbackToast from './components/FeedbackToast';
+import {withFeedback} from './lib/feedback';
 import Pressable from './components/Pressable';
 import QuickActions from './components/QuickActions';
 import QuickInvite from './components/QuickInvite';
@@ -56,6 +58,7 @@ export default function App() {
         key={startupAttempt}
         onRetryStartup={() => setStartupAttempt((attempt) => attempt + 1)}
       />
+      <FeedbackToast/>
       <VersionNotice />
     </>
   );
@@ -452,7 +455,7 @@ function Application({ onRetryStartup }) {
             ) : activeTab === "team-settings" ? (
               <TeamSettings
                 teamSettings={auth.teamSettings}
-                onUpdateTeamSettings={auth.updateTeamSettings}
+                onUpdateTeamSettings={withFeedback(auth.updateTeamSettings)}
                 onBack={() => navigate("profile")}
                 currentUserRole={auth.currentUserRole}
                 preferences={preferences}
@@ -522,15 +525,18 @@ function Application({ onRetryStartup }) {
                   onCreateInvite={auth.createInvite}
                   onReadInvite={auth.readInvite}
                   onRevokeInvite={auth.revokeInvite}
-                  onUpdateUsername={auth.updateUsername}
+                  onUpdateUsername={withFeedback(auth.updateUsername)}
+                  onTeamExit={withFeedback(auth.exitTeam, "Đã cập nhật đội đang tham gia")}
+                  passwordToken={auth.authSession?.access_token}
+                  demoSession={auth.demoSession}
                   onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
-                  onLogout={auth.logout}
+                  onLogout={withFeedback(auth.logout,"Đã đăng xuất")}
                   accountPanel={
                     <AccountControls
                       user={auth.user}
                       accountId={auth.accountId}
                       session={auth.demoSession ? null : auth.authSession}
-                      onLogout={auth.logout}
+                      onLogout={withFeedback(auth.logout,"Đã đăng xuất")}
                       onNavigate={navigate}
                     />
                   }
@@ -538,8 +544,8 @@ function Application({ onRetryStartup }) {
                   appearancePanel={
                     <AppearanceSettings preferences={preferences} />
                   }
-                  onUpdateProfile={auth.updateProfile}
-                  onUpdateTeamName={auth.updateTeamName}
+                  onUpdateProfile={withFeedback(auth.updateProfile)}
+                  onUpdateTeamName={withFeedback(auth.updateTeamName)}
                   onUpdateSubAdminTitle={auth.updateSubAdminTitle}
                   onAddSubAdmin={auth.addSubAdmin}
                   onRequestAdmin={auth.requestAdmin}

@@ -190,3 +190,23 @@ test('local captain/owner hints do not override the current verified team role',
  let tree;act(()=>tree=renderer.create(React.createElement(Profile,{user:{...user,isCaptain:true,roleType:'owner'},teamSettings:{id:'one',ownerId:user.id,teamName:'FC'},currentUserRole:'member',onNavigate(){},onCreateInvite:async()=>({code:'NEVER'})})));
  assert.doesNotMatch(texts(tree),/Quản lý đội|Mời thành viên/);act(()=>tree.unmount());
 });
+
+test('chat mentions support keyboard selection, persist the draft, and emoji insertion does not send',()=>{
+ storage.clear();deny=false;const {tree}=mountChat();
+ act(()=>tree.root.findByType('textarea').props.onChange({target:{value:'Xin chào @Minh',selectionStart:14}}));
+ const choices=tree.root.findAll(node=>node.type==='button' && node.props.role==='option');assert.equal(choices.length,1);
+ act(()=>tree.root.findByType('textarea').props.onKeyDown({key:'Enter',preventDefault(){},nativeEvent:{isComposing:false}}));
+ assert.equal(tree.root.findByType('textarea').props.value,'Xin chào @Minh Anh ');assert.equal(JSON.parse(storage.get('no_offside_draft_account-one::team-one')),'Xin chào @Minh Anh ');
+ act(()=>tree.root.findAllByType('button').find(b=>b.props['aria-label']==='Mở biểu cảm').props.onClick());
+ act(()=>tree.root.findAllByType('button').find(b=>b.props['aria-label']==='Chèn ⚽').props.onClick());
+ assert.equal(tree.root.findByType('textarea').props.value,'Xin chào @Minh Anh ⚽');assert.equal(JSON.parse(storage.get('no_offside_messages_account-one::team-one')).length,0);act(()=>tree.unmount());
+});
+
+test('profile Back restores the profile parent entry instead of dashboard, including browser Back',()=>{
+ const entries=[{noOffsideTab:'profile'}];let index=0;
+ window.history={get state(){return entries[index];},replaceState(state){entries[index]=state;},pushState(state){entries.splice(++index);entries[index]=state;},back(){index--;listeners.popstate({state:entries[index]});}};
+ let tree;act(()=>tree=renderer.create(React.createElement(Profile,{user,teamSettings:{teamName:'FC',members:[]},currentUserRole:'member',hasTeam:true,onNavigate(){},onLogout(){}})));
+ act(()=>tree.root.findAllByType('button').find(b=>b.findAllByType('strong').some(s=>s.children.includes('Thành tích của tôi'))).props.onClick());assert.equal(window.history.state.noOffsideTab,'profile');assert.equal(window.history.state.noOffsideDetail,'stats');
+ act(()=>tree.root.findAllByType('button').find(b=>b.props['aria-label']==='Quay lại Cá nhân').props.onClick());assert.equal(window.history.state.noOffsideTab,'profile');assert.equal(tree.root.findAllByProps({className:'profile-hero'}).length,1);
+ act(()=>tree.unmount());delete window.history;
+});

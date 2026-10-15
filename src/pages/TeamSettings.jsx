@@ -1,3 +1,4 @@
+import {notify} from '../lib/feedback';
 import Pressable from '../components/Pressable';
 import React, { useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
@@ -69,6 +70,7 @@ export default function TeamSettings({
                   update("logo", await imageDataUrl(e.target.files?.[0]));
                 } catch (err) {
                   setError(err.message);
+                  notify(err.message, "error");
                 }
               }}
             />

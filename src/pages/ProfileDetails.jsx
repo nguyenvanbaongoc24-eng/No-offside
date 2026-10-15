@@ -1,6 +1,7 @@
+import {notify} from '../lib/feedback';
 import Pressable from '../components/Pressable';
 import { personalText } from "../lib/personalCopy";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -37,6 +38,7 @@ import Avatar from "../components/Avatar";
 import { imageDataUrl, uploadAvatarImage } from "../lib/images";
 
 export default function ProfileDetails({
+  initialAvatarMenu = false,
   detail = "profile",
   preferences,
   user,
@@ -61,6 +63,9 @@ export default function ProfileDetails({
 }) {
   const t = (text) => personalText(text, preferences?.value.language);
   // Personal Info Form State
+  const avatarInput = useRef(null);
+  const [readingAvatar,setReadingAvatar] = useState(false);
+  const [avatarMenu,setAvatarMenu] = useState(initialAvatarMenu);
   const [avatar, setAvatar] = useState(user.avatar);
   const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
   const [name, setName] = useState(user.name ?? "");
@@ -124,19 +129,22 @@ export default function ProfileDetails({
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setReadingAvatar(true);
     try {
+      const preview=await imageDataUrl(file);
       setSelectedAvatarFile(file);
-      setAvatar(await imageDataUrl(file));
+      setAvatar(preview);
       setProfileError("");
     } catch (err) {
       setProfileError(err.message);
-    }
+      notify(err.message, "error");
+    } finally {setReadingAvatar(false);}
   };
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     const profileForm = e.currentTarget;
-    if (savingProfile) return;
+    if (savingProfile || readingAvatar) return;
     setSavingProfile(true);
     setProfileError("");
     setIsSaved(false);
@@ -164,9 +172,8 @@ export default function ProfileDetails({
       );
       setIsSaved(true);
     } catch (err) {
-      setProfileError(
-        err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại.",
-      );
+      const message=err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại.";
+      setProfileError(message);notify(message,'error');
     } finally {
       setSavingProfile(false);
     }
@@ -277,20 +284,19 @@ export default function ProfileDetails({
             </span>
           </div>
 
-          <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
+          {avatarMenu && <div className="avatar-source-menu" role="dialog" aria-label="Ảnh đại diện"><h3>Ảnh đại diện của bạn</h3><p className="field-hint">Chọn JPG, PNG hoặc WebP. Ảnh được lưu khi cập nhật hồ sơ.</p><Pressable type="button" className="primary-button" onClick={()=>{setAvatarMenu(false);avatarInput.current?.click();}}><Camera size={18}/>Chọn ảnh từ thiết bị</Pressable><Pressable type="button" className="choice-button" aria-label="Đóng" onClick={()=>setAvatarMenu(false)}>Hủy</Pressable></div>}
+          <form onSubmit={handleSaveProfile} onInvalid={()=>notify("Kiểm tra thông tin bắt buộc trước khi lưu.","error")} className="space-y-3 text-xs">
             <label className="form-field" htmlFor="profile-avatar">
               {t("Ảnh đại diện")}
-              <Avatar
-                src={avatar}
-                name={name}
-                className="profile-form-avatar"
-              />
+              <Pressable type="button" className="profile-avatar-edit" aria-label="Chọn ảnh đại diện" onClick={(event)=>{event.preventDefault();setAvatarMenu(true);}}><Avatar src={avatar} name={name} className="profile-form-avatar"/><Camera size={16} aria-hidden="true"/></Pressable>
               {avatar !== user.avatar && (
                 <span className="field-hint">
                   {t("Ảnh mới sẽ áp dụng khi cập nhật hồ sơ.")}
                 </span>
               )}
               <input
+                ref={avatarInput}
+                hidden
                 id="profile-avatar"
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -420,7 +426,7 @@ export default function ProfileDetails({
             <Pressable
               whileTap={{ scale: 0.95 }}
               type="submit"
-              disabled={savingProfile}
+              disabled={savingProfile || readingAvatar}
               className="w-full h-11 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs shadow-lg shadow-green-500/30 flex items-center justify-center whitespace-nowrap cursor-pointer mt-1"
             >
               {savingProfile ? t("Đang cập nhật…") : t("Cập nhật hồ sơ")}

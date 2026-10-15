@@ -683,7 +683,7 @@ export default function LineupBuilder({
           ))}
 
           {/* Hint Overlay */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-emerald-200/90 font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
+          <div className="pitch-interaction-hint">
             Kéo thả vị trí tùy ý • Chạm để đổi người
           </div>
         </div>

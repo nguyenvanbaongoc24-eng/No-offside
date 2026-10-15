@@ -1,3 +1,5 @@
+import ChangePassword from '../components/ChangePassword';
+import TeamExit from '../components/TeamExit';
 import Pressable from '../components/Pressable';
 import { TeamSwitcher } from "../components/TeamIdentityHeader";
 import { personalText } from "../lib/personalCopy";
@@ -20,6 +22,8 @@ import {
   Trophy,
   UserPlus,
   Languages,
+  KeyRound,
+  Camera,
 } from "lucide-react";
 import InviteShare from "../components/InviteShare";
 import Avatar from "../components/Avatar";
@@ -59,10 +63,11 @@ export default function ProfileMenu(props) {
     onReadInvite,
     onRevokeInvite,
   } = props;
-  const [detail, setDetailState] = useState(props.initialDetail || null),
+  const [detail, setDetailState] = useState(()=>props.initialDetail || (typeof window!=="undefined" && window.history?.state?.noOffsideTab==="profile" ? window.history.state.noOffsideDetail : null) || null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [username, setUsername] = useState(user.username || "");
+  const [avatarLaunch,setAvatarLaunch] = useState(false);
   const [detailDirection, setDetailDirection] = useState(1);
   const homeScroll = useRef(0),
     previousDetail = useRef(detail);
@@ -70,14 +75,20 @@ export default function ProfileMenu(props) {
     if (!detail) homeScroll.current = window.scrollY || 0;
     setDetailDirection(1);
     window.history?.pushState(
-      { ...window.history.state, noOffsideDetail: next },
+      { ...window.history.state, noOffsideTab: "profile", noOffsideDetail: next },
       "",
     );
     setDetailState(next);
   };
   useEffect(() => {
+    if (!window.history?.replaceState) return;
+    // Pin the parent entry before pushing local detail screens (also after refresh).
+    window.history.replaceState({...window.history.state,noOffsideTab:'profile',noOffsideDetail:detail}, '');
+  }, []);
+  useEffect(() => {
     const back = (event) => {
       if (event.state?.noOffsideTab === "profile") {
+        setAvatarLaunch(false);
         setDetailDirection(-1);
         setDetailState(event.state.noOffsideDetail || null);
         setError("");
@@ -111,6 +122,7 @@ export default function ProfileMenu(props) {
     appearance: "Giao diện",
     notifications: "Thông báo",
     accounts: "Tài khoản",
+    password: "Đổi mật khẩu",
     members: "Thành viên đội",
     admin: "Phân quyền",
     requests: "Yêu cầu chờ duyệt",
@@ -189,6 +201,7 @@ export default function ProfileMenu(props) {
                 window.history.back();
                 return;
               }
+              setAvatarLaunch(false);
               setDetailDirection(-1);
               setDetailState(
                 ["admin", "requests"].includes(detail) ? "management" : null,
@@ -201,7 +214,7 @@ export default function ProfileMenu(props) {
           <h1>{t(titles[detail])}</h1>
         </header>
         {inviteSheet}
-        {detail === "management" && leader ? (
+        {detail === "password" ? <ChangePassword token={props.passwordToken} demo={props.demoSession}/> : detail === "management" && leader ? (
           <section className="profile-group profile-management">
             <Row icon={UserPlus} onClick={openInvite}>
               {t("Mời thành viên")}
@@ -245,6 +258,7 @@ export default function ProfileMenu(props) {
         ) : detail === "team" ? (
           <section className="settings-card m-4">
             <h2>{teamSettings?.teamName || user.teamName}</h2>
+            {hasTeam && <TeamExit team={teamSettings} role={currentUserRole} onExit={props.onTeamExit} disabled={props.demoSession}/>}
             <TeamSwitcher
               teamId={teamSettings?.id}
               memberships={props.memberships}
@@ -303,7 +317,7 @@ export default function ProfileMenu(props) {
           </div>
         ) : (
           <>
-            <ProfileDetails {...props} detail={detail} />
+            <ProfileDetails {...props} detail={detail} initialAvatarMenu={avatarLaunch} />
             {detail === "requests" &&
               !(teamSettings?.pendingAdminRequests || []).length && (
                 <p className="p-4 field-hint">Không có yêu cầu chờ duyệt.</p>
@@ -357,7 +371,7 @@ export default function ProfileMenu(props) {
       <header className="personal-header">
         <p className="personal-eyebrow">{t("Cá nhân")}</p>
         <section className="profile-hero" aria-label="Hồ sơ">
-          <Avatar src={user.avatar} name={user.name} />
+          <Pressable type="button" className="profile-avatar-edit" aria-label="Thay ảnh đại diện" onClick={()=>{setAvatarLaunch(true);navigateDetail('profile');}}><Avatar src={user.avatar} name={user.name}/><Camera size={16} aria-hidden="true"/></Pressable>
           <div>
             <h1>{user.name || t("Hồ sơ của bạn")}</h1>
             <p>
@@ -504,6 +518,7 @@ export default function ProfileMenu(props) {
       </section>
       <section className="profile-group">
         <h2>{t("Tài khoản")}</h2>
+        <Row icon={KeyRound} onClick={()=>navigateDetail("password")}>Đổi mật khẩu</Row>
         {accountPanel && (
           <Row icon={ArrowRightLeft} onClick={() => navigateDetail("accounts")}>
             {t("Chuyển tài khoản")}

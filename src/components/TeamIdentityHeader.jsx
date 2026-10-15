@@ -27,7 +27,7 @@ export function TeamSwitcher({
         >
           {memberships.map((m) => (
             <option key={m.teamId || m.team_id} value={m.teamId || m.team_id}>
-              {m.teamName || m.name}
+              {m.teamName || m.name}{m.chatUnread > 0 ? ` · ${m.chatUnread} tin chưa đọc` : ""}
             </option>
           ))}
         </select>

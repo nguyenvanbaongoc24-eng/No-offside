@@ -1,3 +1,4 @@
+import {dispatchAfterCommit} from './_push.js';
 import {
   getUserClient,
   getAuthUser,
@@ -47,6 +48,7 @@ export default async function handler(req, res) {
         p_key: body.requestKey,
       });
       if (error) throw error;
+      await dispatchAfterCommit();
       return res.status(200).json(data);
     }
     if (
@@ -59,6 +61,7 @@ export default async function handler(req, res) {
         p_ids: body.ids,
       });
       if (error) throw error;
+      await dispatchAfterCommit();
       return res.status(200).json(data);
     }
     if (body.action === "settings" && body.teamId && body.updates) {
@@ -87,6 +90,7 @@ export default async function handler(req, res) {
       if (error?.code === "40001")
         return res.status(409).json({ error: error.message });
       if (error) throw error;
+      await dispatchAfterCommit();
       return res.status(200).json(data);
     }
     return res

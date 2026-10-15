@@ -1,3 +1,4 @@
+import {dispatchAfterCommit} from './_push.js';
 import {
   getUserClient,
   getAuthUser,
@@ -8,6 +9,7 @@ import {
 } from "./_storageHelper.js";
 export const presentMessage = (m) => ({
   id: m.id,
+  sequence: m.sequence == null ? undefined : String(m.sequence),
   teamId: m.team_id,
   senderId: m.sender_id,
   clientMsgId: m.client_msg_id,
@@ -64,7 +66,7 @@ export default async function handler(req, res) {
       let query = client
         .from("no_team_messages")
         .select(
-          "id,team_id,sender_id,client_msg_id,text,created_at,legacy_sender_name,legacy_unverified",
+          "id,sequence,team_id,sender_id,client_msg_id,text,created_at,legacy_sender_name,legacy_unverified",
         )
         .eq("team_id", teamId)
         .order("created_at", { ascending: false })
@@ -120,6 +122,7 @@ export default async function handler(req, res) {
       });
       if (error) throw error;
       if (!data?.id) throw Error("Server did not acknowledge message");
+      await dispatchAfterCommit();
       return res
         .status(200)
         .json({ success: true, message: presentMessage(data) });

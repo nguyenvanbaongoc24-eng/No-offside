@@ -1,3 +1,4 @@
+import {disconnectPushDevice} from '../lib/pushDevice';
 import {
   transactionInstant,
   localTransactionTime,
@@ -1923,6 +1924,7 @@ export function useAuth() {
       }
       removeSession("no_offside_app_unlocked");
       removeSession("hideWelcomePopup");
+      await disconnectPushDevice().catch(() => {});
       if (supabase && authSession) {
         const { error } = await supabase.auth.signOut({ scope });
         if (error) throw error;

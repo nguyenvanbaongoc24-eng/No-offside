@@ -47,7 +47,8 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//, /^\/version\.json/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: false
+        skipWaiting: false,
+        importScripts: ['/push-worker.js']
       },
       manifest: {
         name: 'No Offside',

@@ -1,3 +1,6 @@
+import NotificationSettings from './components/NotificationSettings';
+import {useChatUnread} from './hooks/useChatUnread';
+import {safePushTarget} from './lib/pushDevice';
 import TeamAccessState from "./pages/TeamAccessState";
 import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
 import StartupGate from "./components/StartupGate";
@@ -53,6 +56,8 @@ export default function App() {
 }
 function Application({ onRetryStartup }) {
   const auth = useAuth();
+  const chatUnread = useChatUnread(auth.accountId, auth.demoSession ? null : auth.authSession?.access_token, !auth.authLoading);
+  const memberships = (auth.dbMemberships || []).map(m => ({...m, chatUnread: chatUnread.countFor(m.teamId || m.team_id)}));
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
   const [tab, setTab] = useState(
     window.location.pathname.startsWith("/invite/")
@@ -194,6 +199,37 @@ function Application({ onRetryStartup }) {
       );
     setTab(target);
   };
+  const [pushTarget,setPushTarget] = useState(() => {
+    const target = safePushTarget(window.location.href);
+    try { return target || JSON.parse(sessionStorage.getItem('no_offside_push_target') || 'null'); } catch { return target; }
+  });
+  const [pushError,setPushError] = useState('');
+  const openingPush = useRef(false);
+  const pushAccount = useRef(auth.accountId); pushAccount.current = auth.accountId;
+  useEffect(() => {
+    const receive = event => {
+      if(event.data?.type !== 'NO_OFFSIDE_PUSH_OPEN') return;
+      const target = safePushTarget(event.data.url);
+      if(target) { sessionStorage.setItem('no_offside_push_target',JSON.stringify(target)); setPushTarget(target); }
+    };
+    navigator.serviceWorker?.addEventListener('message',receive);
+    return () => navigator.serviceWorker?.removeEventListener('message',receive);
+  },[]);
+  useEffect(() => {
+    if(!pushTarget) return;
+    sessionStorage.setItem('no_offside_push_target',JSON.stringify(pushTarget));
+    if(auth.authLoading || auth.startupPending || !auth.isLoggedIn || auth.switchingTeam || openingPush.current) return;
+    if((pushTarget.accountId && pushTarget.accountId !== auth.accountId) || !memberships.some(m => (m.teamId || m.team_id) === pushTarget.teamId)) {
+      setPushError('Thông báo thuộc tài khoản hoặc đội bạn không có quyền truy cập.');
+      setPushTarget(null); sessionStorage.removeItem('no_offside_push_target'); return;
+    }
+    openingPush.current = true;
+    (async () => {
+      try { if(auth.teamSettings.id !== pushTarget.teamId) await auth.switchTeam(pushTarget.teamId); if(pushAccount.current !== auth.accountId)return; navigate(pushTarget.view); setPushTarget(null); sessionStorage.removeItem('no_offside_push_target'); }
+      catch { setPushError('Không mở được đội từ thông báo. Hãy kiểm tra kết nối rồi mở lại thông báo.'); }
+      finally { openingPush.current = false; }
+    })();
+  },[pushTarget,auth.authLoading,auth.startupPending,auth.isLoggedIn,auth.switchingTeam,auth.accountId,auth.teamSettings.id]);
   let inviteCode =
     window.location.pathname.split("/invite/")[1]?.split("/")[0] ||
     auth.teamSettings.id;
@@ -262,7 +298,7 @@ function Application({ onRetryStartup }) {
     .filter((d) => d.playerId === auth.user.id && d.month === currentMonth)
     .reduce((sum, d) => sum + Number(d.amount), 0);
   const shared = {
-    memberships: auth.dbMemberships,
+    memberships,
     onSwitchTeam: auth.switchTeam,
     switchingTeam: auth.switchingTeam,
     unreadCount: auth.notices.filter((notice) => notice.unread).length,
@@ -286,7 +322,7 @@ function Application({ onRetryStartup }) {
     { id: "dashboard", label: "Trang chủ", Icon: Home },
     { id: "lineup", label: "Chiến thuật", Icon: Network },
     { id: "fund", label: "Quỹ đội", Icon: Wallet },
-    { id: "chat", label: "Tin nhắn", Icon: MessageSquare },
+    { id: "chat", label: "Tin nhắn", Icon: MessageSquare, unreadCount: chatUnread.countFor(auth.teamSettings.id) },
     { id: "profile", label: "Cá nhân", Icon: User },
   ];
   return (
@@ -299,6 +335,7 @@ function Application({ onRetryStartup }) {
             (activeTab === "chat" ? " app-chat-frame" : "")
           }
         >
+          {pushError && <p role="alert" className="form-error p-3">{pushError}</p>}
           {auth.storageError && (
             <div role="alert" className="p-3 bg-rose-50 text-rose-700">
               {auth.storageError}
@@ -323,7 +360,7 @@ function Application({ onRetryStartup }) {
               <TeamAccessState
                 team={auth.teamSettings}
                 restriction={auth.teamRestriction}
-                memberships={auth.dbMemberships}
+                memberships={memberships}
                 onSwitchTeam={auth.switchTeam}
                 switchingTeam={auth.switchingTeam}
                 onNavigate={navigate}
@@ -437,6 +474,8 @@ function Application({ onRetryStartup }) {
                 teamName={auth.teamSettings.teamName}
                 teamLogo={auth.teamSettings.logo}
                 onKeyboardChange={setChatKeyboardOpen}
+                onMarkViewed={chatUnread.markViewed}
+                onPresence={chatUnread.presence}
                 birthdayEnabled={
                   auth.teamSettings.appearance.birthdayReportEnabled !== false
                 }
@@ -465,6 +504,7 @@ function Application({ onRetryStartup }) {
                       onNavigate={navigate}
                     />
                   }
+                  notificationPanel={<NotificationSettings accountId={auth.accountId} token={auth.authSession?.access_token} demo={auth.demoSession} />}
                   appearancePanel={
                     <AppearanceSettings preferences={preferences} />
                   }
@@ -486,7 +526,7 @@ function Application({ onRetryStartup }) {
               </React.Fragment>
             ) : !auth.activeMatch ? (
               <EmptyTeam
-                memberships={auth.dbMemberships}
+                memberships={memberships}
                 onSwitchTeam={auth.switchTeam}
                 switchingTeam={auth.switchingTeam}
                 unreadCount={auth.notices.filter((n) => n.unread).length}

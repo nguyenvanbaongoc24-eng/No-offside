@@ -47,6 +47,7 @@ export default function ProfileMenu(props) {
     hasTeam = true,
     accountPanel,
     appearancePanel,
+    notificationPanel,
     onNavigate,
     onLogout,
     onOpenNotifications,
@@ -106,6 +107,7 @@ export default function ProfileMenu(props) {
   const titles = {
     profile: "Sửa hồ sơ",
     appearance: "Giao diện",
+    notifications: "Thông báo",
     accounts: "Tài khoản",
     members: "Thành viên đội",
     admin: "Phân quyền",
@@ -269,6 +271,8 @@ export default function ProfileMenu(props) {
                 ))}
             </dl>
           </section>
+        ) : detail === "notifications" ? (
+          notificationPanel
         ) : detail === "appearance" ? (
           <div className="p-4">{appearancePanel}</div>
         ) : detail === "accounts" ? (
@@ -487,6 +491,7 @@ export default function ProfileMenu(props) {
             {t("Ngôn ngữ")}
           </Row>
         )}
+        {notificationPanel && <Row icon={Bell} onClick={() => navigateDetail("notifications")}>Thông báo</Row>}
         {onOpenNotifications && (
           <Row icon={Bell} onClick={onOpenNotifications}>
             {t("Lịch sử thông báo")}

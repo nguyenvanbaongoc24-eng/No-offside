@@ -1,3 +1,4 @@
+import {useViewedMessages} from '../hooks/useViewedMessages';
 import { serverRequest } from "../lib/serverRequest";
 import { beginPendingWrite } from "../lib/pendingWrites";
 import { readStored, writeStored } from "../lib/storage";
@@ -47,6 +48,8 @@ function ScopedChat({
   teamName,
   teamLogo,
   onKeyboardChange,
+  onMarkViewed,
+  onPresence,
 }) {
   const t = (text) => personalText(text, language);
   const scopeKey = chatScope(accountId, teamId);
@@ -115,6 +118,7 @@ function ScopedChat({
   const stream = useRef(null);
   const textarea = useRef(null);
   const nearEnd = useRef(true);
+  useViewedMessages({stream, teamId, messages, ready: Boolean(accessToken && !initialLoading && !error && historyLoaded.current), onMarkViewed, onPresence});
   const previousCount = useRef(0);
   const sending = useRef(false);
 
@@ -653,6 +657,8 @@ function ScopedChat({
                 </div>
               )}
               <article
+                data-message-id={m.sequence && m.status === "sent" ? m.id : undefined}
+                data-message-sequence={m.sequence && m.status === "sent" ? m.sequence : undefined}
                 className={
                   "chat-message-row " +
                   (own ? "is-own" : "is-received") +

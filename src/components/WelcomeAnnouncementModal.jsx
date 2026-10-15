@@ -1,8 +1,26 @@
-import React, { useState } from 'react';
-import { X, Bell } from 'lucide-react';
-export default function WelcomeAnnouncementModal() {
-  const [open,setOpen]=useState(()=>sessionStorage.getItem('hideWelcomePopup') !== 'true');
-  const close=()=>{sessionStorage.setItem('hideWelcomePopup','true');setOpen(false);};
-  if(!open)return null;
-  return <div role="dialog" aria-modal="true" aria-label="Chào mừng" className="fixed inset-0 z-[150] p-4 bg-slate-900/60 backdrop-blur-sm grid place-items-center"><section className="bg-white rounded-3xl max-w-sm w-full p-6"><div className="flex items-center justify-between"><Bell className="text-emerald-600"/><button aria-label="Đóng" onClick={close}><X size={20}/></button></div><h2 className="text-xl font-semibold mt-4">Chào mừng trở lại</h2><p className="text-slate-600 leading-relaxed mt-3">Kiểm tra lịch thi đấu, điểm danh và trạng thái quỹ trước khi ra sân. Thông báo mới nằm ở biểu tượng chuông trên trang chủ.</p><button className="primary-button w-full mt-5" onClick={close}>Bắt đầu</button></section></div>;
+import React,{useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+import {AnimatePresence,motion,useReducedMotion} from 'framer-motion';
+import {X,Bell,ChevronRight} from 'lucide-react';
+import {latestAnnouncements} from '../lib/announcements';
+import BirthdayBanner from './BirthdayBanner';
+import Pressable from './Pressable';
+export default function WelcomeAnnouncementModal({accountId='anonymous',notices=[],birthdays=[],onOpenNotice}){
+  const key=`no_offside_welcome_hidden_${accountId}`;
+  const [open,setOpen]=useState(()=>{try{return sessionStorage.getItem(key)!=='true';}catch{return true;}});
+  const [hide,setHide]=useState(false),preference=useRef(false),reduced=useReducedMotion();
+  const close=()=>{if(preference.current){try{sessionStorage.setItem(key,'true');}catch{}}setOpen(false);};
+  const closeRef=useRef(close);closeRef.current=close;
+  useEffect(()=>{if(!open)return;const timer=setTimeout(()=>closeRef.current(),5000);return()=>clearTimeout(timer);},[open]);
+  if(typeof document==='undefined')return null;
+  const latest=latestAnnouncements(notices);
+  return createPortal(<AnimatePresence>{open && <motion.div className="welcome-overlay" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:reduced?0:0.2}} onClick={close}>
+    <motion.section role="dialog" aria-modal="true" aria-label="Chào mừng trở lại" className="welcome-card" initial={reduced?{opacity:0}:{opacity:0,scale:0.96}} animate={{opacity:1,scale:1}} exit={{opacity:0}} transition={{duration:reduced?0:0.2}} onClick={e=>e.stopPropagation()}>
+      <header><span className="welcome-icon"><Bell size={22}/></span><Pressable type="button" aria-label="Đóng" onClick={close}><X size={21}/></Pressable></header>
+      <p className="welcome-eyebrow">HẸN NHAU RA SÂN</p><h2>Chào mừng trở lại</h2><p className="field-hint">Thông tin mới nhất từ đội của bạn.</p>
+      <BirthdayBanner members={birthdays} accountId={accountId} celebrate/>
+      <div className="welcome-notices">{latest.length?latest.map((notice,index)=><Pressable type="button" key={notice.id||index} className="welcome-notice" onClick={()=>{close();onOpenNotice?.(notice);}}><span><strong>{notice.title||'Thông báo đội'}</strong><span>{notice.content}</span></span><ChevronRight size={18}/></Pressable>):<p className="welcome-empty">Chưa có thông báo mới. Cùng chuẩn bị cho buổi ra sân tiếp theo.</p>}</div>
+      <label className="welcome-preference"><input type="checkbox" checked={hide} onChange={event=>{preference.current=event.target.checked;setHide(event.target.checked);}}/>Không hiển thị lại trong phiên này</label><p className="welcome-auto-close">Tự đóng sau 5 giây</p>
+    </motion.section>
+  </motion.div>}</AnimatePresence>,document.body);
 }

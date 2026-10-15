@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, MoreHorizontal, X } from "lucide-react";
@@ -47,7 +48,7 @@ export default function SwipeMatchCard({
     <div className="large-match-swipe">
       <div className="large-match-gesture">
         {canDelete && (
-          <button
+          <Pressable
             className="large-match-delete"
             aria-label={"Xóa trận " + match.title}
             tabIndex={offset < 0 ? 0 : -1}
@@ -56,7 +57,7 @@ export default function SwipeMatchCard({
           >
             <Trash2 size={22} />
             Xóa
-          </button>
+          </Pressable>
         )}
         <div
           className="large-match-content"
@@ -119,18 +120,18 @@ export default function SwipeMatchCard({
         >
           {canDelete && (
             <div className="match-card-menu">
-              <button
+              <Pressable
                 aria-label="Thao tác trận đấu"
                 aria-expanded={menu}
                 onClick={() => setMenu((v) => !v)}
               >
                 <MoreHorizontal size={20} />
-              </button>
+              </Pressable>
               {menu && (
-                <button className="text-rose-700" onClick={requestDelete}>
+                <Pressable className="text-rose-700" onClick={requestDelete}>
                   <Trash2 size={18} />
                   Xóa trận
-                </button>
+                </Pressable>
               )}
             </div>
           )}
@@ -146,13 +147,13 @@ export default function SwipeMatchCard({
             className="simple-overlay"
           >
             <section className="simple-sheet">
-              <button
+              <Pressable
                 className="sheet-close"
                 aria-label="Đóng"
                 onClick={closeConfirm}
               >
                 <X size={20} />
-              </button>
+              </Pressable>
               <h2 id="archive-match-title" className="text-xl font-semibold">
                 Xóa trận khỏi lịch?
               </h2>
@@ -167,10 +168,10 @@ export default function SwipeMatchCard({
                 </p>
               )}
               <div className="grid grid-cols-2 gap-3 mt-5">
-                <button className="choice-button" onClick={closeConfirm}>
+                <Pressable className="choice-button" onClick={closeConfirm}>
                   Giữ trận
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   className="primary-button bg-rose-700"
                   disabled={busy}
                   onClick={async () => {
@@ -190,7 +191,7 @@ export default function SwipeMatchCard({
                   }}
                 >
                   Xóa và lưu trữ
-                </button>
+                </Pressable>
               </div>
             </section>
           </div>,

@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import { personalText } from "../lib/personalCopy";
 import React from "react";
 import { Sun, Moon, Smartphone, Type } from "lucide-react";
@@ -21,7 +22,7 @@ export default function AppearanceSettings({ preferences }) {
           ["dark", "Tối", Moon],
           ["system", "Hệ thống", Smartphone],
         ].map(([value, label, Icon]) => (
-          <button
+          <Pressable
             type="button"
             className="choice-button flex-col"
             key={value}
@@ -30,14 +31,14 @@ export default function AppearanceSettings({ preferences }) {
           >
             <Icon size={20} />
             {t(label)}
-          </button>
+          </Pressable>
         ))}
       </div>
 
       <h3 className="text-sm font-medium mt-5 mb-2">{t("Ngôn ngữ")}</h3>
       <div className="personal-language-control" role="group" aria-label={t("Ngôn ngữ")}>
-        <button type="button" aria-label="Tiếng Việt" lang="vi" aria-pressed={(preferences.value.language || "vi") === "vi"} onClick={() => preferences.update({language:"vi"})}>VI</button>
-        <button type="button" aria-label="English" lang="en" aria-pressed={preferences.value.language === "en"} onClick={() => preferences.update({language:"en"})}>EN</button>
+        <Pressable type="button" aria-label="Tiếng Việt" lang="vi" aria-pressed={(preferences.value.language || "vi") === "vi"} onClick={() => preferences.update({language:"vi"})}>VI</Pressable>
+        <Pressable type="button" aria-label="English" lang="en" aria-pressed={preferences.value.language === "en"} onClick={() => preferences.update({language:"en"})}>EN</Pressable>
       </div>
       <p className="field-hint mt-2">{preferences.value.language === "en" ? "English currently applies to the Personal menu, profile form and Messages. Detailed management and other screens remain in Vietnamese." : "VI/EN áp dụng cho menu Cá nhân, hồ sơ và Tin nhắn. Quản trị chuyên sâu và các màn khác hiện dùng tiếng Việt."}</p>
       {/* 2. Cỡ chữ */}
@@ -51,7 +52,7 @@ export default function AppearanceSettings({ preferences }) {
           ["medium", "Vừa"],
           ["large", "Lớn"],
         ].map(([value, label]) => (
-          <button
+          <Pressable
             type="button"
             key={value}
             className="choice-button"
@@ -59,7 +60,7 @@ export default function AppearanceSettings({ preferences }) {
             onClick={() => preferences.update({ fontSize: value })}
           >
             {t(label)}
-          </button>
+          </Pressable>
         ))}
       </div>
 
@@ -70,7 +71,7 @@ export default function AppearanceSettings({ preferences }) {
           ["system", "Hệ thống"],
           ["Be Vietnam Pro", "Be Vietnam Pro"],
         ].map(([value, label]) => (
-          <button
+          <Pressable
             type="button"
             key={value}
             className="choice-button"
@@ -78,7 +79,7 @@ export default function AppearanceSettings({ preferences }) {
             onClick={() => preferences.update({ fontFamily: value })}
           >
             {t(label)}
-          </button>
+          </Pressable>
         ))}
       </div>
       <p className="text-xs text-slate-500 mt-3">

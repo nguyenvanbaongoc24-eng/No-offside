@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import {useViewedMessages} from '../hooks/useViewedMessages';
 import { serverRequest } from "../lib/serverRequest";
 import { beginPendingWrite } from "../lib/pendingWrites";
@@ -593,7 +594,7 @@ function ScopedChat({
                 {m.name}
                 {language === "en" ? "’s birthday." : "."}
               </span>
-              <button
+              <Pressable
                 type="button"
                 onClick={() =>
                   send(
@@ -607,19 +608,19 @@ function ScopedChat({
                 }
               >
                 {t("Gửi lời chúc")}
-              </button>
+              </Pressable>
             </div>
           ))}
 
         {hasMore && (
-          <button
+          <Pressable
             type="button"
             className="chat-history-button"
             onClick={loadOlder}
             disabled={historyLoading}
           >
             {historyLoading ? "Đang tải…" : "Xem tin nhắn cũ hơn"}
-          </button>
+          </Pressable>
         )}
         {preservedCount > 0 && (
           <p className="field-hint" role="status">
@@ -707,7 +708,7 @@ function ScopedChat({
                         : "—"}
                     </time>
                     {own && m.status === "failed" && (
-                      <button
+                      <Pressable
                         type="button"
                         className="text-red-500 hover:text-red-700 p-0.5 inline-flex items-center gap-0.5 text-[10px]"
                         onClick={() => retrySend(m)}
@@ -716,7 +717,7 @@ function ScopedChat({
                       >
                         <RefreshCw size={12} className="text-red-500" />
                         <span>Thử lại</span>
-                      </button>
+                      </Pressable>
                     )}
                     {own && m.status === "sending" && (
                       <span className="text-[10px] text-gray-400">...</span>
@@ -730,14 +731,14 @@ function ScopedChat({
       </div>
 
       {unread > 0 && (
-        <button
+        <Pressable
           type="button"
           className="chat-new-messages"
           onClick={scrollBottom}
         >
           <ArrowDown size={18} />
           {t("Tin nhắn mới")} ({unread})
-        </button>
+        </Pressable>
       )}
 
       <div className="chat-composer-area">
@@ -766,14 +767,14 @@ function ScopedChat({
             maxLength={2000}
             onChange={handleInputChange}
           />
-          <button
+          <Pressable
             type="submit"
             aria-label={t("Gửi tin nhắn")}
             disabled={!input.trim()}
             className="primary-button chat-send"
           >
             <Send size={20} strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          </Pressable>
         </form>
       </div>
     </section>

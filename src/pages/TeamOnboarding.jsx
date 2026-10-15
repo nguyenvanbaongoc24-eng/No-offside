@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState } from 'react';
 import {
   Users,
@@ -53,7 +54,7 @@ export default function TeamOnboarding({
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button
+              <Pressable
                 type="button"
                 onClick={onOpenJoinCode}
                 className="h-12 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -61,9 +62,9 @@ export default function TeamOnboarding({
               >
                 <KeyRound className="w-4 h-4 shrink-0" />
                 <span>Nhập mã Club</span>
-              </button>
+              </Pressable>
 
-              <button
+              <Pressable
                 type="button"
                 onClick={onOpenScanQr}
                 className="h-12 px-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-200 active:scale-95 transition-all cursor-pointer"
@@ -71,7 +72,7 @@ export default function TeamOnboarding({
               >
                 <QrCode className="w-4 h-4 shrink-0 text-slate-600" />
                 <span>Quét mã QR</span>
-              </button>
+              </Pressable>
             </div>
           </section>
 
@@ -94,7 +95,7 @@ export default function TeamOnboarding({
               </div>
             </div>
 
-            <button
+            <Pressable
               type="button"
               onClick={onOpenCreateTeam}
               className="w-full h-12 px-4 rounded-2xl bg-slate-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -102,7 +103,7 @@ export default function TeamOnboarding({
             >
               <span>Tạo đội bóng</span>
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </Pressable>
           </section>
         </div>
       </div>

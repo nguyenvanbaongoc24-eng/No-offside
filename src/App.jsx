@@ -1,3 +1,9 @@
+import Pressable from './components/Pressable';
+import QuickActions from './components/QuickActions';
+import QuickInvite from './components/QuickInvite';
+import MatchFormSheet from './components/MatchFormSheet';
+import WelcomeAnnouncementModal from './components/WelcomeAnnouncementModal';
+import {birthdaysToday} from './lib/announcements';
 import NotificationSettings from './components/NotificationSettings';
 import {useChatUnread} from './hooks/useChatUnread';
 import {safePushTarget} from './lib/pushDevice';
@@ -59,6 +65,8 @@ function Application({ onRetryStartup }) {
   const chatUnread = useChatUnread(auth.accountId, auth.demoSession ? null : auth.authSession?.access_token, !auth.authLoading);
   const memberships = (auth.dbMemberships || []).map(m => ({...m, chatUnread: chatUnread.countFor(m.teamId || m.team_id)}));
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
+  const [quickOpen,setQuickOpen]=useState(false),[quickInvite,setQuickInvite]=useState(false);
+  const [quickIntent,setQuickIntent]=useState(null),[quickMatch,setQuickMatch]=useState(null),[quickMatchError,setQuickMatchError]=useState('');
   const [tab, setTab] = useState(
     window.location.pathname.startsWith("/invite/")
       ? "invite-landing"
@@ -189,6 +197,7 @@ function Application({ onRetryStartup }) {
     scrollRoute.current = scrollKey;
   }, [scrollKey, auth.isLoggedIn, auth.authLoading]);
   const navigate = (target) => {
+    setQuickOpen(false);setQuickIntent(null);
     if (activeTab !== "chat" && scrollRoute.current)
       scrollPositions.current.set(scrollRoute.current, window.scrollY);
     if (target !== tab)
@@ -199,6 +208,22 @@ function Application({ onRetryStartup }) {
       );
     setTab(target);
   };
+  const runQuickAction=(action)=>{
+    setQuickOpen(false);
+    if(!leader || !auth.hasTeam || auth.teamRestriction)return;
+    if(action==='match'){
+      setQuickMatchError('');setQuickMatch({opponent:'',datetime:'',timeoutDatetime:'',venue:auth.teamSettings.venue||'',penaltyEnabled:true,penaltyFine:"50000"});
+    }else if(action==='transaction' || action==='formation'){
+      navigate(action==='transaction'?'fund':'lineup');setQuickIntent({id:crypto.randomUUID(),action});
+    }else if(action==='invite')setQuickInvite(true);
+    else if(action==='settings' && auth.currentUserRole==='owner')navigate('team-settings');
+  };
+  const openNotice=async(notice)=>{
+    try{if(notice.matchId && auth.matches.some(m=>m.id===notice.matchId))await auth.selectMatch(notice.matchId);}catch{setPushError('Không mở được trận đấu từ thông báo. Bạn có thể thử lại từ Trang chủ.');}
+    navigate(['dashboard','fund','profile','lineup','chat','governance'].includes(notice.route)?notice.route:'dashboard');
+  };
+  const birthdayMembers=auth.teamSettings.appearance.birthdayReportEnabled===false?[]:birthdaysToday(auth.teamSettings.members,auth.teamSettings.timezone);
+  useEffect(()=>{setQuickOpen(false);setQuickInvite(false);setQuickMatch(null);setQuickIntent(null);},[auth.accountId,auth.teamSettings.id]);
   const [pushTarget,setPushTarget] = useState(() => {
     const target = safePushTarget(window.location.href);
     try { return target || JSON.parse(sessionStorage.getItem('no_offside_push_target') || 'null'); } catch { return target; }
@@ -317,17 +342,18 @@ function Application({ onRetryStartup }) {
     currentUserRole: auth.teamRestriction ? "member" : auth.currentUserRole,
     onNavigate: navigate,
     demoSession: auth.demoSession,
+    birthdays: birthdayMembers,
+    accountId: auth.accountId,
   };
   const tabs = [
     { id: "dashboard", label: "Trang chủ", Icon: Home },
-    { id: "lineup", label: "Chiến thuật", Icon: Network },
-    { id: "fund", label: "Quỹ đội", Icon: Wallet },
-    { id: "chat", label: "Tin nhắn", Icon: MessageSquare, unreadCount: chatUnread.countFor(auth.teamSettings.id) },
-    { id: "profile", label: "Cá nhân", Icon: User },
+    { id: "lineup", label: "Sa bàn", Icon: Network },
+    { id: "chat", label: "Chat", Icon: MessageSquare, unreadCount: chatUnread.countFor(auth.teamSettings.id) },
+    { id: "profile", label: "Tài khoản", Icon: User },
   ];
   return (
     <StartupGate onRetry={onRetryStartup}>
-      <div className="app-shell bg-slate-100 min-h-screen text-gray-900 flex justify-center antialiased">
+      <div className="app-shell bg-slate-50 min-h-screen overflow-x-hidden text-gray-900 flex justify-center antialiased">
         <div
           className={
             "app-frame app-scroll-frame w-full max-w-md bg-slate-50 relative" +
@@ -435,6 +461,8 @@ function Application({ onRetryStartup }) {
               <LineupBuilder
                 serverLineups={auth.lineups}
                 onSaveLineups={auth.saveLineups}
+                createRequest={quickIntent?.action === "formation" ? quickIntent.id : null}
+                onCreateOpened={() => setQuickIntent(null)}
                 key={auth.accountId + auth.teamSettings.id}
                 teamId={auth.teamSettings.id}
                 accountId={auth.accountId}
@@ -452,6 +480,8 @@ function Application({ onRetryStartup }) {
               ) : (
                 <FundManagement
                   {...fundProps}
+                  createRequest={quickIntent?.action === "transaction" ? quickIntent.id : null}
+                  onCreateOpened={() => setQuickIntent(null)}
                   actor={auth.user.name}
                   timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
                   treasurerQr={auth.teamSettings.treasurerQr}
@@ -527,6 +557,8 @@ function Application({ onRetryStartup }) {
             ) : !auth.activeMatch ? (
               <EmptyTeam
                 memberships={memberships}
+                birthdays={birthdayMembers}
+                accountId={auth.accountId}
                 onSwitchTeam={auth.switchTeam}
                 switchingTeam={auth.switchingTeam}
                 unreadCount={auth.notices.filter((n) => n.unread).length}
@@ -595,7 +627,7 @@ function Application({ onRetryStartup }) {
                     danh và báo cáo được bảo toàn
                   </p>
                   {leader && (
-                    <button
+                    <Pressable
                       className="choice-button mt-3"
                       onClick={async () => {
                         try {
@@ -612,7 +644,7 @@ function Application({ onRetryStartup }) {
                       }}
                     >
                       Khôi phục trận
-                    </button>
+                    </Pressable>
                   )}
                 </article>
               ))}
@@ -622,16 +654,22 @@ function Application({ onRetryStartup }) {
             <FloatingBottomNavigation
               tabs={tabs}
               activeTab={activeTab}
-              avatar={auth.user?.avatar}
+              canManage={leader && auth.hasTeam && !auth.teamRestriction}
+              quickActionsOpen={quickOpen}
+              onQuickActions={() => setQuickOpen(true)}
               visible={activeTab === "chat" ? !chatKeyboardOpen : navVisible}
               onNavigate={navigate}
               onReveal={revealNav}
             />
           )}
+          <QuickActions open={quickOpen} onClose={()=>setQuickOpen(false)} role={auth.currentUserRole} onAction={runQuickAction}/>
+          {quickMatch && leader && <MatchFormSheet draft={quickMatch} onChange={setQuickMatch} error={quickMatchError} onClose={()=>setQuickMatch(null)} onSubmit={async event=>{event.preventDefault();try{await saveMatch(quickMatch);setQuickMatch(null);}catch(error){setQuickMatchError(error.message||'Không lưu được trận đấu.');}}}/>}
+          {quickInvite && leader && <QuickInvite team={auth.teamSettings} role={auth.currentUserRole} onClose={()=>setQuickInvite(false)} onCreate={auth.createInvite} onRead={auth.readInvite} onRevoke={auth.revokeInvite}/>}
+          {auth.hasTeam && !auth.teamRestriction && !['invite-landing','create-team'].includes(activeTab) && <WelcomeAnnouncementModal key={auth.accountId} accountId={auth.accountId} notices={auth.notices} birthdays={birthdayMembers} onOpenNotice={openNotice}/>}
           {auth.deletedMatch && leader && (
             <div className="match-undo" role="status">
               <span className="flex-1 text-sm">Đã lưu trữ trận đấu</span>
-              <button
+              <Pressable
                 onClick={async () => {
                   const snapshot = auth.deletedMatch;
                   try {
@@ -643,7 +681,7 @@ function Application({ onRetryStartup }) {
                 }}
               >
                 Hoàn tác
-              </button>
+              </Pressable>
             </div>
           )}
           {showNotices && (
@@ -666,7 +704,7 @@ function Application({ onRetryStartup }) {
                       key={n.id}
                       className="border-b border-slate-100 py-3"
                     >
-                      <button
+                      <Pressable
                         type="button"
                         className="w-full text-left min-h-11"
                         onClick={async () => {
@@ -694,7 +732,7 @@ function Application({ onRetryStartup }) {
                         <span className="text-xs text-emerald-700">
                           Mở nội dung
                         </span>
-                      </button>
+                      </Pressable>
                       <p className="text-sm mt-1 text-slate-600">{n.content}</p>
                       <time
                         className="text-xs text-slate-500"
@@ -709,13 +747,13 @@ function Application({ onRetryStartup }) {
                 ) : (
                   <p className="text-slate-500 py-5">Chưa có thông báo mới.</p>
                 )}
-                <button
+                <Pressable
                   aria-label="Đóng"
                   className="primary-button w-full mt-4"
                   onClick={() => setShowNotices(false)}
                 >
                   Đóng
-                </button>
+                </Pressable>
               </section>
             </div>
           )}

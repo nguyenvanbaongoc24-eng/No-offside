@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import { personalText } from "../lib/personalCopy";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -416,14 +417,14 @@ export default function ProfileDetails({
               </span>
             </div>
 
-            <motion.button
+            <Pressable
               whileTap={{ scale: 0.95 }}
               type="submit"
               disabled={savingProfile}
               className="w-full h-11 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs shadow-lg shadow-green-500/30 flex items-center justify-center whitespace-nowrap cursor-pointer mt-1"
             >
               {savingProfile ? t("Đang cập nhật…") : t("Cập nhật hồ sơ")}
-            </motion.button>
+            </Pressable>
             {profileError && !/số áo/i.test(profileError) && (
               <p role="alert" className="form-error">
                 {t(profileError)}
@@ -485,7 +486,7 @@ export default function ProfileDetails({
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <motion.button
+                  <Pressable
                     whileTap={{ scale: 0.95 }}
                     onClick={async () => {
                       try {
@@ -502,9 +503,9 @@ export default function ProfileDetails({
                   >
                     <UserCheck className="w-3.5 h-3.5" />
                     <span>Duyệt</span>
-                  </motion.button>
+                  </Pressable>
 
-                  <button
+                  <Pressable
                     onClick={async () => {
                       try {
                         if (onRejectAdminRequest)
@@ -518,7 +519,7 @@ export default function ProfileDetails({
                     title="Từ chối"
                   >
                     <UserX className="w-3.5 h-3.5" />
-                  </button>
+                  </Pressable>
                 </div>
               </div>
             ))}
@@ -565,13 +566,13 @@ export default function ProfileDetails({
                   onChange={(e) => setEditingTeamName(e.target.value)}
                   className="flex-1 h-10 bg-white border border-gray-200 rounded-xl px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
                 />
-                <motion.button
+                <Pressable
                   whileTap={{ scale: 0.95 }}
                   type="submit"
                   className="h-10 px-3.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shrink-0 cursor-pointer whitespace-nowrap flex items-center justify-center"
                 >
                   {teamNameSaved ? " Đã Lưu" : "Đổi Tên"}
-                </motion.button>
+                </Pressable>
               </form>
             ) : (
               <p className="text-sm font-bold text-gray-900 tabular-nums">
@@ -621,7 +622,7 @@ export default function ProfileDetails({
                   {/* Nút sửa chức danh & Xóa (Chỉ Đội Trưởng) */}
                   {isOwner && (
                     <div className="flex items-center gap-1.5">
-                      <button
+                      <Pressable
                         onClick={() => {
                           setEditingSubAdmin(admin);
                           setCustomTitleInput(admin.customTitle || "");
@@ -631,9 +632,9 @@ export default function ProfileDetails({
                       >
                         <Tag className="w-3 h-3 text-amber-600" />
                         <span>Chức danh</span>
-                      </button>
+                      </Pressable>
 
-                      <button
+                      <Pressable
                         onClick={() => {
                           setAdminToRemove(admin);
                           setShowRemoveAdminModal(true);
@@ -642,7 +643,7 @@ export default function ProfileDetails({
                         title="Đổi về thành viên"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      </Pressable>
                     </div>
                   )}
                 </div>
@@ -671,7 +672,7 @@ export default function ProfileDetails({
                         {member.name}
                       </span>
                     </div>
-                    <button
+                    <Pressable
                       onClick={() => {
                         setSelectedPromotee(member);
                         setPromoteTitle("Đội Phó");
@@ -680,7 +681,7 @@ export default function ProfileDetails({
                       className="px-2.5 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 active:scale-95 transition-all cursor-pointer whitespace-nowrap flex items-center justify-center"
                     >
                       {isOwner ? "+ Cấp Quyền Admin" : "+ Đề Xuất Admin"}
-                    </button>
+                    </Pressable>
                   </div>
                 ))}
               </div>
@@ -689,14 +690,14 @@ export default function ProfileDetails({
             {/* Yêu cầu 2: Nút Từ Chức / Nhường Quyền Đội Trưởng (Owner Only) */}
             {isOwner && (
               <div className="mt-4 pt-3 border-t border-rose-100">
-                <button
+                <Pressable
                   type="button"
                   onClick={() => setShowTransferOwnerModal(true)}
                   className="w-full py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
                   <span>Từ Chức & Nhường Quyền Đội Trưởng</span>
-                </button>
+                </Pressable>
                 <p className="text-xs text-gray-400 text-center mt-1">
                   Chuyển quyền kiểm soát toàn đội cho một Admin phụ khác
                 </p>
@@ -721,12 +722,12 @@ export default function ProfileDetails({
                   Cấp Chức Danh Cho {editingSubAdmin.name}
                 </h3>
               </div>
-              <button
+              <Pressable
                 onClick={() => setEditingSubAdmin(null)}
                 className="p-1 hover:bg-gray-100 rounded-full text-gray-400 cursor-pointer"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-3.5 space-y-3">
@@ -736,7 +737,7 @@ export default function ProfileDetails({
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {titlePresets.map((t) => (
-                    <button
+                    <Pressable
                       key={t}
                       type="button"
                       onClick={() => setCustomTitleInput(t)}
@@ -747,7 +748,7 @@ export default function ProfileDetails({
                       }`}
                     >
                       {t}
-                    </button>
+                    </Pressable>
                   ))}
                 </div>
               </div>
@@ -765,14 +766,14 @@ export default function ProfileDetails({
                 />
               </div>
 
-              <motion.button
+              <Pressable
                 whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={handleUpdateTitleSubmit}
                 className="w-full h-11 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer mt-2 whitespace-nowrap flex items-center justify-center"
               >
                 Lưu Chức Danh (Hiện Badge Vàng)
-              </motion.button>
+              </Pressable>
             </div>
           </div>
         </div>
@@ -818,7 +819,7 @@ export default function ProfileDetails({
               </label>
               <div className="flex flex-wrap gap-1">
                 {titlePresets.map((tp) => (
-                  <button
+                  <Pressable
                     key={tp}
                     type="button"
                     onClick={() => setPromoteTitle(tp)}
@@ -829,13 +830,13 @@ export default function ProfileDetails({
                     }`}
                   >
                     {tp}
-                  </button>
+                  </Pressable>
                 ))}
               </div>
             </div>
 
             <div className="mt-4 space-y-2">
-              <motion.button
+              <Pressable
                 whileTap={{ scale: 0.95 }}
                 onClick={handleConfirmPromote}
                 className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer whitespace-nowrap flex items-center justify-center"
@@ -843,9 +844,9 @@ export default function ProfileDetails({
                 {isOwner
                   ? "Xác Nhận Cấp Quyền Admin"
                   : "Gửi Yêu Cầu Cho Đội Trưởng"}
-              </motion.button>
+              </Pressable>
 
-              <button
+              <Pressable
                 onClick={() => {
                   setShowPromoteModal(false);
                   setSelectedPromotee(null);
@@ -853,7 +854,7 @@ export default function ProfileDetails({
                 className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>
@@ -882,15 +883,15 @@ export default function ProfileDetails({
             </p>
 
             <div className="mt-5 space-y-2">
-              <motion.button
+              <Pressable
                 whileTap={{ scale: 0.95 }}
                 onClick={handleConfirmRemoveAdmin}
                 className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-md shadow-rose-600/20 cursor-pointer whitespace-nowrap flex items-center justify-center"
               >
                 Xác Nhận Giáng Chức
-              </motion.button>
+              </Pressable>
 
-              <button
+              <Pressable
                 onClick={() => {
                   setShowRemoveAdminModal(false);
                   setAdminToRemove(null);
@@ -898,7 +899,7 @@ export default function ProfileDetails({
                 className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>
@@ -967,7 +968,7 @@ export default function ProfileDetails({
             )}
 
             <div className="space-y-2">
-              <motion.button
+              <Pressable
                 whileTap={{ scale: 0.95 }}
                 disabled={!selectedNewOwner}
                 onClick={handleConfirmTransferOwner}
@@ -978,9 +979,9 @@ export default function ProfileDetails({
                 }`}
               >
                 Xác Nhận Nhường Quyền Đội Trưởng
-              </motion.button>
+              </Pressable>
 
-              <button
+              <Pressable
                 onClick={() => {
                   setShowTransferOwnerModal(false);
                   setSelectedNewOwner(null);
@@ -988,7 +989,7 @@ export default function ProfileDetails({
                 className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs cursor-pointer whitespace-nowrap"
               >
                 Hủy Bỏ
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React,{useEffect,useState} from 'react';
 import {Bell,BellOff} from 'lucide-react';
 import {serverRequest} from '../lib/serverRequest';
@@ -30,8 +31,8 @@ export default function NotificationSettings({token,accountId,demo=false}){
   {platform==='blocked'&&<p className="field-hint">Thông báo đã bị từ chối. Hãy mở cài đặt thông báo của trình duyệt hoặc ứng dụng để cấp lại quyền.</p>}
   {config&&!config.configured&&<p className="field-hint">Thông báo đẩy chưa sẵn sàng trên máy chủ. Số chưa đọc trong app vẫn hoạt động.</p>}
   {demo&&<p className="field-hint">Bản trải nghiệm không đăng ký push hoặc gửi thông báo thật.</p>}
-  {!enabled&&platform==='supported'&&<button className="primary-button mt-4" disabled={busy||loading||!token||demo||!config?.configured} onClick={enable}>Bật thông báo</button>}
-  {(linked||enabled)&&<button className="choice-button mt-4" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await disconnectPushDevice();setEnabled(false);setLinked(false);}catch(e){setError(e.message);}finally{setBusy(false);}}}><BellOff size={18}/>Tắt trên thiết bị này</button>}
+  {!enabled&&platform==='supported'&&<Pressable className="primary-button mt-4" disabled={busy||loading||!token||demo||!config?.configured} onClick={enable}>Bật thông báo</Pressable>}
+  {(linked||enabled)&&<Pressable className="choice-button mt-4" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await disconnectPushDevice();setEnabled(false);setLinked(false);}catch(e){setError(e.message);}finally{setBusy(false);}}}><BellOff size={18}/>Tắt trên thiết bị này</Pressable>}
   {enabled&&<>
    <label className="notification-option"><input type="checkbox" checked={hidePreview} disabled={busy} onChange={e=>update(groups,e.target.checked)}/>Ẩn nội dung trên màn hình khóa</label>
    <fieldset><legend className="font-semibold mt-4">Nhóm thông báo trên thiết bị này</legend>{Object.entries({messages:'Tin nhắn mới',matches:'Lịch thi đấu mới hoặc cập nhật',funds:'Quỹ và đối soát',governance:'Nội quy và quản trị'}).map(([id,label])=><label className="notification-option" key={id}><input type="checkbox" checked={groups[id]===true} disabled={busy} onChange={e=>update({...groups,[id]:e.target.checked},hidePreview)}/>{label}</label>)}</fieldset>

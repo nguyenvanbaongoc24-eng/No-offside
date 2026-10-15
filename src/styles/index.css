@@ -54,7 +54,7 @@
 }
 
 :root {
-  --font-ui: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-ui: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
   --nav-height: 88px;
   --keyboard-inset: 0px;
   color-scheme: light;

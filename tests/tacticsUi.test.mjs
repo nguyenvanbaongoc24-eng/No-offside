@@ -5,8 +5,8 @@ import fs from "node:fs";
 test("Tactics UI: title, buttons, badges, and preservation of player coordinates", () => {
   const tacticsSrc = fs.readFileSync("src/pages/LineupBuilder.jsx", "utf8");
 
-  // Title must be Chiến thuật
-  assert.ok(tacticsSrc.includes("<h1>Chiến thuật</h1>"), "Must have <h1>Chiến thuật</h1>");
+  // Title follows the current Sa bàn navigation
+  assert.ok(tacticsSrc.includes("<h1>Sa bàn</h1>"), "Must have <h1>Sa bàn</h1>");
 
   // Buttons: Tạo sơ đồ, Lưu sơ đồ
   assert.ok(tacticsSrc.includes("Tạo sơ đồ"), "Must have Tạo sơ đồ button");

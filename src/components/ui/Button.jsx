@@ -1,3 +1,4 @@
+import Pressable from '../Pressable';
 import React from 'react';
 
 export default function Button({
@@ -38,7 +39,7 @@ export default function Button({
   };
 
   return (
-    <button
+    <Pressable
       className={`${baseStyles} ${sizes[size]} ${variants[variant]} ${className}`}
       disabled={disabled}
       onClick={onClick}
@@ -46,6 +47,6 @@ export default function Button({
     >
       {icon && <span className="shrink-0">{icon}</span>}
       {children}
-    </button>
+    </Pressable>
   );
 }

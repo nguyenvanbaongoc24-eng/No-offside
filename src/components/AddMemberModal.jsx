@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from "react";
 import { X, UserPlus, AlertCircle, Loader2, Check } from "lucide-react";
 
@@ -110,13 +111,13 @@ export default function AddMemberModal({
               </p>
             </div>
           </div>
-          <button
+          <Pressable
             aria-label="Đóng"
             onClick={onClose}
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer outline-none"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Pressable>
         </div>
 
         {error && (
@@ -187,7 +188,7 @@ export default function AddMemberModal({
             </label>
             <div className="grid grid-cols-2 gap-2">
               {positions.map((pos) => (
-                <button
+                <Pressable
                   key={pos}
                   type="button"
                   onClick={() => setPosition(pos)}
@@ -199,7 +200,7 @@ export default function AddMemberModal({
                 >
                   <span>{pos}</span>
                   {position === pos && <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[3]" />}
-                </button>
+                </Pressable>
               ))}
             </div>
           </div>
@@ -226,15 +227,15 @@ export default function AddMemberModal({
 
           {/* Actions */}
           <div className="member-form-actions pt-2 flex items-center gap-2">
-            <button
+            <Pressable
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
               className="flex-1 py-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all cursor-pointer outline-none"
             >
               Hủy
-            </button>
-            <button
+            </Pressable>
+            <Pressable
               type="submit"
               disabled={isSubmitting || isJerseyDuplicate}
               className={`flex-1 py-3 rounded-full font-bold text-xs text-white flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer outline-none ${
@@ -251,7 +252,7 @@ export default function AddMemberModal({
               ) : (
                 <span>Lưu thành viên</span>
               )}
-            </button>
+            </Pressable>
           </div>
         </form>
       </div>

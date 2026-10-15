@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import { imageDataUrl } from '../lib/images';
 import React, { useState } from 'react';
 import {
@@ -72,12 +73,12 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
       <section className="bg-slate-900 text-white pt-safe-hero pb-8 px-5 rounded-b-[36px] shadow-xl relative overflow-hidden bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px]">
         <div className="flex items-center justify-between mb-3 relative z-10">
           {onBack && (
-            <button
+            <Pressable
               onClick={onBack}
               className="flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 rounded-full bg-white/10 active:scale-95 transition-all cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" /> Quay lại
-            </button>
+            </Pressable>
           )}
 
           <span className="text-xs font-bold  tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
@@ -207,7 +208,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
               {teamTypeOptions.map((type) => {
                 const isActive = teamType === type;
                 return (
-                  <button
+                  <Pressable
                     key={type}
                     type="button"
                     onClick={() => setTeamType(type)}
@@ -219,7 +220,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
                   >
                     {isActive && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                     <span>{type}</span>
-                  </button>
+                  </Pressable>
                 );
               })}
             </div>
@@ -227,7 +228,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
 
           {/* 5. NÚT BẤM: TẠO ĐỘI BÓNG */}
           <div className="pt-2">
-            <button
+            <Pressable
               type="submit"
               disabled={isSubmitting}
               className={`w-full h-14 rounded-full text-white font-bold text-sm flex items-center justify-center gap-2 shadow-xl transition-all duration-200 cursor-pointer ${
@@ -247,7 +248,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
                   <ArrowRight className="w-4 h-4 stroke-[3]" />
                 </>
               )}
-            </button>
+            </Pressable>
             <p className="text-xs text-center text-gray-400 mt-3 font-medium">
               Bạn sẽ tự động trở thành Chủ đội (Owner) để quản lý đội bóng.
             </p>

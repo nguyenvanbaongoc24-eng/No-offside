@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState } from 'react';
 import { 
   Shield, 
@@ -85,7 +86,7 @@ export default function Dashboard({
           <Sparkles className="w-3 h-3 text-amber-400" />
           Dev Role Switcher:
         </div>
-        <button
+        <Pressable
           onClick={onToggleRole}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all border shadow-lg ${
             currentUserRole === 'admin'
@@ -105,7 +106,7 @@ export default function Dashboard({
               <span>Chế độ: Cầu Thủ (Player)</span>
             </>
           )}
-        </button>
+        </Pressable>
       </div>
 
       {/* 2. HEADER (Kính mờ) */}
@@ -154,16 +155,16 @@ export default function Dashboard({
           <div className="flex items-center gap-1.5">
             {/* Admin Settings Gear Button */}
             {currentUserRole === 'admin' && (
-              <button 
+              <Pressable
                 onClick={() => setShowSettingsModal(true)}
                 className="p-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 transition-colors"
                 title="Cài đặt đội bóng"
               >
                 <Settings className="w-4 h-4 animate-spin-slow" />
-              </button>
+              </Pressable>
             )}
 
-            <button 
+            <Pressable
               onClick={() => setNotificationOpen(!notificationOpen)}
               className="relative p-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-slate-200 transition-colors"
               title="Thông báo"
@@ -171,7 +172,7 @@ export default function Dashboard({
               <Bell className="w-4 h-4" />
               <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
               <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500"></span>
-            </button>
+            </Pressable>
           </div>
         </div>
 
@@ -180,7 +181,7 @@ export default function Dashboard({
           <div className="mt-2 p-3 glass-panel-elevated rounded-xl border border-white/15 animate-in fade-in slide-in-from-top-2 duration-200 text-xs text-slate-200">
             <div className="flex items-center justify-between font-bold text-white mb-1.5">
               <span>🔔 Thông báo nội bộ</span>
-              <button onClick={() => setNotificationOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+              <Pressable onClick={() => setNotificationOpen(false)} className="text-slate-400 hover:text-white">✕</Pressable>
             </div>
             <p className="text-slate-300">
               ⚡ <strong>Thủ quỹ Hải:</strong> "Đã cập nhật quỹ trận gặp FC Hàng Xóm, anh em nhớ nộp trước thứ 6 nhé!"
@@ -515,12 +516,12 @@ export default function Dashboard({
                   <p className="text-[11px] text-slate-400">Xác nhận các khoản chuyển khoản từ thành viên</p>
                 </div>
               </div>
-              <button 
+              <Pressable
                 onClick={() => setShowAdminApproveModal(false)}
                 className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-4 space-y-2.5 max-h-64 overflow-y-auto pr-1">
@@ -572,9 +573,9 @@ export default function Dashboard({
                 <Settings className="w-5 h-5 text-amber-400" />
                 <h3 className="font-bold text-base">Cài Đặt Đội Bóng</h3>
               </div>
-              <button onClick={() => setShowSettingsModal(false)} className="p-1 hover:bg-white/10 rounded-full">
+              <Pressable onClick={() => setShowSettingsModal(false)} className="p-1 hover:bg-white/10 rounded-full">
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-4 space-y-3 text-xs">
@@ -630,9 +631,9 @@ export default function Dashboard({
                 <PlusCircle className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-bold text-base">Tạo Kèo Trận Mới</h3>
               </div>
-              <button onClick={() => setShowCreateMatchModal(false)} className="p-1 hover:bg-white/10 rounded-full">
+              <Pressable onClick={() => setShowCreateMatchModal(false)} className="p-1 hover:bg-white/10 rounded-full">
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-4 space-y-3 text-xs">
@@ -693,12 +694,12 @@ export default function Dashboard({
                   <p className="text-[11px] text-slate-400">Quét qua bất kỳ app ngân hàng / MoMo nào</p>
                 </div>
               </div>
-              <button 
+              <Pressable
                 onClick={() => setShowQrModal(false)}
                 className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-4 p-3 bg-white rounded-2xl flex flex-col items-center justify-center shadow-inner">
@@ -733,13 +734,13 @@ export default function Dashboard({
                   <span className="text-[10px] text-slate-400 block">Số tài khoản</span>
                   <span className="font-bold font-mono text-emerald-400 text-sm">{bankInfo.accountNumber}</span>
                 </div>
-                <button 
+                <Pressable
                   onClick={() => copyToClipboard(bankInfo.accountNumber, 'acc')}
                   className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 flex items-center gap-1 text-[11px] font-medium"
                 >
                   {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   {copiedField === 'acc' ? 'Đã chép' : 'Sao chép'}
-                </button>
+                </Pressable>
               </div>
 
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
@@ -748,13 +749,13 @@ export default function Dashboard({
                   <span className="font-bold text-rose-400">{bankInfo.amount}</span>
                   <p className="text-[10px] font-mono text-slate-300">{bankInfo.content}</p>
                 </div>
-                <button 
+                <Pressable
                   onClick={() => copyToClipboard(bankInfo.content, 'content')}
                   className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 flex items-center gap-1 text-[11px] font-medium"
                 >
                   {copiedField === 'content' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   {copiedField === 'content' ? 'Đã chép' : 'Sao chép'}
-                </button>
+                </Pressable>
               </div>
             </div>
 

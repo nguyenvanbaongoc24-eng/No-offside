@@ -1,5 +1,6 @@
+import Pressable from '../components/Pressable';
 import { createWorkbook } from "../lib/exportWorkbook";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   MoreHorizontal,
   PlusCircle,
@@ -26,6 +27,8 @@ import { formatCurrency } from "../lib/formatCurrency";
 
 export default function FundManagement({
   onBack,
+  createRequest,
+  onCreateOpened,
   timeZone = "Asia/Ho_Chi_Minh",
   actor = "Thủ quỹ",
   treasurerQr,
@@ -47,6 +50,7 @@ export default function FundManagement({
   const [activeTab, setActiveTab] = useState("transactions"); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
   const [showAddTxModal, setShowAddTxModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  useEffect(()=>{if(createRequest && canManage){setShowAddTxModal(true);onCreateOpened?.();}},[createRequest,canManage]);
 
   // QR config state
   const [qrBankName, setQrBankName] = useState(
@@ -322,7 +326,7 @@ export default function FundManagement({
             <span>Thêm</span>
           </summary>
           <div className="menu-popover">
-            <button
+            <Pressable
               onClick={() => {
                 handleExportExcel();
                 closeMore();
@@ -330,9 +334,9 @@ export default function FundManagement({
             >
               <FileSpreadsheet size={18} />
               Xuất Excel
-            </button>
+            </Pressable>
             {canManage && (
-              <button
+              <Pressable
                 onClick={() => {
                   setActiveTab("qr-config");
                   closeMore();
@@ -340,7 +344,7 @@ export default function FundManagement({
               >
                 <CreditCard size={18} />
                 Tài khoản nhận quỹ
-              </button>
+              </Pressable>
             )}
           </div>
         </details>
@@ -369,14 +373,14 @@ export default function FundManagement({
             ["approvals", "Chờ duyệt", pendingApprovals.length],
             ["debtors", "Chưa nộp", debtors.length],
           ].map(([id, label, count]) => (
-            <button
+            <Pressable
               key={id}
               aria-pressed={activeTab === id}
               onClick={() => setActiveTab(id)}
             >
               <span>{label}</span>
               <span className="segment-count">{count}</span>
-            </button>
+            </Pressable>
           ))}
         </div>
       )}
@@ -386,7 +390,7 @@ export default function FundManagement({
             <div className="section-toolbar">
               <h2>Giao dịch</h2>
               {canManage && (
-                <button
+                <Pressable
                   className="text-action"
                   onClick={() => {
                     setTxTime(localTransactionTime(Date.now(), timeZone));
@@ -396,7 +400,7 @@ export default function FundManagement({
                 >
                   <PlusCircle size={18} />
                   Thêm giao dịch
-                </button>
+                </Pressable>
               )}
             </div>
             <fieldset className="ledger-filters">
@@ -519,7 +523,7 @@ export default function FundManagement({
                         <MoreHorizontal size={20} />
                       </summary>
                       <div className="menu-popover">
-                        <button
+                        <Pressable
                           onClick={(e) => {
                             setEditingTransaction({ ...t });
                             setTxTime(
@@ -533,7 +537,7 @@ export default function FundManagement({
                         >
                           <Edit3 size={18} />
                           Sửa giao dịch
-                        </button>
+                        </Pressable>
                       </div>
                     </details>
                   )}
@@ -567,20 +571,20 @@ export default function FundManagement({
                   </div>
                   {canManage && (
                     <div className="grid gap-2 shrink-0">
-                      <button
+                      <Pressable
                         className="primary-button shrink-0"
                         onClick={() => handleApprove(p.id)}
                       >
                         Xác nhận
-                      </button>
+                      </Pressable>
                       {onReject && (
-                        <button
+                        <Pressable
                           type="button"
                           className="choice-button danger-action"
                           onClick={() => handleReject(p.id)}
                         >
                           Từ chối
-                        </button>
+                        </Pressable>
                       )}
                     </div>
                   )}
@@ -625,7 +629,7 @@ export default function FundManagement({
                         <MoreHorizontal size={20} />
                       </summary>
                       <div className="menu-popover">
-                        <button
+                        <Pressable
                           onClick={(e) => {
                             e.currentTarget.closest("details").open = false;
                             alert(
@@ -638,7 +642,7 @@ export default function FundManagement({
                           }}
                         >
                           Thông tin liên hệ
-                        </button>
+                        </Pressable>
                       </div>
                     </details>
                   </div>
@@ -649,13 +653,13 @@ export default function FundManagement({
         )}
         {activeTab === "qr-config" && canManage && (
           <section>
-            <button
+            <Pressable
               className="text-action mb-3"
               onClick={() => setActiveTab("transactions")}
             >
               <ChevronLeft size={18} />
               Giao dịch
-            </button>
+            </Pressable>
             <h2>Tài khoản nhận quỹ</h2>
             <form className="match-form mt-4" onSubmit={handleSaveQrConfig}>
               <BankPicker
@@ -673,7 +677,7 @@ export default function FundManagement({
                 role="group"
                 aria-label="Nguồn ảnh QR"
               >
-                <button
+                <Pressable
                   type="button"
                   className="choice-button"
                   aria-pressed={qrMode === "generated"}
@@ -683,8 +687,8 @@ export default function FundManagement({
                   }}
                 >
                   Tạo từ tài khoản
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   type="button"
                   className="choice-button"
                   aria-pressed={qrMode === "uploaded"}
@@ -694,7 +698,7 @@ export default function FundManagement({
                   }}
                 >
                   Ảnh có sẵn
-                </button>
+                </Pressable>
               </div>
               {qrMode === "uploaded" && (
                 <div className="form-field">
@@ -727,7 +731,7 @@ export default function FundManagement({
                     ảnh.
                   </p>
                   {qrImage && (
-                    <button
+                    <Pressable
                       type="button"
                       className="text-action"
                       disabled={qrBusy}
@@ -738,7 +742,7 @@ export default function FundManagement({
                       }}
                     >
                       Xóa ảnh khỏi bản nháp
-                    </button>
+                    </Pressable>
                   )}
                 </div>
               )}
@@ -779,9 +783,9 @@ export default function FundManagement({
                 Lưu trên thiết bị theo tài khoản và đội hiện tại. Chưa cấu hình
                 Supabase Storage hoặc đồng bộ ảnh giữa các thành viên.
               </p>
-              <button className="primary-button w-full" disabled={qrBusy}>
+              <Pressable className="primary-button w-full" disabled={qrBusy}>
                 Lưu tài khoản
-              </button>
+              </Pressable>
               {qrSavedNotice && (
                 <p role="status" className="text-sm text-emerald-700">
                   Đã lưu tài khoản nhận quỹ trên thiết bị.
@@ -796,7 +800,7 @@ export default function FundManagement({
           <section className="match-form-sheet">
             <header className="sheet-header">
               <h2>{editingTransaction ? "Sửa giao dịch" : "Thêm giao dịch"}</h2>
-              <button
+              <Pressable
                 type="button"
                 aria-label="Đóng"
                 onClick={() => {
@@ -805,7 +809,7 @@ export default function FundManagement({
                 }}
               >
                 <X size={20} />
-              </button>
+              </Pressable>
             </header>
             <form className="match-form" onSubmit={submitTx}>
               <label className="form-field">
@@ -897,9 +901,9 @@ export default function FundManagement({
                 </p>
               )}
               <footer className="sheet-footer">
-                <button className="primary-button w-full" disabled={txBusy}>
+                <Pressable className="primary-button w-full" disabled={txBusy}>
                   {txBusy ? "Đang lưu…" : "Lưu giao dịch"}
-                </button>
+                </Pressable>
               </footer>
             </form>
           </section>

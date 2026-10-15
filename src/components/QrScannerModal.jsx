@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
@@ -93,13 +94,13 @@ export default function QrScannerModal({
             </div>
           </div>
 
-          <button
+          <Pressable
             aria-label="Đóng"
             onClick={onClose}
             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Pressable>
         </div>
 
         {/* Video stream or Fallback */}
@@ -131,7 +132,7 @@ export default function QrScannerModal({
 
           {/* Quick Fallback to Club Code */}
           <div className="w-full mt-5 space-y-3">
-            <button
+            <Pressable
               type="button"
               onClick={() => {
                 if (onSwitchToCode) onSwitchToCode();
@@ -141,7 +142,7 @@ export default function QrScannerModal({
             >
               <KeyRound className="w-4 h-4" />
               <span>Chuyển sang Nhập mã Club</span>
-            </button>
+            </Pressable>
 
             {/* Manual test code trigger for development / test */}
             <form onSubmit={handleManualSubmit} className="pt-2 border-t border-slate-100 flex gap-2">
@@ -152,12 +153,12 @@ export default function QrScannerModal({
                 onChange={(e) => setManualCode(e.target.value)}
                 className="flex-1 h-10 px-3 rounded-xl border border-slate-200 text-xs font-mono uppercase bg-slate-50"
               />
-              <button
+              <Pressable
                 type="submit"
                 className="h-10 px-4 rounded-xl bg-slate-800 text-white font-bold text-xs shrink-0"
               >
                 Nhập
-              </button>
+              </Pressable>
             </form>
           </div>
         </div>

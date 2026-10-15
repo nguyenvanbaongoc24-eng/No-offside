@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from "react";
 import { CalendarDays, Check } from "lucide-react";
 export default function MatchList({
@@ -26,14 +27,14 @@ export default function MatchList({
             ["upcoming", "Sắp đá"],
             ["completed", "Đã xong"],
           ].map(([value, label]) => (
-            <button
+            <Pressable
               key={value}
               type="button"
               aria-pressed={filter === value}
               onClick={() => setFilter(value)}
             >
               {label}
-            </button>
+            </Pressable>
           ))}
         </div>
       </div>
@@ -45,7 +46,7 @@ export default function MatchList({
       <ul className="space-y-2 mt-3">
         {visible.map((match) => (
           <li key={match.id}>
-            <button
+            <Pressable
               type="button"
               className="match-select-button w-full border border-slate-200 rounded-2xl bg-white"
               aria-pressed={match.id === activeMatchId}
@@ -71,7 +72,7 @@ export default function MatchList({
                 </time>
               </span>
               {match.id === activeMatchId && <Check size={18} />}
-            </button>
+            </Pressable>
           </li>
         ))}
       </ul>

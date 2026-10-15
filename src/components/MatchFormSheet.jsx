@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, AlertCircle } from "lucide-react";
@@ -43,14 +44,14 @@ export default function MatchFormSheet({
               Thiết lập đối thủ, thời gian và chế tài điểm danh
             </p>
           </div>
-          <button
+          <Pressable
             type="button"
             aria-label="Đóng"
             onClick={onClose}
             className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-500 hover:text-gray-800 dark:hover:text-slate-200 flex items-center justify-center transition-all active:scale-95 cursor-pointer outline-none shrink-0 border-0"
           >
             <X size={18} />
-          </button>
+          </Pressable>
         </header>
 
         {/* Form Body - Soft UI with generous whitespace */}
@@ -242,7 +243,7 @@ export default function MatchFormSheet({
                   {quickFines.map((val) => {
                     const active = String(draft.penaltyFine) === val;
                     return (
-                      <button
+                      <Pressable
                         key={val}
                         type="button"
                         onClick={() => onChange({ ...draft, penaltyFine: val })}
@@ -253,7 +254,7 @@ export default function MatchFormSheet({
                         }`}
                       >
                         {Number(val) / 1000}k
-                      </button>
+                      </Pressable>
                     );
                   })}
                 </div>
@@ -344,7 +345,7 @@ export default function MatchFormSheet({
                 {quickFines.map((val) => {
                   const active = Number(late.fine) === Number(val);
                   return (
-                    <button
+                    <Pressable
                       key={val}
                       type="button"
                       onClick={() => updateLate("fine", Number(val))}
@@ -355,7 +356,7 @@ export default function MatchFormSheet({
                       }`}
                     >
                       {Number(val) / 1000}k
-                    </button>
+                    </Pressable>
                   );
                 })}
               </div>
@@ -423,15 +424,15 @@ export default function MatchFormSheet({
 
         {/* Sticky Action Footer */}
         <footer className="sheet-footer sticky bottom-0 z-10 px-6 pt-3.5 pb-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] border-t border-gray-100 dark:border-slate-800 flex items-center gap-3 shrink-0">
-          <button
+          <Pressable
             type="button"
             onClick={onClose}
             className="h-14 px-6 rounded-full font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap active:scale-95 outline-none flex items-center justify-center shrink-0 border-0"
           >
             Hủy
-          </button>
+          </Pressable>
 
-          <button
+          <Pressable
             form={`${prefix}-form`}
             type="submit"
             disabled={saving}
@@ -447,7 +448,7 @@ export default function MatchFormSheet({
             ) : (
               <span>Tạo trận</span>
             )}
-          </button>
+          </Pressable>
         </footer>
       </section>
     </div>

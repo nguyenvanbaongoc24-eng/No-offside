@@ -37,7 +37,7 @@ const members=[user,{...user,id:'usr-10',name:'Hoàng Hải',number:10,roleType:
 const team={id:'ui-review',teamName:'FC No Offside',teamCategory:'Sân 7',logo:avatar,venue:'Sân Chuyên Việt',schedule:'Thứ Sáu · 18:30',members,subAdmins:[members[1]],pendingAdminRequests:[],appearance:{}};
 const match={id:'review-match',title:'Kèo sân 7 — FC Sài Gòn',category:'Sân 7',datetime:'2026-10-24T18:30',deadline:'2026-10-24T12:00',venue:'Sân Chuyên Việt · Tân Bình',penaltyEnabled:true,penaltyAmount:'50.000 đ',status:'upcoming'};
 const funds={transactions:[{id:'t1',title:'Thu quỹ tháng 10',amount:600000,type:'income',date:'12/10/2026',author:'Thủ quỹ'},{id:'t2',title:'Tiền thuê sân',amount:300000,type:'expense',date:'10/10/2026',author:'Thủ quỹ'}],pendingApprovals:[],debtors:[]};
-const preferences={value:{theme:'system',fontFamily:'system',fontSize:'medium'},update:noop};
+const preferences={value:{theme:'system',fontFamily:'Be Vietnam Pro',fontSize:'medium'},update:noop};
 const common={onCreateInvite:noop,preferences,user,currentUserRole:'owner',demoSession:false,teamSettings:team,members,onNavigate:noop,onBack:noop,onLogout:noop,onUpdateProfile:noop};
 const gov={snapshot:null,loading:false,error:'Chưa kết nối nghiệp vụ cho đội này.',serverNow:Date.now(),mutate:noop};
 const cases={
@@ -74,6 +74,7 @@ const cases={
  bank:<BankPicker value="970422" name="MBBank" onChange={noop}/>,
  invite:<InviteLanding teamData={{name:team.teamName,captain:user.name,membersCount:4,venue:team.venue,logo:avatar,category:'Sân 7',code:'UI1234'}} onBackToApp={noop} onRequireAuth={noop}/>
 };
+cases.birthdayhome=React.cloneElement(cases.home,{birthdays:[members[1]],accountId:"ui-review"});
 cases.profilelong=React.cloneElement(cases.profile,{user:{...user,name:'Nguyễn Hoàng Minh Anh với tên hiển thị rất dài',avatar:''},teamSettings:{...team,teamName:'Câu lạc bộ bóng đá có tên rất dài tại thành phố'}});
 cases.profileenglish=React.cloneElement(cases.profile,{preferences:{...preferences,value:{...preferences.value,language:"en"}}});
 cases.chatempty=React.cloneElement(cases.chat,{teamId:"empty-test"});
@@ -81,7 +82,7 @@ cases.chatlong=React.cloneElement(cases.chat,{teamId:"long-test",teamName:"Độ
 cases.chatenglish=React.cloneElement(cases.chat,{language:"en"});
 cases.longhome=React.cloneElement(cases.home,{user:{...user,name:'Nguyễn Hoàng Minh Anh với tên hiển thị dài',teamName:'Đội bóng phong trào thành phố với tên đội rất dài'},activeMatch:{...match,title:'Trận giao hữu với đội bóng có tên dài và nhiều thông tin địa điểm'}});
 cases.longfund=React.cloneElement(cases.fund,{funds:{...funds,transactions:[{...funds.transactions[0],title:'Khoản đóng góp cho giải bóng đá giao hữu có tên và ghi chú dài',amount:999999999999}]}});
-export const renderNav=()=>renderToStaticMarkup(<FloatingBottomNavigation tabs={[['home','Trang chủ',Home],['tactics','Chiến thuật',Network],['fund','Quỹ đội',Wallet],['chat','Tin nhắn',MessageSquare],['profile','Cá nhân',User]].map(([id,label,Icon])=>({id,label,Icon,unreadCount:id==='chat'?100:0}))} activeTab="home" onNavigate={noop}/>);
+export const renderNav=()=>renderToStaticMarkup(<FloatingBottomNavigation tabs={[['home','Trang chủ',Home],['tactics','Sa bàn',Network],['chat','Chat',MessageSquare],['profile','Tài khoản',User]].map(([id,label,Icon])=>({id,label,Icon,unreadCount:id==='chat'?100:0}))} activeTab="home" canManage onQuickActions={noop} onNavigate={noop}/>);
 export const render=()=>Object.fromEntries(Object.entries(cases).map(([key,value])=>[key,renderToStaticMarkup(value)]));
 `},bundle:true,platform:'node',format:'cjs',write:false,logLevel:'silent',plugins:[{name:'read-only-fixture',setup(b){b.onResolve({filter:/lib\/supabase$/},()=>({path:'supabase-fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const supabase = null;',loader:'js'}));}}]});
 globalThis.localStorage={getItem:key=>key==='no_offside_messages_ui-review::long-test'?JSON.stringify(Array.from({length:30},(_,i)=>({id:'long-'+i,senderId:i%3===0?'usr-9':'usr-10',sender:i%3===0?'Minh Anh':'Người gửi có tên dài Nguyễn Hoàng Hải',text:'Tiếng Việt có dấu và nhiều dòng.\nhttps://example.test/'+('duongdanratdai'.repeat(10)),createdAt:'2026-10-14T09:'+String(i).padStart(2,'0')+':00+07:00'}))):key==='no_offside_messages_ui-review::ui-review'?JSON.stringify([{id:'m1',senderId:'usr-10',sender:'Hoàng Hải',text:'Hẹn cả đội ra sân lúc 18:30. Chúc mọi người một buổi đá vui!',createdAt:'2026-10-13T10:00Z'},{id:'m2',senderId:'usr-9',sender:'Minh Anh',text:'Mình đã nhận thông tin lịch thi đấu.',createdAt:'2026-10-13T10:02Z'}]):null,setItem:()=>{}};

@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from "react";
 import { Bell, ChevronDown } from "lucide-react";
 import Avatar from "./Avatar";
@@ -57,14 +58,14 @@ export default function TeamIdentityHeader({
       aria-busy={switchingTeam || undefined}
     >
       <div className="team-heading-row">
-        <button
+        <Pressable
           type="button"
           aria-label="Mở Cá nhân"
           onClick={onOpenProfile}
           className="team-logo-button"
         >
           <Avatar src={team.logo} name={team.teamName || "No Offside"} />
-        </button>
+        </Pressable>
         <div className="min-w-0 flex-1">
           <h1>{team.teamName || "Đội bóng của bạn"}</h1>
           <p>
@@ -77,7 +78,7 @@ export default function TeamIdentityHeader({
           </p>
         </div>
         {onOpenNotifications && (
-          <button
+          <Pressable
             type="button"
             className="team-notice-button"
             aria-label={
@@ -91,7 +92,7 @@ export default function TeamIdentityHeader({
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
-          </button>
+          </Pressable>
         )}
       </div>
       <TeamSwitcher

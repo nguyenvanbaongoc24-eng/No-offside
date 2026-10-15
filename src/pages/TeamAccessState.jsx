@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React from "react";
 import { ShieldAlert, BookOpen, User, UserPlus, Plus } from "lucide-react";
 import TeamIdentityHeader from "../components/TeamIdentityHeader";
@@ -39,32 +40,32 @@ export default function TeamAccessState({
           </p>
         )}
         <div className="grid gap-2 mt-4">
-          <button
+          <Pressable
             className="choice-button"
             onClick={() => onNavigate("governance")}
           >
             <BookOpen size={18} />
             Xem nội quy và lịch sử của tôi
-          </button>
-          <button
+          </Pressable>
+          <Pressable
             className="choice-button"
             onClick={() => onNavigate("profile")}
           >
             <User size={18} />
             Cá nhân và tài khoản
-          </button>
+          </Pressable>
         </div>
       </div>
       <div className="profile-group m-4">
         <h2>Đội bóng khác</h2>
-        <button className="menu-row" onClick={onJoin}>
+        <Pressable className="menu-row" onClick={onJoin}>
           <UserPlus size={20} />
           <span>Gia nhập bằng mã Club</span>
-        </button>
-        <button className="menu-row" onClick={() => onNavigate("create-team")}>
+        </Pressable>
+        <Pressable className="menu-row" onClick={() => onNavigate("create-team")}>
           <Plus size={20} />
           <span>Tạo đội mới</span>
-        </button>
+        </Pressable>
       </div>
     </section>
   );

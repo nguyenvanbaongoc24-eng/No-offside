@@ -1,3 +1,5 @@
+import BirthdayBanner from '../components/BirthdayBanner';
+import Pressable from '../components/Pressable';
 import MyAttendanceControl from "../components/MyAttendanceControl";
 import Avatar from "../components/Avatar";
 import { localTransactionTime } from "../lib/transactionTime";
@@ -60,6 +62,8 @@ export default function PlayerDashboard({
   onNavigate,
   onOpenNotifications,
   memberships,
+  birthdays = [],
+  accountId,
   onSwitchTeam,
   switchingTeam,
   unreadCount,
@@ -320,19 +324,20 @@ export default function PlayerDashboard({
         onOpenNotifications={onOpenNotifications}
         unreadCount={unreadCount}
       />
+      <BirthdayBanner members={birthdays} accountId={accountId} celebrate/>
       {demoSession && (
-        <button className="demo-role-toggle" onClick={onToggleRole}>
+        <Pressable className="demo-role-toggle" onClick={onToggleRole}>
           Đổi vai trò trải nghiệm
-        </button>
+        </Pressable>
       )}
 
       <div className="px-4 pt-3">
-        <button
+        <Pressable
           className="choice-button text-sm"
           onClick={() => onNavigate("governance")}
         >
           Nội quy & vi phạm
-        </button>
+        </Pressable>
       </div>
       <MatchList
         matches={matches}
@@ -379,7 +384,7 @@ export default function PlayerDashboard({
                   </span>
                 )}
                 {isLeader && matchStatus !== "completed" && (
-                  <button
+                  <Pressable
                     type="button"
                     className="choice-button text-xs"
                     onClick={async () => {
@@ -396,19 +401,19 @@ export default function PlayerDashboard({
                     }}
                   >
                     Kết thúc trận
-                  </button>
+                  </Pressable>
                 )}
 
                 {isLeader ? (
                   <div className="flex items-center gap-1">
-                    <button
+                    <Pressable
                       onClick={() => openMatchEditor(true)}
                       className="p-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95 transition-all duration-200 cursor-pointer"
                       aria-label="Sửa trận"
                       title="Sửa trận"
                     >
                       <Edit3 className="w-3 h-3" />
-                    </button>
+                    </Pressable>
                   </div>
                 ) : (
                   matchStatus === "upcoming" && (
@@ -451,7 +456,6 @@ export default function PlayerDashboard({
                     <p className="text-xs font-bold text-amber-700 tabular-nums tracking-tight">
                       <MatchCountdown
                         deadline={activeMatch.deadline}
-                        sentence
                       />
                     </p>
                   </div>
@@ -549,7 +553,7 @@ export default function PlayerDashboard({
                 </div>
 
                 {/* Nút mở Modal 4 Tab Điểm Danh */}
-                <button
+                <Pressable
                   onClick={() => setShowAttendanceModal(true)}
                   className="w-full py-2.5 rounded-full bg-gray-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all duration-200 cursor-pointer"
                 >
@@ -557,7 +561,7 @@ export default function PlayerDashboard({
                   <span>
                     Xem danh sách 4 nhóm điểm danh ({rosterCount} người)
                   </span>
-                </button>
+                </Pressable>
               </div>
             ) : (
               /* PLAYER VIEW: 3 Nút Vote & Thông tin chốt */
@@ -566,7 +570,7 @@ export default function PlayerDashboard({
                 className="mt-3.5 pt-3 border-t border-gray-100"
               >
                 {/* Roster trigger button */}
-                <button
+                <Pressable
                   type="button"
                   onClick={() => setShowAttendanceModal(true)}
                   className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs cursor-pointer hover:bg-gray-50/80 p-1.5 rounded-xl transition-colors"
@@ -589,7 +593,7 @@ export default function PlayerDashboard({
                   <span className="text-xs font-bold text-emerald-600 flex items-center gap-0.5">
                     Xem 4 tab <ChevronRight className="w-3.5 h-3.5" />
                   </span>
-                </button>
+                </Pressable>
               </div>
             )}
             {governance && (
@@ -601,12 +605,12 @@ export default function PlayerDashboard({
             )}
           </section>
         </SwipeMatchCard>
-        <section aria-label="Thao tác nhanh" className="quick-actions-panel">
+        {!isLeader && <section aria-label="Thao tác nhanh" className="quick-actions-panel">
           <p className="text-xs text-slate-600 mb-3">
             Trận đang chọn: {activeMatch.title}
           </p>
           <div className="quick-actions">
-            <button
+            <Pressable
               onClick={() =>
                 isLeader
                   ? setShowAttendanceModal(true)
@@ -617,25 +621,25 @@ export default function PlayerDashboard({
             >
               <UserCheck size={20} />
               <span>Điểm danh</span>
-            </button>
-            <button onClick={() => onNavigate("lineup")}>
+            </Pressable>
+            <Pressable onClick={() => onNavigate("lineup")}>
               <Network size={20} />
               <span>Chiến thuật</span>
-            </button>
+            </Pressable>
             {user.fundDebt > 0 && bankInfo.qrUrl && !user.isFundPaid && (
-              <button onClick={() => setShowQrModal(true)}>
+              <Pressable onClick={() => setShowQrModal(true)}>
                 <Wallet size={20} />
                 <span>Đóng quỹ</span>
-              </button>
+              </Pressable>
             )}
             {isLeader && (
-              <button onClick={() => openMatchEditor(false)}>
+              <Pressable onClick={() => openMatchEditor(false)}>
                 <PlusCircle size={20} />
                 <span>Tạo trận</span>
-              </button>
+              </Pressable>
             )}
           </div>
-        </section>
+        </section>}
         {/* CARD 2: TÀI CHÍNH & QUỸ ĐỘI PREVIEW */}
         <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
           <div className="flex items-center justify-between mb-2.5 px-1">
@@ -686,21 +690,21 @@ export default function PlayerDashboard({
 
               {/* 2 Nút hành động Admin */}
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
+                <Pressable
                   onClick={() => onNavigate && onNavigate("fund")}
                   className="py-2.5 px-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
                 >
                   <Wallet className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Sổ quỹ chi tiết</span>
-                </button>
+                </Pressable>
 
-                <button
+                <Pressable
                   onClick={() => setShowAdminApproveModal(true)}
                   className="py-2.5 px-3 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-green-500/20 transition-all duration-200 active:scale-95 cursor-pointer whitespace-nowrap"
                 >
                   <FileCheck className="w-3.5 h-3.5" />
                   <span>Duyệt tiền ({pendingApprovals.length})</span>
-                </button>
+                </Pressable>
               </div>
             </div>
           ) : (
@@ -734,7 +738,7 @@ export default function PlayerDashboard({
                 </div>
               </div>
 
-              <button
+              <Pressable
                 onClick={() => {
                   if (user.isFundPaid) {
                     if (demoSession) onResetPaid();
@@ -770,14 +774,14 @@ export default function PlayerDashboard({
                   </span>
                   <ChevronRight className="w-4 h-4" />
                 </div>
-              </button>
+              </Pressable>
             </div>
           )}
         </section>
 
         {/* CARD NẰM NGANG [Thành viên đội] - HIỂN THỊ CHO TẤT CẢ THÀNH VIÊN */}
         <div className="dashboard-roster w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all group text-left relative overflow-hidden">
-          <button
+          <Pressable
             type="button"
             onClick={() => setShowTeamManagerModal(true)}
             className="flex items-center gap-3.5 relative z-10 min-w-0 flex-1 cursor-pointer text-left outline-none"
@@ -804,13 +808,13 @@ export default function PlayerDashboard({
                   : "Xem danh sách và thông tin đồng đội"}
               </p>
             </div>
-          </button>
+          </Pressable>
 
           <div className="flex items-center gap-1.5 shrink-0 relative z-10 pl-2">
             {isLeader ? (
               <>
                 {/* Nút Thêm thành viên thủ công */}
-                <button
+                <Pressable
                   type="button"
                   onClick={() => setShowAddMemberModal(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
@@ -818,10 +822,10 @@ export default function PlayerDashboard({
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[3]" />
                   <span className="whitespace-nowrap">Thêm thành viên</span>
-                </button>
+                </Pressable>
 
                 {/* Nút Mời QR */}
-                <button
+                <Pressable
                   type="button"
                   onClick={openInvite}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
@@ -829,28 +833,28 @@ export default function PlayerDashboard({
                 >
                   <QrCode className="w-3.5 h-3.5" />
                   <span className="whitespace-nowrap">Mã / QR</span>
-                </button>
+                </Pressable>
               </>
             ) : (
-              <button
+              <Pressable
                 type="button"
                 onClick={() => setShowTeamManagerModal(true)}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200/80 dark:border-emerald-800/80 transition-all cursor-pointer outline-none"
               >
                 <span>Xem danh sách</span>
                 <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              </Pressable>
             )}
 
             {isLeader && (
-              <button
+              <Pressable
                 type="button"
                 aria-label="Xem chi tiết danh sách"
                 onClick={() => setShowTeamManagerModal(true)}
                 className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer outline-none"
               >
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+              </Pressable>
             )}
           </div>
         </div>
@@ -877,7 +881,7 @@ export default function PlayerDashboard({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
+            <Pressable
               type="button"
               onClick={async () => {
                 if (!inviteCode) {
@@ -904,16 +908,16 @@ export default function PlayerDashboard({
                   <span>Chép</span>
                 </>
               )}
-            </button>
+            </Pressable>
 
-            <button
+            <Pressable
               type="button"
               onClick={openInvite}
               className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-all active:scale-95"
             >
               <QrCode className="w-3.5 h-3.5" />
               <span>Mã QR</span>
-            </button>
+            </Pressable>
           </div>
         </div>
 
@@ -963,7 +967,7 @@ export default function PlayerDashboard({
                   Bàn thắng
                 </span>
                 <div className="flex items-center gap-3">
-                  <motion.button
+                  <Pressable
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() =>
@@ -972,18 +976,18 @@ export default function PlayerDashboard({
                     className="w-8 h-8 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center font-bold text-base text-gray-700 hover:bg-gray-100 active:scale-95 cursor-pointer"
                   >
                     -
-                  </motion.button>
+                  </Pressable>
                   <span className="text-2xl font-bold text-emerald-600 tabular-nums w-6 text-center">
                     {goalsReported}
                   </span>
-                  <motion.button
+                  <Pressable
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setGoalsReported((prev) => prev + 1)}
                     className="w-8 h-8 rounded-full bg-emerald-600 shadow-xs text-white flex items-center justify-center font-bold text-base hover:bg-emerald-700 active:scale-95 cursor-pointer"
                   >
                     +
-                  </motion.button>
+                  </Pressable>
                 </div>
               </div>
 
@@ -993,7 +997,7 @@ export default function PlayerDashboard({
                   Kiến tạo
                 </span>
                 <div className="flex items-center gap-3">
-                  <motion.button
+                  <Pressable
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() =>
@@ -1002,24 +1006,24 @@ export default function PlayerDashboard({
                     className="w-8 h-8 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center font-bold text-base text-gray-700 hover:bg-gray-100 active:scale-95 cursor-pointer"
                   >
                     -
-                  </motion.button>
+                  </Pressable>
                   <span className="text-2xl font-bold text-amber-600 tabular-nums w-6 text-center">
                     {assistsReported}
                   </span>
-                  <motion.button
+                  <Pressable
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setAssistsReported((prev) => prev + 1)}
                     className="w-8 h-8 rounded-full bg-amber-500 shadow-xs text-white flex items-center justify-center font-bold text-base hover:bg-amber-600 active:scale-95 cursor-pointer"
                   >
                     +
-                  </motion.button>
+                  </Pressable>
                 </div>
               </div>
             </div>
 
             {/* Submit Button */}
-            <motion.button
+            <Pressable
               whileTap={{ scale: 0.98 }}
               onClick={handleSaveMatchReport}
               className={`w-full py-3 rounded-full text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${
@@ -1042,7 +1046,7 @@ export default function PlayerDashboard({
                   <span>Lưu thành tích</span>
                 </>
               )}
-            </motion.button>
+            </Pressable>
           </motion.section>
         )}
 
@@ -1092,18 +1096,18 @@ export default function PlayerDashboard({
                   </p>
                 </div>
               </div>
-              <button
+              <Pressable
                 aria-label="Đóng danh sách điểm danh"
                 onClick={() => setShowAttendanceModal(false)}
                 className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             {/* 4 Tabs Selector */}
             <div className="grid grid-cols-4 gap-1 p-1 bg-gray-100 rounded-2xl mt-3 text-xs font-bold text-center">
-              <button
+              <Pressable
                 onClick={() => setAttendanceActiveTab("attending")}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
                   attendanceActiveTab === "attending"
@@ -1112,9 +1116,9 @@ export default function PlayerDashboard({
                 }`}
               >
                 Có mặt ({roster.attending.length})
-              </button>
+              </Pressable>
 
-              <button
+              <Pressable
                 onClick={() => setAttendanceActiveTab("maybe")}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
                   attendanceActiveTab === "maybe"
@@ -1123,9 +1127,9 @@ export default function PlayerDashboard({
                 }`}
               >
                 Chưa chắc ({roster.maybe.length})
-              </button>
+              </Pressable>
 
-              <button
+              <Pressable
                 onClick={() => setAttendanceActiveTab("absent")}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
                   attendanceActiveTab === "absent"
@@ -1134,9 +1138,9 @@ export default function PlayerDashboard({
                 }`}
               >
                 Vắng ({roster.absent.length})
-              </button>
+              </Pressable>
 
-              <button
+              <Pressable
                 onClick={() => setAttendanceActiveTab("unvoted")}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
                   attendanceActiveTab === "unvoted"
@@ -1145,7 +1149,7 @@ export default function PlayerDashboard({
                 }`}
               >
                 Chưa điểm danh ({roster.unvoted.length})
-              </button>
+              </Pressable>
             </div>
 
             {/* List Content */}
@@ -1259,18 +1263,18 @@ export default function PlayerDashboard({
 
                       {isLeader ? (
                         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                          <button
+                          <Pressable
                             onClick={() => handleRemindUnvoted(p.name)}
                             className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
                           >
                             Nhắc
-                          </button>
-                          <button
+                          </Pressable>
+                          <Pressable
                             onClick={() => handleFineUnvoted(p.name)}
                             className="px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
                           >
                             Phạt quỹ
-                          </button>
+                          </Pressable>
                         </div>
                       ) : (
                         <span className="text-xs font-bold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
@@ -1283,12 +1287,12 @@ export default function PlayerDashboard({
             </div>
 
             <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
-              <button
+              <Pressable
                 onClick={() => setShowAttendanceModal(false)}
                 className="w-full py-2.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
               >
                 Đóng
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>
@@ -1333,12 +1337,12 @@ export default function PlayerDashboard({
                   </p>
                 </div>
               </div>
-              <button
+              <Pressable
                 onClick={() => setShowQrModal(false)}
                 className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 active:scale-95 transition-all"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-3.5 p-3.5 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100">
@@ -1361,7 +1365,7 @@ export default function PlayerDashboard({
                     {bankInfo.accountNumber}
                   </span>
                 </div>
-                <button
+                <Pressable
                   onClick={() => copyToClipboard(bankInfo.accountNumber, "acc")}
                   className="px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-xs hover:bg-gray-50 flex items-center gap-1 text-xs font-bold text-gray-700 active:scale-95 transition-all"
                 >
@@ -1371,7 +1375,7 @@ export default function PlayerDashboard({
                     <Copy className="w-3 h-3" />
                   )}
                   {copiedField === "acc" ? "Đã chép" : "Sao chép"}
-                </button>
+                </Pressable>
               </div>
 
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50">
@@ -1383,7 +1387,7 @@ export default function PlayerDashboard({
                     {bankInfo.content}
                   </p>
                 </div>
-                <button
+                <Pressable
                   onClick={() => copyToClipboard(bankInfo.content, "content")}
                   className="px-2.5 py-1 rounded-full bg-white border border-gray-200 shadow-xs hover:bg-gray-50 flex items-center gap-1 text-xs font-bold text-gray-700 active:scale-95 transition-all"
                 >
@@ -1393,12 +1397,12 @@ export default function PlayerDashboard({
                     <Copy className="w-3 h-3" />
                   )}
                   {copiedField === "content" ? "Đã chép" : "Sao chép"}
-                </button>
+                </Pressable>
               </div>
             </div>
 
             <div className="mt-4 pt-2">
-              <button
+              <Pressable
                 onClick={async () => {
                   try {
                     await onMarkPaid();
@@ -1415,7 +1419,7 @@ export default function PlayerDashboard({
                     ? "Đang chờ thủ quỹ duyệt"
                     : "Tôi đã chuyển — gửi chờ duyệt"}
                 </span>
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>
@@ -1445,13 +1449,13 @@ export default function PlayerDashboard({
                   </p>
                 </div>
               </div>
-              <button
+              <Pressable
                 aria-label="Đóng"
                 onClick={() => setShowAdminApproveModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-full text-gray-400 active:scale-95 transition-all"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-3 space-y-2 max-h-60 overflow-y-auto pr-1">
@@ -1474,24 +1478,24 @@ export default function PlayerDashboard({
                       </p>
                       <span className="text-xs text-gray-400">{item.time}</span>
                     </div>
-                    <button
+                    <Pressable
                       onClick={() => approvePayment(item.id)}
                       className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all active:scale-95 cursor-pointer"
                     >
                       Duyệt
-                    </button>
+                    </Pressable>
                   </div>
                 ))
               )}
             </div>
 
             <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
-              <button
+              <Pressable
                 onClick={() => setShowAdminApproveModal(false)}
                 className="w-full py-2.5 rounded-full bg-gray-100 text-gray-700 font-bold text-xs active:scale-95 transition-all cursor-pointer"
               >
                 Đóng
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>
@@ -1514,13 +1518,13 @@ export default function PlayerDashboard({
                   Cài đặt đội bóng
                 </h3>
               </div>
-              <button
+              <Pressable
                 aria-label="Đóng"
                 onClick={() => setShowSettingsModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-full text-gray-400 active:scale-95 transition-all"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-3 space-y-2.5 text-xs">
@@ -1557,7 +1561,7 @@ export default function PlayerDashboard({
             </div>
 
             <div className="mt-4 pt-2">
-              <button
+              <Pressable
                 onClick={() => {
                   alert(" Đã cập nhật cài đặt đội bóng!");
                   setShowSettingsModal(false);
@@ -1565,7 +1569,7 @@ export default function PlayerDashboard({
                 className="w-full py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs active:scale-95 transition-all cursor-pointer"
               >
                 Lưu Thay Đổi
-              </button>
+              </Pressable>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState, useEffect } from "react";
 import {
   ShieldCheck,
@@ -745,22 +746,22 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
           <div className="auth-preferences">
           <div className="auth-theme-tools">
           <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Color theme" : "Giao diện"}>
-            <button type="button" aria-label="Giao diện sáng" title="Giao diện sáng" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={18} strokeWidth={1.75} aria-hidden="true" /></button>
-            <button type="button" aria-label="Giao diện tối" title="Giao diện tối" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={18} strokeWidth={1.75} aria-hidden="true" /></button>
+            <Pressable type="button" aria-label="Giao diện sáng" title="Giao diện sáng" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={18} strokeWidth={1.75} aria-hidden="true" /></Pressable>
+            <Pressable type="button" aria-label="Giao diện tối" title="Giao diện tối" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={18} strokeWidth={1.75} aria-hidden="true" /></Pressable>
           </div>
           <details className="auth-theme-menu">
             <summary aria-label={language === "en" ? "Theme options" : "Tùy chọn giao diện"} title={language === "en" ? "Theme options" : "Tùy chọn giao diện"}><Ellipsis size={18} strokeWidth={1.75} aria-hidden="true" /></summary>
             <div className="auth-theme-popover">
-              <button type="button" aria-pressed={theme === "system"} onClick={(event) => {
+              <Pressable type="button" aria-pressed={theme === "system"} onClick={(event) => {
                 onThemeChange?.("system");
                 event.currentTarget.closest("details").open = false;
-              }}><Monitor size={18} strokeWidth={1.75} aria-hidden="true" />{language === "en" ? "System" : "Hệ thống"}</button>
+              }}><Monitor size={18} strokeWidth={1.75} aria-hidden="true" />{language === "en" ? "System" : "Hệ thống"}</Pressable>
             </div>
           </details>
           </div>
           <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Language" : "Ngôn ngữ"}>
-            <button type="button" lang="vi" aria-label="Tiếng Việt" title="Tiếng Việt" aria-pressed={language === "vi"} onClick={() => changeLanguage("vi")}>VI</button>
-            <button type="button" lang="en" aria-label="English" title="English" aria-pressed={language === "en"} onClick={() => changeLanguage("en")}>EN</button>
+            <Pressable type="button" lang="vi" aria-label="Tiếng Việt" title="Tiếng Việt" aria-pressed={language === "vi"} onClick={() => changeLanguage("vi")}>VI</Pressable>
+            <Pressable type="button" lang="en" aria-label="English" title="English" aria-pressed={language === "en"} onClick={() => changeLanguage("en")}>EN</Pressable>
           </div>
         </div>
         </header>
@@ -791,7 +792,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
           {/* Header Switcher Tabs (Sign In vs Sign Up) */}
           {["signin", "signup"].includes(mode) && (
             <div className="flex bg-slate-900/80 p-1 rounded-2xl mb-5 border border-slate-700/40">
-              <button
+              <Pressable
                 type="button"
                 onClick={() => {
                   setMode("signin");
@@ -807,8 +808,8 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                 }`}
               >
                 {t("Đăng nhập")}
-              </button>
-              <button
+              </Pressable>
+              <Pressable
                 type="button"
                 onClick={() => {
                   setMode("signup");
@@ -824,7 +825,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                 }`}
               >
                 {t("Tạo tài khoản")}
-              </button>
+              </Pressable>
             </div>
           )}
 
@@ -853,7 +854,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
               )}
 
               <div className="pt-1">
-                <button
+                <Pressable
                   type="button"
                   disabled={resendingEmail || resendCooldown > 0}
                   onClick={handleResendVerificationEmail}
@@ -873,7 +874,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   ) : (
                     <span>Gửi lại email xác minh</span>
                   )}
-                </button>
+                </Pressable>
               </div>
             </div>
           )}
@@ -921,7 +922,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       >
                         <User className="w-3 h-3 text-slate-400" />
                         <span>{acc.username}</span>
-                        <button
+                        <Pressable
                           type="button"
                           title={t("Xóa khỏi thiết bị")}
                           aria-label={language === "en" ? `Remove account ${acc.username} from this device` : `Xóa tài khoản ${acc.username} khỏi máy`}
@@ -929,7 +930,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                           className="text-slate-500 hover:text-rose-400 transition-colors ml-0.5 p-0.5"
                         >
                           <Trash2 className="w-3 h-3" />
-                        </button>
+                        </Pressable>
                       </div>
                     ))}
                   </div>
@@ -974,7 +975,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                     >
                       {t("Mật khẩu 6 số")}
                     </label>
-                    <button
+                    <Pressable
                       type="button"
                       onClick={() => {
                         setMode("forgot");
@@ -984,7 +985,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       className="text-[11px] text-emerald-400 hover:underline"
                     >
                       {t("Quên mật khẩu?")}
-                    </button>
+                    </Pressable>
                   </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1000,7 +1001,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       placeholder="••••••"
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2.5 pl-10 pr-10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 tracking-widest font-mono transition-all"
                     />
-                    <button
+                    <Pressable
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
@@ -1012,7 +1013,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       ) : (
                         <Eye className="w-4 h-4" />
                       )}
-                    </button>
+                    </Pressable>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
                     {t("Mật khẩu gồm đúng 6 chữ số từ 0–9.")}
@@ -1020,7 +1021,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                 </div>
 
                 {/* Submit Sign In Button */}
-                <button
+                <Pressable
                   type="submit"
                   disabled={busy}
                   className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -1033,7 +1034,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   ) : (
                     <span>{t("Đăng nhập")}</span>
                   )}
-                </button>
+                </Pressable>
               </form>
 
               {/* Divider */}
@@ -1049,7 +1050,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
               </div>
 
               {/* Google OAuth Button */}
-              <button
+              <Pressable
                 type="button"
                 id="google-signin-btn"
                 onClick={handleGoogleSignIn}
@@ -1058,7 +1059,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
               >
                 <GoogleIcon />
                 <span>{t("Tiếp tục với Google")}</span>
-              </button>
+              </Pressable>
             </div>
           )}
 
@@ -1156,7 +1157,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       placeholder="••••••"
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2 pl-9 pr-9 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 tracking-widest font-mono transition-all"
                     />
-                    <button
+                    <Pressable
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
@@ -1168,7 +1169,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       ) : (
                         <Eye className="w-3.5 h-3.5" />
                       )}
-                    </button>
+                    </Pressable>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
                     {t("Mật khẩu gồm đúng 6 chữ số từ 0–9.")}
@@ -1196,7 +1197,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       placeholder="••••••"
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2 pl-9 pr-9 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 tracking-widest font-mono transition-all"
                     />
-                    <button
+                    <Pressable
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -1208,12 +1209,12 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       ) : (
                         <Eye className="w-3.5 h-3.5" />
                       )}
-                    </button>
+                    </Pressable>
                   </div>
                 </div>
 
                 {/* Submit Register Button */}
-                <button
+                <Pressable
                   type="submit"
                   disabled={busy}
                   className="w-full mt-2 py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -1226,7 +1227,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   ) : (
                     <span>{t("Đăng ký")}</span>
                   )}
-                </button>
+                </Pressable>
               </form>
 
               {/* Divider */}
@@ -1242,7 +1243,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
               </div>
 
               {/* Google Register Button */}
-              <button
+              <Pressable
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={busy}
@@ -1250,7 +1251,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
               >
                 <GoogleIcon />
                 <span>{t("Đăng ký bằng Google")}</span>
-              </button>
+              </Pressable>
             </div>
           )}
 
@@ -1258,7 +1259,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
           {mode === "forgot" && (
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <button
+                <Pressable
                   type="button"
                   onClick={() => {
                     setMode("signin");
@@ -1268,7 +1269,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                </button>
+                </Pressable>
                 <h2 className="text-sm font-bold text-white">{t("Khôi phục mật khẩu")}</h2>
               </div>
 
@@ -1297,7 +1298,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   </p>
                 </div>
 
-                <button
+                <Pressable
                   type="submit"
                   disabled={busy || forgotCooldown > 0}
                   className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -1312,11 +1313,11 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   ) : (
                     <span>{t("Gửi liên kết đặt lại mật khẩu")}</span>
                   )}
-                </button>
+                </Pressable>
               </form>
 
               <div className="mt-4 pt-3 border-t border-slate-700/60 text-center">
-                <button
+                <Pressable
                   type="button"
                   onClick={() => {
                     setMode("signin");
@@ -1326,7 +1327,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   className="text-xs text-slate-400 hover:text-emerald-400 transition-colors font-medium"
                 >
                   {t("Quay lại đăng nhập")}
-                </button>
+                </Pressable>
               </div>
             </div>
           )}
@@ -1364,7 +1365,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       placeholder="••••••"
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2.5 pl-10 pr-10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 tracking-widest font-mono transition-all"
                     />
-                    <button
+                    <Pressable
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword(!showPassword)}
@@ -1376,7 +1377,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       ) : (
                         <Eye className="w-4 h-4" />
                       )}
-                    </button>
+                    </Pressable>
                   </div>
                 </div>
 
@@ -1400,7 +1401,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       placeholder="••••••"
                       className="w-full bg-slate-900/70 border border-slate-700 rounded-xl py-2.5 pl-10 pr-10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 tracking-widest font-mono transition-all"
                     />
-                    <button
+                    <Pressable
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -1412,11 +1413,11 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                       ) : (
                         <Eye className="w-4 h-4" />
                       )}
-                    </button>
+                    </Pressable>
                   </div>
                 </div>
 
-                <button
+                <Pressable
                   type="submit"
                   disabled={busy}
                   className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -1429,7 +1430,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   ) : (
                     <span>{t("Lưu mật khẩu mới")}</span>
                   )}
-                </button>
+                </Pressable>
               </form>
             </div>
           )}
@@ -1477,7 +1478,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   </p>
                 </div>
 
-                <button
+                <Pressable
                   type="submit"
                   disabled={busy}
                   className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-60 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -1490,7 +1491,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   ) : (
                     <span>{t("Hoàn tất & Về đăng nhập")}</span>
                   )}
-                </button>
+                </Pressable>
               </form>
             </div>
           )}

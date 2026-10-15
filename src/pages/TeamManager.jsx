@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { matchesMemberSearch } from "../lib/memberSearch";
@@ -142,7 +143,7 @@ export default function TeamManager({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
-              <button
+              <Pressable
                 type="button"
                 onClick={() => onOpenInvite && onOpenInvite()}
                 aria-label="Mời thành viên"
@@ -150,15 +151,15 @@ export default function TeamManager({
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 active:scale-95 transition-all cursor-pointer outline-none"
               >
                 <QrCode className="w-5 h-5" />
-              </button>
+              </Pressable>
 
-              <button
+              <Pressable
                 aria-label="Đóng"
                 onClick={onClose}
                 className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 active:scale-95 transition-all cursor-pointer outline-none"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
           </div>
 
@@ -175,19 +176,19 @@ export default function TeamManager({
                 className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-9 pr-9 py-2.5 text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
               />
               {searchQuery && (
-                <button
+                <Pressable
                   onClick={() => setSearchQuery("")}
                   className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <X className="w-3.5 h-3.5" />
-                </button>
+                </Pressable>
               )}
             </div>
 
             {/* Filter Pills & Add Member Button */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="member-filters flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-full text-xs font-bold">
-                <button
+                <Pressable
                   onClick={() => setFilterRole("all")}
                   className={`px-3 py-1 rounded-full transition-all cursor-pointer whitespace-nowrap ${
                     filterRole === "all"
@@ -196,8 +197,8 @@ export default function TeamManager({
                   }`}
                 >
                   Tất cả ({members.length})
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   onClick={() => setFilterRole("leaders")}
                   className={`px-2.5 py-1 rounded-full transition-all cursor-pointer whitespace-nowrap ${
                     filterRole === "leaders"
@@ -212,8 +213,8 @@ export default function TeamManager({
                     ).length
                   }
                   )
-                </button>
-                <button
+                </Pressable>
+                <Pressable
                   onClick={() => setFilterRole("members")}
                   className={`px-2.5 py-1 rounded-full transition-all cursor-pointer whitespace-nowrap ${
                     filterRole === "members"
@@ -223,13 +224,13 @@ export default function TeamManager({
                 >
                   Cầu thủ (
                   {members.filter((m) => m.roleType === "member").length})
-                </button>
+                </Pressable>
               </div>
 
               {/* Action Buttons */}
               {(isOwner || currentUserRole === "admin") && (
                 <div className="flex items-center gap-1.5">
-                  <motion.button
+                  <Pressable
                     whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => {
@@ -240,9 +241,9 @@ export default function TeamManager({
                   >
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>+ Thêm thành viên</span>
-                  </motion.button>
+                  </Pressable>
 
-                  <motion.button
+                  <Pressable
                     whileTap={{ scale: 0.95 }}
                     type="button"
                     onClick={() => {
@@ -253,7 +254,7 @@ export default function TeamManager({
                   >
                     <QrCode className="w-3.5 h-3.5" />
                     <span>Mã / QR</span>
-                  </motion.button>
+                  </Pressable>
                 </div>
               )}
             </div>
@@ -309,7 +310,7 @@ export default function TeamManager({
                   </p>
                 )}
                 <div className="flex gap-2 mt-2">
-                  <button
+                  <Pressable
                     type="button"
                     className="primary-button"
                     disabled={!linkTarget || linkBusy}
@@ -329,8 +330,8 @@ export default function TeamManager({
                     }}
                   >
                     {linkBusy ? "Đang lưu…" : "Xác nhận liên kết"}
-                  </button>
-                  <button
+                  </Pressable>
+                  <Pressable
                     type="button"
                     className="choice-button"
                     disabled={linkBusy}
@@ -340,7 +341,7 @@ export default function TeamManager({
                     }}
                   >
                     Hủy
-                  </button>
+                  </Pressable>
                 </div>
               </section>
             )}
@@ -387,7 +388,7 @@ export default function TeamManager({
                         {member.isManual &&
                           onLinkMember &&
                           ["owner", "admin"].includes(currentUserRole) && (
-                            <button
+                            <Pressable
                               type="button"
                               className="text-xs text-emerald-700 min-h-11"
                               onClick={(e) => {
@@ -398,7 +399,7 @@ export default function TeamManager({
                               }}
                             >
                               Liên kết tài khoản
-                            </button>
+                            </Pressable>
                           )}
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
@@ -445,7 +446,7 @@ export default function TeamManager({
                     {/* Action buttons: Delete from team & View profile arrow */}
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       {canDelete ? (
-                        <button
+                        <Pressable
                           onClick={(e) => {
                             e.stopPropagation();
                             setMemberToDelete(member);
@@ -455,7 +456,7 @@ export default function TeamManager({
                         >
                           <Trash2 className="w-3 h-3" />
                           <span>Xóa</span>
-                        </button>
+                        </Pressable>
                       ) : (
                         isMemberOwner && (
                           <span className="text-xs text-slate-400 dark:text-slate-500 font-bold px-2 py-1">
@@ -509,21 +510,21 @@ export default function TeamManager({
                       {removeError}
                     </p>
                   )}
-                  <motion.button
+                  <Pressable
                     disabled={removeBusy}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleConfirmDelete}
                     className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-md shadow-rose-600/20 cursor-pointer whitespace-nowrap outline-none"
                   >
                     Xác Nhận Xóa
-                  </motion.button>
+                  </Pressable>
 
-                  <button
+                  <Pressable
                     onClick={() => setMemberToDelete(null)}
                     className="w-full py-3 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs cursor-pointer whitespace-nowrap outline-none"
                   >
                     Hủy Bỏ
-                  </button>
+                  </Pressable>
                 </div>
               </div>
             </div>

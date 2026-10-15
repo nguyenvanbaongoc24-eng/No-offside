@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useEffect, useState } from "react";
 export default function MyAttendanceControl({
   status,
@@ -36,7 +37,7 @@ export default function MyAttendanceControl({
           ["maybe", "Chưa chắc"],
           ["absent", "Báo vắng"],
         ].map(([value, label]) => (
-          <button
+          <Pressable
             key={value}
             type="button"
             className="choice-button"
@@ -55,7 +56,7 @@ export default function MyAttendanceControl({
             }}
           >
             {label}
-          </button>
+          </Pressable>
         ))}
       </div>
       {busy && (

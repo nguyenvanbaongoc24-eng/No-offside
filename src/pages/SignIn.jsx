@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -45,13 +46,13 @@ export function SplashScreen({ onFinish }) {
 
       {/* Top spacer / Skip button */}
       <div className="w-full flex justify-end relative z-10">
-        <motion.button 
+        <Pressable
           whileTap={{ scale: 0.95 }}
           onClick={(e) => { e.stopPropagation(); onFinish(); }}
           className="text-xs font-bold text-gray-200 hover:text-white px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 transition-all cursor-pointer"
         >
           Bỏ qua
-        </motion.button>
+        </Pressable>
       </div>
 
       {/* Center Brand Logo with Framer Motion Spring Animation */}
@@ -237,13 +238,13 @@ export function AuthScreen({ onVerifySuccess }) {
               </div>
 
               {/* Nút "Tiếp tục" bo tròn rounded-full, màu xanh lá, active:scale-95 */}
-              <button
+              <Pressable
                 type="submit"
                 className="w-full py-3.5 rounded-full bg-[#22C55E] hover:bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-95 cursor-pointer mt-2"
               >
                 <span>Tiếp tục</span>
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </Pressable>
             </form>
           ) : (
             /* SUB-STEP 2: NHẬP MÃ XÁC THỰC OTP 6 SỐ */
@@ -255,13 +256,13 @@ export function AuthScreen({ onVerifySuccess }) {
                     Đã gửi đến <strong>+84 {phoneNumber}</strong>
                   </p>
                 </div>
-                <button
+                <Pressable
                   type="button"
                   onClick={() => setIsOtpSent(false)}
                   className="text-[11px] font-bold text-[#22C55E] hover:underline cursor-pointer"
                 >
                   Đổi SĐT
-                </button>
+                </Pressable>
               </div>
 
               {/* 6 ô Input OTP */}
@@ -286,7 +287,7 @@ export function AuthScreen({ onVerifySuccess }) {
                 {countdown > 0 ? (
                   <span>Gửi lại mã sau <strong className="text-gray-900">{countdown}s</strong></span>
                 ) : (
-                  <button
+                  <Pressable
                     type="button"
                     onClick={handleResendOtp}
                     disabled={isResending}
@@ -294,32 +295,32 @@ export function AuthScreen({ onVerifySuccess }) {
                   >
                     <RefreshCw className={`w-3 h-3 ${isResending ? 'animate-spin' : ''}`} />
                     <span>Gửi lại mã OTP</span>
-                  </button>
+                  </Pressable>
                 )}
                 <span className="text-[10px] text-gray-400">Gợi ý: 123456</span>
               </div>
 
               {/* Nút Xác nhận OTP */}
-              <button
+              <Pressable
                 type="submit"
                 className="w-full py-3.5 rounded-full bg-[#22C55E] hover:bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Xác nhận & Tiếp tục</span>
-              </button>
+              </Pressable>
             </form>
           )}
 
           {/* Quick Demo Access */}
           <div className="mt-5 pt-4 border-t border-gray-100 text-center">
-            <button
+            <Pressable
               type="button"
               onClick={() => onVerifySuccess({ name: 'Tuấn Hưng', number: 9, role: 'Tiền đạo (ST)' })}
               className="text-xs text-emerald-800 hover:text-emerald-900 font-extrabold flex items-center justify-center gap-1.5 mx-auto bg-emerald-50 hover:bg-emerald-100/80 px-4 py-2 rounded-full border border-emerald-200/80 transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#22C55E]" />
               <span>Vào nhanh với tài khoản mẫu Số 9</span>
-            </button>
+            </Pressable>
           </div>
 
         </div>
@@ -450,7 +451,7 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
               {positions.map((pos) => {
                 const isSelected = position === pos.label;
                 return (
-                  <button
+                  <Pressable
                     key={pos.id}
                     type="button"
                     onClick={() => setPosition(pos.label)}
@@ -469,7 +470,7 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
                         {pos.desc}
                       </p>
                     </div>
-                  </button>
+                  </Pressable>
                 );
               })}
             </div>
@@ -497,7 +498,7 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
               {/* Gợi ý số áo nhanh */}
               <div className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1">
                 {popularNumbers.map((num) => (
-                  <button
+                  <Pressable
                     key={num}
                     type="button"
                     onClick={() => setJerseyNumber(num)}
@@ -508,7 +509,7 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
                     }`}
                   >
                     {num}
-                  </button>
+                  </Pressable>
                 ))}
               </div>
             </div>
@@ -532,13 +533,13 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
 
           {/* BUTTON GÓC DƯỚI: "VÀO SÂN THÔI!" */}
           <div className="pt-2">
-            <button
+            <Pressable
               type="submit"
               className="w-full py-4 rounded-full bg-[#22C55E] hover:bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/30 transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <span>Vào sân thôi!</span>
               <ArrowRight className="w-4 h-4 stroke-[3]" />
-            </button>
+            </Pressable>
           </div>
 
         </form>

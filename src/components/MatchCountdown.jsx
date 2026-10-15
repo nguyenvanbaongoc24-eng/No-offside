@@ -24,6 +24,6 @@ export default function MatchCountdown({ deadline, sentence = false }) {
     ":" +
     pad(seconds % 60);
   return (
-    <span>{sentence ? `Còn ${remaining} để chốt danh sách` : remaining}</span>
+    <span className={"match-countdown" + (sentence ? " is-sentence" : "")}>{sentence ? `Còn ${remaining} để chốt danh sách` : remaining}</span>
   );
 }

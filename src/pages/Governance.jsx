@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useId, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, X, ShieldCheck, Plus, Edit2 } from "lucide-react";
 import {
@@ -131,19 +132,19 @@ export default function Governance({ governance, onBack }) {
   return (
     <div className="pb-8">
       <header className="dashboard-header">
-        <button aria-label="Quay lại" onClick={onBack}>
+        <Pressable aria-label="Quay lại" onClick={onBack}>
           <ArrowLeft size={22} />
-        </button>
+        </Pressable>
         <h1 className="text-xl font-semibold">Nội quy & vi phạm</h1>
       </header>
       <div className="p-4 space-y-4">
         {snapshot && (
-          <button
+          <Pressable
             className="choice-button text-sm"
             onClick={governance.refresh}
           >
             Lấy dữ liệu mới
-          </button>
+          </Pressable>
         )}
         {governance.loading ? (
           <p role="status">Đang tải dữ liệu server…</p>
@@ -157,16 +158,16 @@ export default function Governance({ governance, onBack }) {
               cùng tư cách thành viên đã được xác thực trên server.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <button className="choice-button" onClick={governance.refresh}>
+              <Pressable className="choice-button" onClick={governance.refresh}>
                 Kiểm tra lại kết nối
-              </button>
+              </Pressable>
               {governance.enableLocalMode && (
-                <button
+                <Pressable
                   className="primary-button"
                   onClick={governance.enableLocalMode}
                 >
                   Tạo &amp; Quản lý nội quy trên thiết bị
-                </button>
+                </Pressable>
               )}
             </div>
           </section>
@@ -182,7 +183,7 @@ export default function Governance({ governance, onBack }) {
                 </div>
                 {leader && (
                   <div className="flex gap-2">
-                    <button
+                    <Pressable
                       className="choice-button text-sm flex items-center gap-1.5"
                       onClick={() =>
                         open(
@@ -198,9 +199,9 @@ export default function Governance({ governance, onBack }) {
                     >
                       <Plus size={16} />
                       Tạo mới
-                    </button>
+                    </Pressable>
                     {rules && (
-                      <button
+                      <Pressable
                         className="choice-button text-sm flex items-center gap-1.5"
                         onClick={() =>
                           open(
@@ -216,7 +217,7 @@ export default function Governance({ governance, onBack }) {
                       >
                         <Edit2 size={16} />
                         Sửa nội quy
-                      </button>
+                      </Pressable>
                     )}
                   </div>
                 )}
@@ -237,13 +238,13 @@ export default function Governance({ governance, onBack }) {
                         e.subject === snapshot.me.user_id &&
                         e.data.ruleId === rules.id,
                     ) && (
-                      <button
+                      <Pressable
                         className="primary-button w-full mt-4"
                         disabled={busy}
                         onClick={() => run("ack_rules", { ruleId: rules.id })}
                       >
                         Xác nhận đã đọc phiên bản {rules.version}
-                      </button>
+                      </Pressable>
                     )}
                 </>
               ) : (
@@ -252,7 +253,7 @@ export default function Governance({ governance, onBack }) {
                     Đội bóng chưa có bản nội quy chính thức.
                   </p>
                   {leader && (
-                    <button
+                    <Pressable
                       className="primary-button mt-3 inline-flex items-center gap-2"
                       onClick={() =>
                         open(
@@ -268,7 +269,7 @@ export default function Governance({ governance, onBack }) {
                     >
                       <Plus size={16} />
                       Tạo nội quy ngay
-                    </button>
+                    </Pressable>
                   )}
                 </div>
               )}
@@ -290,14 +291,14 @@ export default function Governance({ governance, onBack }) {
               <div className="flex items-center justify-between gap-3">
                 <h2>Giới hạn vi phạm</h2>
                 {leader && (
-                  <button
+                  <Pressable
                     className="choice-button text-sm"
                     onClick={() =>
                       open("policy", snapshot.team.policy, "Cấu hình xử lý")
                     }
                   >
                     Cấu hình
-                  </button>
+                  </Pressable>
                 )}
               </div>
               <p className="text-sm mt-3">
@@ -365,7 +366,7 @@ export default function Governance({ governance, onBack }) {
                         {e.subject !== snapshot.me.user_id &&
                           !decision &&
                           e.data.status === "pending" && (
-                            <button
+                            <Pressable
                               className="choice-button mt-2"
                               onClick={() =>
                                 open(
@@ -380,7 +381,7 @@ export default function Governance({ governance, onBack }) {
                               }
                             >
                               Duyệt yêu cầu
-                            </button>
+                            </Pressable>
                           )}
                       </article>
                     );
@@ -396,7 +397,7 @@ export default function Governance({ governance, onBack }) {
               <section className="settings-card">
                 <h2>Ghi nhận tại sân</h2>
                 <div className="flex flex-wrap gap-2 mt-3">
-                  <button
+                  <Pressable
                     className="choice-button"
                     onClick={() =>
                       open(
@@ -407,8 +408,8 @@ export default function Governance({ governance, onBack }) {
                     }
                   >
                     Xác nhận giờ đến
-                  </button>
-                  <button
+                  </Pressable>
+                  <Pressable
                     className="choice-button"
                     onClick={() =>
                       open(
@@ -419,8 +420,8 @@ export default function Governance({ governance, onBack }) {
                     }
                   >
                     Chốt đi muộn
-                  </button>
-                  <button
+                  </Pressable>
+                  <Pressable
                     className="choice-button"
                     onClick={() =>
                       open(
@@ -438,7 +439,7 @@ export default function Governance({ governance, onBack }) {
                     }
                   >
                     Vi phạm khác
-                  </button>
+                  </Pressable>
                 </div>
                 <p className="text-xs text-slate-500 mt-3">
                   Giờ đến phải do người có quyền xác nhận. Chốt sẽ áp dụng nội
@@ -456,7 +457,7 @@ export default function Governance({ governance, onBack }) {
                   </p>
                 </div>
                 {leader && (
-                  <button
+                  <Pressable
                     className="choice-button text-sm flex items-center gap-1.5"
                     onClick={() =>
                       open(
@@ -475,7 +476,7 @@ export default function Governance({ governance, onBack }) {
                   >
                     <Plus size={16} />
                     Ghi vi phạm
-                  </button>
+                  </Pressable>
                 )}
               </div>
               {snapshot.events
@@ -520,7 +521,7 @@ export default function Governance({ governance, onBack }) {
                       ))}
                       {leader && e.subject !== snapshot.me.user_id && (
                         <div className="flex gap-2 mt-3 flex-wrap">
-                          <button
+                          <Pressable
                             className="choice-button text-xs flex items-center gap-1"
                             onClick={() =>
                               open(
@@ -537,8 +538,8 @@ export default function Governance({ governance, onBack }) {
                           >
                             <Edit2 size={13} />
                             Sửa mức phạt
-                          </button>
-                          <button
+                          </Pressable>
+                          <Pressable
                             className="choice-button text-xs"
                             onClick={() =>
                               open(
@@ -554,7 +555,7 @@ export default function Governance({ governance, onBack }) {
                             }
                           >
                             Hủy vi phạm
-                          </button>
+                          </Pressable>
                         </div>
                       )}
                     </article>
@@ -592,7 +593,7 @@ export default function Governance({ governance, onBack }) {
                           </p>
                         ))}
                       {e.subject !== snapshot.me.user_id && (
-                        <button
+                        <Pressable
                           className="choice-button mt-2"
                           onClick={() =>
                             open(
@@ -603,7 +604,7 @@ export default function Governance({ governance, onBack }) {
                           }
                         >
                           Tạo điều chỉnh
-                        </button>
+                        </Pressable>
                       )}
                     </article>
                   ))}
@@ -634,7 +635,7 @@ export default function Governance({ governance, onBack }) {
                       Kỳ {date(e.data.periodStart)} · Chờ duyệt
                     </p>
                     {leader && e.subject !== snapshot.me.user_id && (
-                      <button
+                      <Pressable
                         className="choice-button mt-2"
                         onClick={() =>
                           open(
@@ -651,12 +652,12 @@ export default function Governance({ governance, onBack }) {
                         }
                       >
                         Duyệt xử lý
-                      </button>
+                      </Pressable>
                     )}
                   </article>
                 ))}
               {leader && (
-                <button
+                <Pressable
                   className="choice-button mt-3"
                   onClick={() =>
                     open(
@@ -668,7 +669,7 @@ export default function Governance({ governance, onBack }) {
                 >
                   <ShieldCheck size={18} />
                   Xử lý thành viên
-                </button>
+                </Pressable>
               )}
               {snapshot.events
                 .filter((e) => e.action === "sanction")
@@ -705,13 +706,13 @@ export default function Governance({ governance, onBack }) {
           aria-labelledby="gov-form-title"
         >
           <section className="simple-sheet">
-            <button
+            <Pressable
               className="sheet-close"
               aria-label="Đóng"
               onClick={() => setForm(null)}
             >
               <X size={20} />
-            </button>
+            </Pressable>
             <h2 id="gov-form-title" className="text-xl font-semibold">
               {form.title}
             </h2>
@@ -741,7 +742,7 @@ export default function Governance({ governance, onBack }) {
                     <p className="text-emerald-300 font-medium">
                       💡 Mẹo: Bạn có thể tự soạn nội quy hoặc bấm nút bên dưới để chèn mẫu nội quy bóng đá phong trào.
                     </p>
-                    <button
+                    <Pressable
                       type="button"
                       className="choice-button text-xs py-1.5 px-3 w-full sm:w-auto"
                       onClick={() =>
@@ -749,7 +750,7 @@ export default function Governance({ governance, onBack }) {
                       }
                     >
                       ⚡ Chèn mẫu nội quy chuẩn bóng đá
-                    </button>
+                    </Pressable>
                   </div>
                   {field("content", "Nội dung nội quy & mức phạt", "textarea")}
                   {field(
@@ -866,13 +867,13 @@ export default function Governance({ governance, onBack }) {
                   {error}
                 </p>
               )}
-              <button
+              <Pressable
                 className="primary-button w-full"
                 type="submit"
                 disabled={busy}
               >
                 {busy ? "Đang xử lý…" : "Xác nhận"}
-              </button>
+              </Pressable>
             </form>
           </section>
         </div>

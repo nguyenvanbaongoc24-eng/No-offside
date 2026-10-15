@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React,{useEffect,useRef,useState} from 'react';
 import {AnimatePresence,motion} from 'framer-motion';
 import {QRCodeSVG} from 'qrcode.react';
@@ -45,22 +46,22 @@ export default function InviteShare({isOpen=true,onClose,teamName='',teamLogo=''
   };
   return <AnimatePresence>{isOpen && <Overlay key="invite" role="dialog" aria-modal="true" aria-label="Mời thành viên" className="invite-share-overlay" {...(canAnimate ? {initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},transition:{duration:.2}} : {})}>
     <Sheet className="invite-share-sheet" {...(canAnimate ? {initial:{y:20,opacity:0},animate:{y:0,opacity:1},exit:{y:20,opacity:0},transition:{duration:.26,ease:[.22,.61,.36,1]}} : {})}>
-      <header className="invite-share-heading"><Avatar src={teamLogo} name={teamName} className="team-logo-avatar"/><div><h2>Mời thành viên</h2><p>{teamName || 'Đội đang chọn'}</p></div>{onClose && <button type="button" aria-label="Đóng" onClick={onClose}><X size={20}/></button>}</header>
+      <header className="invite-share-heading"><Avatar src={teamLogo} name={teamName} className="team-logo-avatar"/><div><h2>Mời thành viên</h2><p>{teamName || 'Đội đang chọn'}</p></div>{onClose && <Pressable type="button" aria-label="Đóng" onClick={onClose}><X size={20}/></Pressable>}</header>
       {loading ? <p role="status" className="invite-feedback"><Loader2 className="animate-spin" size={20}/>Đang tải mã mời…</p> : null}
       {(error || failure) && <p role="alert" className="form-error">{failure || error}</p>}
-      {error && onRetry && !loading && <button type="button" className="choice-button" disabled={busy} onClick={()=>run(onRetry)}>Thử lại</button>}
-      {!loading && !code && <div className="invite-feedback"><p>Chưa có mã mời khả dụng cho đội này.</p>{onRetry && !error && <button type="button" className="primary-button" disabled={busy} onClick={()=>run(onRetry)}>Thử lại</button>}</div>}
+      {error && onRetry && !loading && <Pressable type="button" className="choice-button" disabled={busy} onClick={()=>run(onRetry)}>Thử lại</Pressable>}
+      {!loading && !code && <div className="invite-feedback"><p>Chưa có mã mời khả dụng cho đội này.</p>{onRetry && !error && <Pressable type="button" className="primary-button" disabled={busy} onClick={()=>run(onRetry)}>Thử lại</Pressable>}</div>}
       {!loading && code && <>
         <p className="field-hint">{active ? 'Đang hoạt động' : error ? 'Chưa xác minh được mã mời.' : 'Mã đã thu hồi — không dùng để gia nhập.'}</p>
         {active && <div className="invite-qr"><QRCodeSVG value={url} size={180} level="M" includeMargin fgColor="#14201A" bgColor="#FFFFFF"/><span>Quét để gia nhập {teamName}</span></div>}
-        <div className="invite-copy-row"><div><span className="field-hint">Mã Club</span><p className="invite-code">{code}</p></div><button type="button" disabled={!active || busy} aria-label="Sao chép mã Club" onClick={()=>run(()=>copy(code,'Đã sao chép mã Club.'))}><Copy size={18}/>Sao chép</button></div>
-        <div className="invite-copy-row"><div><span className="field-hint">Liên kết mời</span><p className="invite-url">{url}</p></div><button type="button" disabled={!active || busy} aria-label="Sao chép liên kết mời" onClick={()=>run(()=>copy(url,'Đã sao chép liên kết.'))}><Copy size={18}/></button></div>
-        <button type="button" className="primary-button invite-share-action" disabled={!active || busy} onClick={()=>run(share)}><Share2 size={18}/>Chia sẻ lời mời</button>
-        {onPreviewLanding && active && <button type="button" className="choice-button invite-share-action" onClick={onPreviewLanding}><ExternalLink size={18}/>Xem trang gia nhập</button>}
+        <div className="invite-copy-row"><div><span className="field-hint">Mã Club</span><p className="invite-code">{code}</p></div><Pressable type="button" disabled={!active || busy} aria-label="Sao chép mã Club" onClick={()=>run(()=>copy(code,'Đã sao chép mã Club.'))}><Copy size={18}/>Sao chép</Pressable></div>
+        <div className="invite-copy-row"><div><span className="field-hint">Liên kết mời</span><p className="invite-url">{url}</p></div><Pressable type="button" disabled={!active || busy} aria-label="Sao chép liên kết mời" onClick={()=>run(()=>copy(url,'Đã sao chép liên kết.'))}><Copy size={18}/></Pressable></div>
+        <Pressable type="button" className="primary-button invite-share-action" disabled={!active || busy} onClick={()=>run(share)}><Share2 size={18}/>Chia sẻ lời mời</Pressable>
+        {onPreviewLanding && active && <Pressable type="button" className="choice-button invite-share-action" onClick={onPreviewLanding}><ExternalLink size={18}/>Xem trang gia nhập</Pressable>}
         {leader && <div className="invite-admin-actions">
-          {create && <button type="button" className="choice-button" disabled={busy} onClick={()=>{if(window.confirm('Tạo mã mới sẽ vô hiệu hóa mã Club và QR hiện tại. Tiếp tục?'))run(create);}}><RotateCw size={18}/>Tạo mã mới</button>}
-          {revoke && active && <button type="button" className="danger-button" disabled={busy} onClick={()=>confirmRevoke ? run(async()=>{await revoke();if(alive.current)setConfirmRevoke(false);}) : setConfirmRevoke(true)}><Ban size={18}/>{confirmRevoke ? 'Xác nhận thu hồi' : 'Thu hồi'}</button>}
-          {confirmRevoke && <button type="button" disabled={busy} className="choice-button" onClick={()=>setConfirmRevoke(false)}>Hủy</button>}
+          {create && <Pressable type="button" className="choice-button" disabled={busy} onClick={()=>{if(window.confirm('Tạo mã mới sẽ vô hiệu hóa mã Club và QR hiện tại. Tiếp tục?'))run(create);}}><RotateCw size={18}/>Tạo mã mới</Pressable>}
+          {revoke && active && <Pressable type="button" className="danger-button" disabled={busy} onClick={()=>confirmRevoke ? run(async()=>{await revoke();if(alive.current)setConfirmRevoke(false);}) : setConfirmRevoke(true)}><Ban size={18}/>{confirmRevoke ? 'Xác nhận thu hồi' : 'Thu hồi'}</Pressable>}
+          {confirmRevoke && <Pressable type="button" disabled={busy} className="choice-button" onClick={()=>setConfirmRevoke(false)}>Hủy</Pressable>}
         </div>}
       </>}
       {busy && <p role="status" className="field-hint">Đang xử lý…</p>}

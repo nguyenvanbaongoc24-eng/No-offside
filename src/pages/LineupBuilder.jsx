@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState, useRef, useEffect } from "react";
 import { readStored, writeStored } from "../lib/storage";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -26,6 +27,8 @@ export default function LineupBuilder({
   currentUserRole,
   serverLineups,
   onSaveLineups,
+  createRequest,
+  onCreateOpened,
 }) {
   const pitchRef = useRef(null);
   const [draggedPlayer, setDraggedPlayer] = useState(null);
@@ -75,6 +78,7 @@ export default function LineupBuilder({
 
   // Available players pool to swap
   const canEdit = ["owner", "admin"].includes(currentUserRole);
+  useEffect(()=>{if(createRequest && canEdit){setShowCreateFormationModal(true);onCreateOpened?.();}},[createRequest,canEdit]);
   const teamRoster = members.map((m) => ({ ...m, name: m.name, role: m.role }));
 
   // Formations state (Each player has top/left % and drag support)
@@ -498,18 +502,18 @@ export default function LineupBuilder({
     <div className="tactics-page relative bg-slate-50 text-gray-900 font-sans antialiased">
       {/* 1. Header Dark Geometric Style */}
       <header className="tactics-header">
-        <button aria-label="Quay lại" onClick={onBack}>
+        <Pressable aria-label="Quay lại" onClick={onBack}>
           <ChevronLeft size={22} />
-        </button>
-        <h1>Chiến thuật</h1>
-        <button
+        </Pressable>
+        <h1>Sa bàn</h1>
+        <Pressable
           className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!canEdit}
           onClick={() => setShowCreateFormationModal(true)}
         >
           <PlusCircle size={16} />
           <span>Tạo sơ đồ</span>
-        </button>
+        </Pressable>
       </header>
 
       {/* Control Bar: Hướng dẫn kéo thả & Nút Lưu Sơ Đồ */}
@@ -525,7 +529,7 @@ export default function LineupBuilder({
         </div>
 
         {/* NÚT LƯU SƠ ĐỒ */}
-        <motion.button
+        <Pressable
           whileTap={{ scale: 0.98 }}
           disabled={!canEdit}
           onClick={handleSaveLineupCoordinates}
@@ -533,7 +537,7 @@ export default function LineupBuilder({
         >
           <Save className="w-3.5 h-3.5 text-emerald-400" />
           <span>{saveSuccessNotice ? "Đã lưu" : "Lưu sơ đồ"}</span>
-        </motion.button>
+        </Pressable>
       </div>
 
       {/* 2. Tactical Football Pitch (Sân bóng tone xanh lục bảo sẫm với Free Drag & Drop) */}
@@ -786,18 +790,18 @@ export default function LineupBuilder({
                   Chọn cầu thủ từ đội hình để thay thế vào vị trí này
                 </p>
               </div>
-              <button
+              <Pressable
                 aria-label="Đóng"
                 onClick={() => setSelectedPlayer(null)}
                 className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-3 space-y-2 max-h-60 overflow-y-auto pr-1">
               {teamRoster.map((rosterPlayer, idx) => (
-                <button
+                <Pressable
                   type="button"
                   key={rosterPlayer.id || idx}
                   onClick={() => handleSwapPlayer(rosterPlayer)}
@@ -820,7 +824,7 @@ export default function LineupBuilder({
                   <span className="text-xs font-bold text-emerald-600 px-2 py-0.5 rounded-full bg-white border border-gray-200">
                     Chọn
                   </span>
-                </button>
+                </Pressable>
               ))}
             </div>
           </div>
@@ -842,13 +846,13 @@ export default function LineupBuilder({
                   Tạo sơ đồ tự xếp mới
                 </h3>
               </div>
-              <button
+              <Pressable
                 aria-label="Đóng"
                 onClick={() => setShowCreateFormationModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-full text-gray-400"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Pressable>
             </div>
 
             <div className="mt-3.5 space-y-3 text-xs">
@@ -876,14 +880,14 @@ export default function LineupBuilder({
               </p>
 
               <div className="pt-2">
-                <motion.button
+                <Pressable
                   whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={handleCreateNewFormation}
                   className="w-full h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs   cursor-pointer"
                 >
                   Tạo sơ đồ
-                </motion.button>
+                </Pressable>
               </div>
             </div>
           </div>

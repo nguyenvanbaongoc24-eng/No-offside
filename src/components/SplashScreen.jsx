@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from "react";
 import { Loader2 } from "lucide-react";
 export default function SplashScreen({ error = "", onRetry, onExit }) {
@@ -19,16 +20,16 @@ export default function SplashScreen({ error = "", onRetry, onExit }) {
         {error ? (
           <div className="splash-error">
             <p role="alert">{error}</p>
-            <button
+            <Pressable
               type="button"
               className="primary-button"
               disabled={leaving}
               onClick={onRetry}
             >
               Thử lại
-            </button>
+            </Pressable>
             {onExit && (
-              <button
+              <Pressable
                 type="button"
                 className="choice-button mt-3"
                 disabled={leaving}
@@ -47,7 +48,7 @@ export default function SplashScreen({ error = "", onRetry, onExit }) {
                 }}
               >
                 {leaving ? "Đang đăng xuất…" : "Đăng nhập lại"}
-              </button>
+              </Pressable>
             )}
             {exitError && <p role="alert">{exitError}</p>}
           </div>

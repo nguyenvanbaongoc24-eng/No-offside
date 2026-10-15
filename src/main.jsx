@@ -4,6 +4,7 @@ import App from './App.jsx'
 import { MotionConfig } from 'framer-motion'
 import './styles/index.css'
 import './styles/refinement.css'
+import './styles/soft-ui.css'
 
 window.clearTimeout(window.noOffsideBootTimer)
 delete window.noOffsideBootTimer

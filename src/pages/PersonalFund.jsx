@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState } from "react";
 import { Wallet, Check, Clock } from "lucide-react";
 import { qrUrl, monthKey } from "../lib/teamModel";
@@ -68,13 +69,13 @@ export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
                   {treasurerQr.accountHolder}
                 </p>
                 <p className="text-sm break-words">Nội dung: {memo}</p>
-                <button
+                <Pressable
                   className="primary-button w-full"
                   disabled={user.fundPaymentPending || sending}
                   onClick={report}
                 >
                   Đã chuyển tiền · gửi chờ duyệt
-                </button>
+                </Pressable>
               </>
             ) : (
               <p className="text-sm text-slate-600">

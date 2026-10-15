@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Trophy, Hash, ArrowRight, Calendar, Cake, Sparkles } from 'lucide-react';
@@ -115,7 +116,7 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
               {positions.map((pos) => {
                 const isSelected = position === pos.label;
                 return (
-                  <button
+                  <Pressable
                     key={pos.id}
                     type="button"
                     onClick={() => setPosition(pos.label)}
@@ -134,7 +135,7 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
                         {pos.desc}
                       </p>
                     </div>
-                  </button>
+                  </Pressable>
                 );
               })}
             </div>
@@ -161,7 +162,7 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
 
               <div className="flex-1 flex items-center gap-1 overflow-x-auto py-1 no-scrollbar">
                 {popularNumbers.map((num) => (
-                  <button
+                  <Pressable
                     key={num}
                     type="button"
                     onClick={() => setJerseyNumber(num)}
@@ -172,7 +173,7 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
                     }`}
                   >
                     {num}
-                  </button>
+                  </Pressable>
                 ))}
               </div>
             </div>
@@ -196,14 +197,14 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
 
           {/* BUTTON GÓC DƯỚI: "VÀO SÂN THÔI!" */}
           <div className="pt-1">
-            <motion.button
+            <Pressable
               whileTap={{ scale: 0.95 }}
               type="submit"
               className="w-full py-3.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 transition-all cursor-pointer whitespace-nowrap"
             >
               <span>Vào sân thôi!</span>
               <ArrowRight className="w-4 h-4" />
-            </motion.button>
+            </Pressable>
           </div>
 
         </form>

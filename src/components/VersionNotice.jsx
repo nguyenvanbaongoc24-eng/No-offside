@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from "react";
 import { useAppVersion } from "../hooks/useAppVersion";
 export default function VersionNotice() {
@@ -14,20 +15,20 @@ export default function VersionNotice() {
       </p>
       {update.updateError && <p role="alert">{update.updateError}</p>}
       <div>
-        <button
+        <Pressable
           type="button"
           onClick={update.applyUpdate}
           disabled={update.isUpdating}
         >
           Cập nhật
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           type="button"
           onClick={() => setDismissed(update.availableVersion)}
           disabled={update.isUpdating}
         >
           Để sau
-        </button>
+        </Pressable>
       </div>
     </aside>
   );

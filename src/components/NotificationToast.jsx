@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from 'react';
 import { Bell, X, CheckCircle, Calendar, DollarSign, Shield, ChevronRight } from 'lucide-react';
 
@@ -27,13 +28,13 @@ export default function NotificationToast({ isOpen, onClose, onOpenHistory }) {
           </span>
         </div>
 
-        <button 
+        <Pressable
           onClick={onClose}
           className="text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
           title="Đóng"
         >
           <X className="w-4 h-4" />
-        </button>
+        </Pressable>
       </div>
     </div>
   );
@@ -92,15 +93,15 @@ export function NotificationHistoryModal({ isOpen, onClose }) {
             <h3 className="font-extrabold text-base text-gray-900">Lịch Sử Thông Báo</h3>
           </div>
           <div className="flex items-center gap-2">
-            <button 
+            <Pressable
               onClick={markAllAsRead}
               className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded-full bg-emerald-50"
             >
               Đã đọc tất cả
-            </button>
-            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+            </Pressable>
+            <Pressable onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
               <X className="w-5 h-5" />
-            </button>
+            </Pressable>
           </div>
         </div>
 
@@ -133,12 +134,12 @@ export function NotificationHistoryModal({ isOpen, onClose }) {
 
         {/* Bottom button */}
         <div className="pt-3 mt-3 border-t border-gray-100">
-          <button
+          <Pressable
             onClick={onClose}
             className="w-full py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition-all active:scale-95"
           >
             Đóng
-          </button>
+          </Pressable>
         </div>
 
       </div>

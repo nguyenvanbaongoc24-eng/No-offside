@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useEffect, useState } from "react";
 import { ArrowRightLeft, LogOut, Plus, Check, X, User, Trash2 } from "lucide-react";
 import { readStored, writeStored } from "../lib/storage";
@@ -102,7 +103,7 @@ export default function AccountControls({
       </div>
 
       <div className="grid grid-cols-2 gap-2 mt-4">
-        <button
+        <Pressable
           type="button"
           className="choice-button"
           onClick={() => {
@@ -112,8 +113,8 @@ export default function AccountControls({
         >
           <ArrowRightLeft size={18} />
           Chuyển tài khoản
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           type="button"
           className="choice-button text-rose-700"
           disabled={busy}
@@ -121,7 +122,7 @@ export default function AccountControls({
         >
           <LogOut size={18} />
           Đăng xuất
-        </button>
+        </Pressable>
       </div>
 
       {error && (
@@ -138,14 +139,14 @@ export default function AccountControls({
           aria-labelledby="account-switch-title"
         >
           <section className="simple-sheet">
-            <button
+            <Pressable
               type="button"
               className="sheet-close"
               aria-label="Đóng"
               onClick={() => setOpen(false)}
             >
               <X size={20} />
-            </button>
+            </Pressable>
             <h2 id="account-switch-title" className="text-xl font-semibold">
               Chuyển tài khoản
             </h2>
@@ -198,7 +199,7 @@ export default function AccountControls({
                       <span className="text-xs text-emerald-600 font-bold group-hover:underline">
                         Đăng nhập lại
                       </span>
-                      <button
+                      <Pressable
                         type="button"
                         title="Quên tài khoản này trên máy"
                         aria-label={`Quên tài khoản ${a.username}`}
@@ -206,13 +207,13 @@ export default function AccountControls({
                         className="text-slate-400 hover:text-rose-600 p-1 rounded-md transition-colors"
                       >
                         <Trash2 size={15} />
-                      </button>
+                      </Pressable>
                     </div>
                   </div>
                 ))}
             </div>
 
-            <button
+            <Pressable
               type="button"
               className="primary-button w-full mt-4"
               disabled={busy}
@@ -220,17 +221,17 @@ export default function AccountControls({
             >
               <Plus size={20} />
               Đăng nhập tài khoản khác
-            </button>
+            </Pressable>
 
             {session && (
-              <button
+              <Pressable
                 type="button"
                 className="choice-button w-full mt-3 text-rose-700"
                 disabled={busy}
                 onClick={() => leave("global")}
               >
                 Đăng xuất mọi phiên của tài khoản này
-              </button>
+              </Pressable>
             )}
 
             <p className="text-xs text-slate-500 mt-3">

@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React from "react";
 import { AlertTriangle, BookOpen } from "lucide-react";
 import { effectiveRules, violationCount } from "../lib/governance";
@@ -21,7 +22,7 @@ export default function GovernanceNotice({ governance, onOpen }) {
   );
   if (!count && !unread) return null;
   return (
-    <button
+    <Pressable
       className="mx-4 mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-left flex gap-3 items-center"
       onClick={onOpen}
     >
@@ -45,6 +46,6 @@ export default function GovernanceNotice({ governance, onOpen }) {
           </span>
         )}
       </span>
-    </button>
+    </Pressable>
   );
 }

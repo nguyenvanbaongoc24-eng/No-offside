@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -221,12 +222,12 @@ export default function InviteLanding({
             Không tìm thấy lời mời
           </h1>
           <p className="text-xs text-slate-600 leading-relaxed">{error}</p>
-          <button
+          <Pressable
             onClick={onBackToApp}
             className="primary-button w-full h-11 text-xs font-bold"
           >
             Quay lại ứng dụng
-          </button>
+          </Pressable>
         </div>
       </div>
     );
@@ -235,13 +236,13 @@ export default function InviteLanding({
   return (
     <div className="invite-page bg-slate-50 font-sans">
       <header className="bg-slate-900 text-white p-5 pt-safe-hero rounded-b-[36px] shadow-md">
-        <button
+        <Pressable
           onClick={onBackToApp}
           className="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
         >
           <ArrowLeft size={16} />
           Quay lại ứng dụng
-        </button>
+        </Pressable>
 
         <div className="flex items-center gap-4 mt-5">
           {teamData.logo ? (
@@ -302,7 +303,7 @@ export default function InviteLanding({
             </div>
 
             <div className="space-y-2.5 pt-2">
-              <button
+              <Pressable
                 type="button"
                 onClick={() =>
                   onRequireAuth && onRequireAuth({ mode: "register" })
@@ -311,9 +312,9 @@ export default function InviteLanding({
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Tạo tài khoản mới</span>
-              </button>
+              </Pressable>
 
-              <button
+              <Pressable
                 type="button"
                 onClick={() =>
                   onRequireAuth && onRequireAuth({ mode: "login" })
@@ -322,15 +323,15 @@ export default function InviteLanding({
               >
                 <LogIn className="w-4 h-4 text-slate-600" />
                 <span>Đã có tài khoản? Đăng nhập</span>
-              </button>
+              </Pressable>
 
-              <button
+              <Pressable
                 type="button"
                 onClick={() => setPendingAuthPrompt(false)}
                 className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 text-center"
               >
                 Quay lại chỉnh sửa hồ sơ
-              </button>
+              </Pressable>
             </div>
           </div>
         ) : !joining ? (
@@ -344,12 +345,12 @@ export default function InviteLanding({
                 gia nhập đội bóng.
               </p>
             </div>
-            <button
+            <Pressable
               className="primary-button w-full h-12 text-xs font-bold"
               onClick={() => setJoining(true)}
             >
               Điền hồ sơ tham gia đội
-            </button>
+            </Pressable>
           </div>
         ) : (
           <form
@@ -430,7 +431,7 @@ export default function InviteLanding({
               </div>
             )}
 
-            <button
+            <Pressable
               type="submit"
               disabled={
                 submitting ||
@@ -453,7 +454,7 @@ export default function InviteLanding({
               ) : (
                 <span>Tiếp tục gia nhập</span>
               )}
-            </button>
+            </Pressable>
           </form>
         )}
       </main>

@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useEffect, useId, useRef, useState } from "react";
 import { Clock, X } from "lucide-react";
 import { canRequestLate, lateCutoff, latestEvent } from "../lib/governance";
@@ -82,14 +83,14 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
     <div className="border-t border-slate-200 mt-4 pt-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold">Đến muộn & giờ đến sân</h3>
-        <button
+        <Pressable
           className="choice-button text-sm"
           disabled={!allowed || busy}
           onClick={() => setOpen(true)}
         >
           <Clock size={18} />
           Xin đến muộn
-        </button>
+        </Pressable>
       </div>
       {!match ? (
         <p className="text-xs text-slate-500 mt-2">
@@ -140,13 +141,13 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
           aria-label="Xin đến muộn"
         >
           <section className="simple-sheet">
-            <button
+            <Pressable
               className="sheet-close"
               aria-label="Đóng"
               onClick={() => setOpen(false)}
             >
               <X size={20} />
-            </button>
+            </Pressable>
             <h2 className="text-xl font-semibold">Xin đến muộn</h2>
             <form onSubmit={submit} className="space-y-4 mt-4">
               <div className="form-field">
@@ -184,13 +185,13 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
                   {error}
                 </p>
               )}
-              <button
+              <Pressable
                 type="submit"
                 className="primary-button w-full"
                 disabled={!allowed || busy}
               >
                 {busy ? "Đang gửi…" : "Gửi yêu cầu"}
-              </button>
+              </Pressable>
             </form>
           </section>
         </div>

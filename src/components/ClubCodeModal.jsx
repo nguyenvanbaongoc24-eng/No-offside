@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from "react";
 import {
   X,
@@ -167,7 +168,7 @@ export default function ClubCodeModal({
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             {step === "form" ? (
-              <button
+              <Pressable
                 type="button"
                 onClick={() => {
                   setStep("input");
@@ -177,7 +178,7 @@ export default function ClubCodeModal({
                 aria-label="Quay lại nhập mã"
               >
                 <ArrowLeft className="w-5 h-5" />
-              </button>
+              </Pressable>
             ) : (
               <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                 <KeyRound className="w-4 h-4" />
@@ -197,13 +198,13 @@ export default function ClubCodeModal({
             </div>
           </div>
 
-          <button
+          <Pressable
             aria-label="Đóng"
             onClick={onClose}
             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 active:scale-95 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Pressable>
         </div>
 
         {/* STEP 1: INPUT CODE */}
@@ -247,7 +248,7 @@ export default function ClubCodeModal({
               </div>
             )}
 
-            <button
+            <Pressable
               type="submit"
               disabled={loading || !code.trim()}
               className="w-full h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
@@ -260,7 +261,7 @@ export default function ClubCodeModal({
               ) : (
                 <span>Tiếp tục kiểm tra đội</span>
               )}
-            </button>
+            </Pressable>
           </form>
         )}
 
@@ -392,7 +393,7 @@ export default function ClubCodeModal({
               </div>
             )}
 
-            <button
+            <Pressable
               type="submit"
               disabled={
                 submitting ||
@@ -415,7 +416,7 @@ export default function ClubCodeModal({
               ) : (
                 <span>Tiếp tục gia nhập (Cần tài khoản)</span>
               )}
-            </button>
+            </Pressable>
           </form>
         )}
       </div>

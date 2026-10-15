@@ -1,16 +1,16 @@
-import React from "react";
-
-export default function FloatingBottomNavigation({ tabs, activeTab, avatar, visible = true, onNavigate, onReveal }) {
-  return (
-    <nav className={"bottom-navigation" + (visible ? "" : " nav-hidden")} aria-label="Điều hướng chính" aria-hidden={!visible} inert={visible ? undefined : ""} onFocusCapture={onReveal}>
-      <div className="nav-items">
-        {tabs.map(({ id, label, Icon, unreadCount = 0 }) => (
-          <button type="button" key={id} data-target={id} aria-label={label + (unreadCount > 0 ? `, ${unreadCount} tin chưa đọc` : "")} title={label} aria-current={activeTab === id ? "page" : undefined} tabIndex={visible ? 0 : -1} onClick={() => onNavigate(id)} className="nav-item">
-            <span className="nav-icon-wrap">{id === "profile" && avatar ? <img src={avatar} alt="" className="nav-avatar" /> : <Icon size={23} strokeWidth={1.75} aria-hidden="true" />}{unreadCount > 0 && <span className="chat-unread-badge" aria-hidden="true">{unreadCount > 99 ? "99+" : unreadCount}</span>}</span>
-            <span className="nav-label">{label}</span>
-          </button>
-        ))}
-      </div>
-    </nav>
-  );
+import React from 'react';
+import {Plus} from 'lucide-react';
+import Pressable from './Pressable';
+export default function FloatingBottomNavigation({tabs,activeTab,visible=true,onNavigate,onReveal,onQuickActions,canManage=false,quickActionsOpen=false}){
+  const selected=['fund','personal-fund','governance','appearance','team-settings'].includes(activeTab)?'profile':activeTab;
+  return <nav className={'bottom-navigation split-navigation'+(visible?'':' nav-hidden')+(canManage?' has-fab':'')} aria-label="Điều hướng chính" aria-hidden={!visible} inert={visible?undefined:''} onFocusCapture={onReveal}>
+    <div className="nav-items">{tabs.map(({id,label,Icon,unreadCount=0})=>{
+      const active=selected===id;
+      return <Pressable type="button" key={id} data-target={id} aria-label={label+(unreadCount>0?`, ${unreadCount} tin chưa đọc`:'')} title={label} aria-current={active?'page':undefined} tabIndex={visible?0:-1} className={'nav-item'+(active?' is-active':'')} onClick={()=>onNavigate(id)}>
+        <span className="nav-icon-wrap"><Icon size={22} strokeWidth={1.5} aria-hidden="true"/>{unreadCount>0 && <span className="chat-unread-badge" aria-hidden="true">{unreadCount>99?'99+':unreadCount}</span>}</span>
+        {active && <span className="nav-label">{label}</span>}
+      </Pressable>;
+    })}</div>
+    {canManage && <Pressable type="button" className="navigation-fab" aria-label="Mở thao tác nhanh" aria-haspopup="dialog" aria-expanded={quickActionsOpen} tabIndex={visible?0:-1} onClick={onQuickActions} whileTap={{scale:0.9}}><Plus size={28} strokeWidth={2.5} aria-hidden="true"/></Pressable>}
+  </nav>;
 }

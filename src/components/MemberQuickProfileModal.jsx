@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -132,14 +133,14 @@ export default function MemberQuickProfileModal({
             </div>
 
             {/* Close Button */}
-            <button
+            <Pressable
               type="button"
               onClick={onClose}
               aria-label="Đóng"
               className="relative z-10 w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 cursor-pointer outline-none"
             >
               <X size={18} />
-            </button>
+            </Pressable>
           </div>
 
           {/* Profile Identity (Avatar + Shirt badge + Name) */}
@@ -272,7 +273,7 @@ export default function MemberQuickProfileModal({
                 </div>
 
                 {member.phone && (
-                  <button
+                  <Pressable
                     type="button"
                     onClick={handleCopyPhoneOnly}
                     className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
@@ -283,7 +284,7 @@ export default function MemberQuickProfileModal({
                     ) : (
                       <Copy size={14} />
                     )}
-                  </button>
+                  </Pressable>
                 )}
               </div>
 
@@ -328,7 +329,7 @@ export default function MemberQuickProfileModal({
 
           {/* Bottom Action Footer */}
           <div className="p-4 bg-slate-50/80 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 shrink-0">
-            <button
+            <Pressable
               type="button"
               onClick={handleCopyProfile}
               className="flex-1 py-2.5 px-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
@@ -344,15 +345,15 @@ export default function MemberQuickProfileModal({
                   <span>Chia sẻ / Sao chép</span>
                 </>
               )}
-            </button>
+            </Pressable>
 
-            <button
+            <Pressable
               type="button"
               onClick={onClose}
               className="py-2.5 px-5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer"
             >
               Đóng
-            </button>
+            </Pressable>
           </div>
         </motion.div>
       </div>

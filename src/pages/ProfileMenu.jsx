@@ -1,9 +1,11 @@
+import Pressable from '../components/Pressable';
 import { TeamSwitcher } from "../components/TeamIdentityHeader";
 import { personalText } from "../lib/personalCopy";
 import { useTeamInvite } from "../hooks/useTeamInvite";
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   Palette,
+  Wallet,
   Bell,
   Users,
   BookOpen,
@@ -29,13 +31,13 @@ const useProfileLayoutEffect =
     : useEffect;
 function Row({ icon: Icon, children, onClick }) {
   return (
-    <button type="button" className="menu-row" onClick={onClick}>
+    <Pressable type="button" className="menu-row" onClick={onClick}>
       <Icon size={20} />
       <span>
         <strong>{children}</strong>
       </span>
       <ChevronRight size={18} />
-    </button>
+    </Pressable>
   );
 }
 export default function ProfileMenu(props) {
@@ -179,7 +181,7 @@ export default function ProfileMenu(props) {
         }
       >
         <header className="compact-header">
-          <button
+          <Pressable
             type="button"
             aria-label="Quay lại Cá nhân"
             onClick={() => {
@@ -195,7 +197,7 @@ export default function ProfileMenu(props) {
             }}
           >
             <ArrowLeft size={20} />
-          </button>
+          </Pressable>
           <h1>{t(titles[detail])}</h1>
         </header>
         {inviteSheet}
@@ -331,9 +333,9 @@ export default function ProfileMenu(props) {
                   maxLength={20}
                   required
                 />
-                <button className="choice-button" disabled={busy}>
+                <Pressable className="choice-button" disabled={busy}>
                   {t("Cập nhật tên đăng nhập")}
-                </button>
+                </Pressable>
               </form>
             )}
           </>
@@ -377,37 +379,37 @@ export default function ProfileMenu(props) {
             </p>
           </div>
         </section>
-        <button
+        <Pressable
           type="button"
           className="profile-edit-button"
           onClick={() => navigateDetail("profile")}
         >
           {t("Sửa hồ sơ")}
           <ChevronRight size={16} aria-hidden="true" />
-        </button>
+        </Pressable>
       </header>
       {hasTeam && onNavigate && (
         <section className="profile-group" aria-label="Thao tác nhanh">
           <h2>{t("Thao tác nhanh")}</h2>
           <div className="profile-quick-grid">
-            <button type="button" onClick={() => onNavigate("governance")}>
+            <Pressable type="button" onClick={() => onNavigate("governance")}>
               <BookOpen size={20} />
               <span>{t("Nội quy")}</span>
-            </button>
+            </Pressable>
             {leader && (
-              <button type="button" onClick={openInvite}>
+              <Pressable type="button" onClick={openInvite}>
                 <UserPlus size={20} />
                 <span>{t("Mời thành viên")}</span>
-              </button>
+              </Pressable>
             )}
             {leader && (
-              <button
+              <Pressable
                 type="button"
                 onClick={() => navigateDetail("management")}
               >
                 <Settings size={20} />
                 <span>{t("Quản lý đội")}</span>
-              </button>
+              </Pressable>
             )}
           </div>
         </section>
@@ -426,6 +428,7 @@ export default function ProfileMenu(props) {
       {hasTeam ? (
         <section className="profile-group">
           <h2>{t("Đội bóng")}</h2>
+          {hasTeam && <Row icon={Wallet} onClick={() => onNavigate("fund")}>{t("Quỹ đội")}</Row>}
           <Row icon={Users} onClick={() => navigateDetail("team")}>
             {t("Đội đang tham gia")}
           </Row>
@@ -456,6 +459,7 @@ export default function ProfileMenu(props) {
       ) : (
         <section className="profile-group">
           <h2>{t("Đội bóng")}</h2>
+          {hasTeam && <Row icon={Wallet} onClick={() => onNavigate("fund")}>{t("Quỹ đội")}</Row>}
           {onOpenJoinCode && (
             <Row icon={Users} onClick={onOpenJoinCode}>
               {t("Gia nhập đội")}
@@ -505,7 +509,7 @@ export default function ProfileMenu(props) {
             {t("Chuyển tài khoản")}
           </Row>
         )}
-        <button
+        <Pressable
           type="button"
           className="menu-row"
           onClick={logout}
@@ -515,7 +519,7 @@ export default function ProfileMenu(props) {
           <span className="text-rose-700">
             <strong>{busy ? t("Đang đăng xuất…") : t("Đăng xuất")}</strong>
           </span>
-        </button>
+        </Pressable>
       </section>
       {inviteSheet}
       {error && (

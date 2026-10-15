@@ -1,3 +1,4 @@
+import Pressable from '../components/Pressable';
 import React, { useState } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { imageDataUrl } from "../lib/images";
@@ -43,10 +44,10 @@ export default function TeamSettings({
   return (
     <div className="settings-page pb-8">
       <header className="page-heading p-5">
-        <button onClick={onBack} className="flex gap-2 items-center text-sm">
+        <Pressable onClick={onBack} className="flex gap-2 items-center text-sm">
           <ArrowLeft size={18} />
           Quay lại
-        </button>
+        </Pressable>
         <h1 className="text-2xl font-bold mt-4">Cài đặt đội bóng</h1>
       </header>
       <form onSubmit={save} className="p-4 space-y-4">
@@ -108,14 +109,14 @@ export default function TeamSettings({
             Thông báo SMS, Zalo và push tự động chưa được kết nối.
           </p>
         </section>
-        <button
+        <Pressable
           type="submit"
           className="primary-button w-full"
           disabled={currentUserRole !== "owner"}
         >
           {saved ? <Check size={18} /> : null}
           {saved ? "Đã lưu thông tin đội" : "Lưu thông tin đội"}
-        </button>
+        </Pressable>
         {saved && (
           <p role="status" className="text-sm text-emerald-700 text-center">
             Thông tin đội đã được lưu.

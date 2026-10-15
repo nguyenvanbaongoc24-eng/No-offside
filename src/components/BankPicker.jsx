@@ -1,3 +1,4 @@
+import Pressable from './Pressable';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, X, Search } from "lucide-react";
 import { loadBanks, searchBanks } from "../lib/banks";
@@ -47,7 +48,7 @@ export default function BankPicker({
   return (
     <div className="form-field">
       <span id="bank-picker-label">Ngân hàng</span>
-      <button
+      <Pressable
         ref={trigger}
         type="button"
         className="select-control"
@@ -62,7 +63,7 @@ export default function BankPicker({
       >
         <span id="bank-picker-value">{name || "Chọn ngân hàng"}</span>
         <ChevronDown size={18} />
-      </button>
+      </Pressable>
       {open && (
         <div
           className="simple-overlay"
@@ -92,13 +93,13 @@ export default function BankPicker({
           <section ref={sheet} className="simple-sheet bank-sheet">
             <header className="section-toolbar">
               <h2 id="bank-sheet-title">Chọn ngân hàng</h2>
-              <button
+              <Pressable
                 type="button"
                 aria-label="Đóng danh sách ngân hàng"
                 onClick={close}
               >
                 <X size={20} />
-              </button>
+              </Pressable>
             </header>
             <label className="form-field">
               <span className="sr-only">Tìm ngân hàng</span>
@@ -121,7 +122,7 @@ export default function BankPicker({
             {error && (
               <div role="alert">
                 <p>{error}</p>
-                <button
+                <Pressable
                   type="button"
                   className="text-action"
                   onClick={async () => {
@@ -139,12 +140,12 @@ export default function BankPicker({
                   }}
                 >
                   Thử lại
-                </button>
+                </Pressable>
               </div>
             )}
             <div className="bank-options">
               {results.map((bank) => (
-                <button
+                <Pressable
                   type="button"
                   key={bank.bin}
                   className="menu-row"
@@ -159,7 +160,7 @@ export default function BankPicker({
                     <small>{bank.name}</small>
                   </span>
                   {value === bank.bin && <Check size={20} />}
-                </button>
+                </Pressable>
               ))}
               {!loading && !error && !results.length && (
                 <p className="panel-empty">Không tìm thấy ngân hàng hỗ trợ.</p>

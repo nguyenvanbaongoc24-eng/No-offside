@@ -578,3 +578,17 @@ test("auto-login defaults to off, logout disables auto-login for current user, a
   assert.equal(value.isLoggedIn, false);
   await act(async () => tree.unmount());
 });
+test('a successful focus refresh resolves startup even when it supersedes a slower boot request',async()=>{
+ storage.clear();const userId='startup-race';const saved=workspace(userId,'Startup user');put('no_offside_workspace_'+userId,saved);put('no_offside_user',saved.user);put('no_offside_team_settings',saved.teamSettings);
+ session={access_token:'test-'+userId,user:{id:userId,user_metadata:{}}};userCheck=async()=>({data:{user:session.user},error:null});
+ const originalFetch=globalThis.fetch,originalDocument=globalThis.document;globalThis.document={visibilityState:'visible',addEventListener(){},removeEventListener(){}};
+ let releaseFirst,calls=0,tree,value;
+ const result={success:true,revision:0,role:'member',team:saved.teamSettings,profile:{full_name:'Startup user'},data:{funds:{transactions:[],pendingApprovals:[],debtors:[]},matches:[],attendance:{},reports:{},notices:[]}};
+ globalThis.fetch=async()=>{calls++;if(calls===1)return new Promise(resolve=>{releaseFirst=()=>resolve({ok:true,json:async()=>result});});return {ok:true,json:async()=>result};};
+ function Harness(){value=useAuth();return null;}
+ try{
+  await act(async()=>{tree=renderer.create(React.createElement(Harness));});await tick();assert.equal(value.startupPending,true);
+  await act(async()=>{window.dispatchEvent(new Event('focus'));});await tick();assert.ok(calls>=2);assert.equal(value.startupPending,false);assert.equal(value.startupError,'');
+  await act(async()=>releaseFirst());await tick();assert.equal(value.startupPending,false);
+ }finally{if(tree)await act(async()=>tree.unmount());globalThis.fetch=originalFetch;globalThis.document=originalDocument;}
+});

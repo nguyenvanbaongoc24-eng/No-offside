@@ -6,6 +6,7 @@ import {
 } from "./_storageHelper.js";
 import { snapshot } from "./_workspace.js";
 export default async function handler(req, res) {
+  let stage = "authenticate";
   res.setHeader("Cache-Control", "private, no-store");
   if (req.method === "OPTIONS") return res.status(204).end();
   if (!bearerToken(req))
@@ -20,6 +21,7 @@ export default async function handler(req, res) {
         .status(401)
         .json({ error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." });
     if (req.method === "GET") {
+      stage = "memberships";
       const { data: memberships, error } = await client.rpc(
         "no_gov_my_memberships",
       );
@@ -35,30 +37,22 @@ export default async function handler(req, res) {
         return res
           .status(403)
           .json({ error: "Bạn không có quyền truy cập đội này." });
-      const profileResult = await client
-        .from("profiles")
-        .select(
-          "id,full_name,username,avatar_url,phone,jersey_number,position,height,weight",
-        )
-        .eq("id", user.id)
-        .single();
+      stage = "profile";
+      const profileResult = await client.rpc("no_app_ensure_profile");
       if (profileResult.error) throw profileResult.error;
+      stage = "workspace";
       if (!selected)
-        return res
-          .status(200)
-          .json({
-            success: true,
-            team: null,
-            userTeams: allowed,
-            profile: profileResult.data,
-          });
-      return res
-        .status(200)
-        .json({
-          ...(await snapshot(client, selected.teamId)),
+        return res.status(200).json({
+          success: true,
+          team: null,
           userTeams: allowed,
           profile: profileResult.data,
         });
+      return res.status(200).json({
+        ...(await snapshot(client, selected.teamId)),
+        userTeams: allowed,
+        profile: profileResult.data,
+      });
     }
     if (req.method !== "POST")
       return res.status(405).json({ error: "Method not allowed" });
@@ -89,6 +83,11 @@ export default async function handler(req, res) {
     }
     return res.status(400).json({ error: "Yêu cầu không hợp lệ." });
   } catch (error) {
+    // Never log tokens, private profile fields or raw database error details.
+    console.error("teams_request_failed", {
+      stage,
+      code: error.code || error.name || "unknown",
+    });
     return apiError(res, error);
   }
 }

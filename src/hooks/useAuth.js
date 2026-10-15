@@ -694,6 +694,7 @@ export function useAuth() {
       setTeams((previous) => ({ ...previous, [key]: confirmed }));
       writeStored("no_offside_selected_team_" + ownerAccount, result.team.id);
     }
+    setWorkspaceBoot({ account: ownerAccount, status: "ready", error: "" });
     return result;
   };
   useEffect(() => {

@@ -211,6 +211,14 @@ function Application({ onRetryStartup }) {
         pending={auth.authLoading || auth.startupPending}
         error={auth.startupError}
         onRetry={onRetryStartup}
+        onExit={
+          auth.authSession
+            ? async () => {
+                await auth.logout();
+                onRetryStartup();
+              }
+            : undefined
+        }
       >
         <div className="min-h-screen grid place-items-center bg-slate-50">
           <Loader2

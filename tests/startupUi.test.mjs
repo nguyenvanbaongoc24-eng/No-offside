@@ -30,3 +30,7 @@ test('timeout is bounded, clears its timer and requires deliberate retry even if
  globalThis.setTimeout=(fn,ms)=>{assert.equal(ms,15000);timeout=fn;return 42;};globalThis.clearTimeout=id=>{if(id===42)cleared=true;};
  try {act(()=>tree=renderer.create(React.createElement(Gate,{pending:true,onRetry(){}})));act(()=>timeout());assert.equal(cleared,true);assert.equal(tree.root.findAllByProps({role:'alert'}).length,1);act(()=>tree.update(React.createElement(Gate,{pending:false,onRetry(){}})));assert.match(text(tree),/Thử lại/);act(()=>tree.unmount());}finally{globalThis.setTimeout=nativeSet;globalThis.clearTimeout=nativeClear;}
 });
+test('workspace startup failure offers a deliberate sign-in recovery without revealing destination',async()=>{
+ let tree,exits=0;await act(async()=>{tree=renderer.create(React.createElement(Gate,{error:'Workspace unavailable',onRetry(){},onExit:async()=>{exits++;}},React.createElement('p',null,'Private team')));});
+ assert.doesNotMatch(text(tree),/Private team/);const exit=tree.root.findAllByType('button').find(b=>b.props.children==='Đăng nhập lại');assert.ok(exit);await act(async()=>{await exit.props.onClick();});assert.equal(exits,1);await act(async()=>tree.unmount());
+});

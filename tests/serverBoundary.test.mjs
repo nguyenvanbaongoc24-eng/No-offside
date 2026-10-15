@@ -41,3 +41,8 @@ test('account lookup uses canonical RPCs, returns no fake availability on outage
   res=response();await resolve({method:'POST',headers:{},body:{username:'Player'}},res);assert.deepEqual(res.body,{email:'player@example.test'});assert.match(res.headers['Cache-Control'],/no-store/);
  }finally{setTestAdminClient(null);}
 });
+test('authenticated legacy account boots through profile repair instead of requiring profiles.single()',async()=>{
+ const calls=[];
+ setTestAdminClient({userClient:()=>({auth:{getUser:async()=>({data:{user:{id:userId}}})},rpc:async(name)=>{calls.push(name);if(name==='no_gov_my_memberships')return {data:[]};if(name==='no_app_ensure_profile')return {data:{id:userId,full_name:'Restored'}};throw Error('Unexpected RPC');}})});
+ try{const res=response();await teamsHandler({method:'GET',url:'/api/teams',headers:{authorization:'Bearer verified-test-token'}},res);assert.equal(res.statusCode,200);assert.equal(res.body.success,true);assert.equal(res.body.profile.id,userId);assert.equal(res.body.team,null);assert.deepEqual(calls,['no_gov_my_memberships','no_app_ensure_profile']);}finally{setTestAdminClient(null);}
+});

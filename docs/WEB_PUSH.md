@@ -82,7 +82,8 @@ Chủ app đã chỉ định đội kiểm thử và hai tài khoản A/B. Đố
 - Người dùng xác nhận bật được thông báo trên iPhone.
 - Gửi đúng một tin rõ nhãn `[Kiểm thử No Offside 01]` từ A tới đội kiểm thử. Tin được lưu thành công; có đúng một job tới installation của B, `accepted`, một lần thử, provider trả HTTP `201`.
 - Người dùng xác nhận thông báo đã hiển thị **ngoài app trên iPhone**. Đây là xác nhận giao nhận thực tế, tách biệt với trạng thái `accepted` của provider.
+- Người dùng xác nhận chạm thông báo trên iPhone mở đúng màn Tin nhắn của đội kiểm thử. Đích đến đã được xác minh thực tế, không chỉ bằng unit test của URL.
 - Backend sau đó ghi nhận B đã đọc qua tin kiểm thử và còn 0 tin chưa đọc trong đội. A không tăng số chưa đọc vì tin do mình gửi; navigation của A giữ badge ẩn.
 - Kiểm tra lại repository ở commit `342029a`: 159/159 kiểm tra tự động đạt.
 
-Chưa có xác nhận riêng về thao tác chạm push mở đúng đội/chat, tin nhắn trả lời chiều ngược lại và đồng bộ giữa nhiều thiết bị cùng một tài khoản. Chưa kiểm thử Android thật hoặc xác định phiên bản iOS. Không coi các bước này là đã đạt từ một lần nhận push thành công.
+Chưa có xác nhận riêng về tin nhắn trả lời chiều ngược lại và đồng bộ giữa nhiều thiết bị cùng một tài khoản. Chưa kiểm thử Android thật hoặc xác định phiên bản iOS. Không coi các bước này là đã đạt từ một lần nhận push thành công.

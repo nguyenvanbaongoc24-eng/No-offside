@@ -210,3 +210,12 @@ test('profile Back restores the profile parent entry instead of dashboard, inclu
  act(()=>tree.root.findAllByType('button').find(b=>b.props['aria-label']==='Quay lại Cá nhân').props.onClick());assert.equal(window.history.state.noOffsideTab,'profile');assert.equal(tree.root.findAllByProps({className:'profile-hero'}).length,1);
  act(()=>tree.unmount());delete window.history;
 });
+
+
+test('birthday field loads existing calendar day, saves without UTC conversion, and rejects future values',async()=>{
+ let tree,saved,calls=0;act(()=>{tree=renderer.create(React.createElement(Details,{user:{...user,birthday:'2000-02-29'},teamSettings:{members:[],subAdmins:[]},onUpdateProfile:async value=>{saved=value;calls++;}}));});
+ const birthday=()=>tree.root.findByProps({id:'profile-birthday'});assert.equal(birthday().props.value,'2000-02-29');assert.match(texts(tree),/29\/02\/2000/);
+ act(()=>birthday().props.onInput({currentTarget:{value:'1990-12-31'}}));await act(async()=>{await tree.root.findByType('form').props.onSubmit({preventDefault(){}});});assert.equal(saved.birthday,'1990-12-31');assert.equal(calls,1);
+ act(()=>birthday().props.onChange({target:{value:'2999-01-01'}}));await act(async()=>{await tree.root.findByType('form').props.onSubmit({preventDefault(){}});});assert.equal(calls,1);assert.match(texts(tree),/tương lai/);
+ act(()=>birthday().props.onInput({currentTarget:{value:''}}));await act(async()=>{await tree.root.findByType('form').props.onSubmit({preventDefault(){}});});assert.equal(saved.birthday,'');act(()=>tree.unmount());
+});

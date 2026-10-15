@@ -11,6 +11,6 @@ export default function FloatingBottomNavigation({tabs,activeTab,visible=true,on
         {active && <span className="nav-label">{label}</span>}
       </Pressable>;
     })}</div>
-    {canManage && <Pressable type="button" className="navigation-fab" aria-label="Mở thao tác nhanh" aria-haspopup="dialog" aria-expanded={quickActionsOpen} tabIndex={visible?0:-1} onClick={onQuickActions} whileTap={{scale:0.9}}><Plus size={28} strokeWidth={2.5} aria-hidden="true"/></Pressable>}
+    {canManage && <Pressable type="button" className="navigation-fab" aria-label="Mở thao tác nhanh" aria-haspopup="dialog" aria-expanded={quickActionsOpen} tabIndex={visible?0:-1} onClick={onQuickActions} whileTap={{scale:0.97}}><Plus size={28} strokeWidth={2.5} aria-hidden="true"/></Pressable>}
   </nav>;
 }

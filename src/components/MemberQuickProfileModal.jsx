@@ -1,3 +1,4 @@
+import {birthdayPresentation} from '../lib/calendarDate';
 import Pressable from './Pressable';
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
@@ -32,28 +33,7 @@ export default function MemberQuickProfileModal({
   const isOwner = member.roleType === "owner";
   const isAdmin = member.roleType === "admin";
 
-  // Kiểm tra ngày sinh hôm nay & tháng này
-  const getBirthdayInfo = (birthdayStr) => {
-    if (!birthdayStr) return null;
-    const bday = new Date(birthdayStr);
-    const today = new Date();
-    const isToday =
-      bday.getDate() === today.getDate() &&
-      bday.getMonth() === today.getMonth();
-    const isThisMonth = bday.getMonth() === today.getMonth();
-
-    return {
-      formatted: bday.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }),
-      isToday,
-      isThisMonth,
-    };
-  };
-
-  const birthdayInfo = getBirthdayInfo(member.birthday);
+  const birthdayInfo = birthdayPresentation(member.birthday,member.birthdayToday);
 
   // Vị trí thi đấu & màu sắc badge
   const getPositionBadge = (posStr = "") => {

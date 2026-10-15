@@ -78,7 +78,7 @@ test("fund overview shows each amount once and retains the full ledger totals", 
   });
   assert.equal((html.match(/80\.000 đ/g) || []).length, 1);
   assert.equal((html.match(/100\.000 đ/g) || []).length, 2); // Summary + its transaction.
-  assert.match(html, /Xuất Excel/);
+  assert.match(html, /Xuất báo cáo/);
   assert.match(html, /Thêm giao dịch/);
 });
 

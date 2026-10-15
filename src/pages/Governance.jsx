@@ -1,3 +1,4 @@
+import {useLayerBack} from '../hooks/useLayerBack';
 import Pressable from '../components/Pressable';
 import React, { useId, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, X, ShieldCheck, Plus, Edit2 } from "lucide-react";
@@ -30,6 +31,7 @@ export default function Governance({ governance, onBack }) {
   const [form, setForm] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  useLayerBack(!!form,()=>setForm(null));
   const retry = useRef(null),
     prefix = useId();
   const leader =

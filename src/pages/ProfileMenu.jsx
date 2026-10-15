@@ -72,10 +72,11 @@ export default function ProfileMenu(props) {
   const homeScroll = useRef(0),
     previousDetail = useRef(detail);
   const setDetail = (next) => {
+    if(next===detail)return;
     if (!detail) homeScroll.current = window.scrollY || 0;
     setDetailDirection(1);
     window.history?.pushState(
-      { ...window.history.state, noOffsideTab: "profile", noOffsideDetail: next },
+      { ...window.history.state, noOffsideTab: "profile", noOffsideDetail: next, noOffsideProfileParent: detail },
       "",
     );
     setDetailState(next);
@@ -197,15 +198,15 @@ export default function ProfileMenu(props) {
             type="button"
             aria-label="Quay lại Cá nhân"
             onClick={() => {
-              if (window.history?.state?.noOffsideDetail === detail) {
+              if (window.history?.state?.noOffsideDetail === detail && Object.prototype.hasOwnProperty.call(window.history.state,"noOffsideProfileParent")) {
                 window.history.back();
                 return;
               }
               setAvatarLaunch(false);
               setDetailDirection(-1);
-              setDetailState(
-                ["admin", "requests"].includes(detail) ? "management" : null,
-              );
+              const parent=["admin", "requests"].includes(detail) ? "management" : null;
+              window.history?.replaceState({...window.history.state,noOffsideDetail:parent},'');
+              setDetailState(parent);
               setError("");
             }}
           >

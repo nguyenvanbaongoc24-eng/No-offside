@@ -1,3 +1,4 @@
+import {birthdayPresentation} from '../lib/calendarDate';
 import Pressable from '../components/Pressable';
 import React, { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -61,15 +62,10 @@ export default function TeamManager({
   }, [members, searchQuery, filterRole]);
 
   // Kiểm tra ngày sinh hôm nay & tháng này
-  const getBirthdayBadge = (birthdayStr) => {
-    if (!birthdayStr) return null;
-    const bday = new Date(birthdayStr);
-    const today = new Date();
-    const isToday =
-      bday.getDate() === today.getDate() &&
-      bday.getMonth() === today.getMonth();
-    const isThisMonth = bday.getMonth() === today.getMonth();
-
+  const getBirthdayBadge = (birthdayStr,birthdayToday) => {
+    const info=birthdayPresentation(birthdayStr,birthdayToday);
+    if(!info)return null;
+    const {isToday,isThisMonth}=info;
     if (isToday) {
       return (
         <span className="text-[11px] font-bold bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-300 dark:border-pink-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1 animate-pulse">
@@ -424,7 +420,7 @@ export default function TeamManager({
                           )}
 
                           {/* Birthday status badge */}
-                          {getBirthdayBadge(member.birthday)}
+                          {getBirthdayBadge(member.birthday,member.birthdayToday)}
                         </div>
 
                         {/* Sub info: Position & Birthday date */}
@@ -433,11 +429,7 @@ export default function TeamManager({
                           <span>•</span>
                           <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 tabular-nums">
                             <Cake className="w-3 h-3 text-pink-500" />
-                            {member.birthday
-                              ? new Date(member.birthday).toLocaleDateString(
-                                  "vi-VN",
-                                )
-                              : "Chưa cập nhật"}
+                            {birthdayPresentation(member.birthday,member.birthdayToday)?.formatted || "Chưa cập nhật"}
                           </span>
                         </div>
                       </div>

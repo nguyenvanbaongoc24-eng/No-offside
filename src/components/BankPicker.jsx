@@ -1,3 +1,4 @@
+import {useLayerBack} from '../hooks/useLayerBack';
 import Pressable from './Pressable';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, X, Search } from "lucide-react";
@@ -14,6 +15,7 @@ export default function BankPicker({
     [loading, setLoading] = useState(false),
     [error, setError] = useState(""),
     [stale, setStale] = useState(false);
+  useLayerBack(open,()=>setOpen(false));
   const trigger = useRef(null),
     input = useRef(null),
     sheet = useRef(null);

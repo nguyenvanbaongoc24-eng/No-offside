@@ -1,11 +1,11 @@
 import Pressable from '../components/Pressable';
 import React, { useState } from "react";
-import { Wallet, Check, Clock } from "lucide-react";
+import { Wallet, Check, Clock, ArrowLeft } from "lucide-react";
 import { qrUrl, monthKey } from "../lib/teamModel";
 import QrPreview from "../components/QrPreview";
 import { formatCurrency } from "../lib/formatCurrency";
 
-export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
+export default function PersonalFund({ user, treasurerQr, onMarkPaid, onBack }) {
   const [error, setError] = useState(""),
     [sending, setSending] = useState(false);
   const report = async () => {
@@ -28,7 +28,7 @@ export default function PersonalFund({ user, treasurerQr, onMarkPaid }) {
   return (
     <div className="p-5">
       <header className="compact-header !p-0">
-        <h1>Quỹ đội</h1>
+        {onBack && <Pressable aria-label="Quay lại" onClick={onBack}><ArrowLeft size={22}/></Pressable>}<h1>Quỹ đội</h1>
       </header>
       {error && (
         <p role="alert" className="form-error">

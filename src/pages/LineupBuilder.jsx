@@ -757,7 +757,7 @@ export default function LineupBuilder({
 
                 <div className="shrink-0 flex items-center gap-1.5">
                   {isSelected ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <span className="selection-status">
                       <Check className="w-3 h-3 stroke-[3]" />
                       <span>Đang chọn</span>
                     </span>

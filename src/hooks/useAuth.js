@@ -1,3 +1,4 @@
+import {validBirthday} from '../lib/calendarDate';
 import {disconnectPushDevice} from '../lib/pushDevice';
 import {
   transactionInstant,
@@ -644,6 +645,7 @@ export function useAuth() {
               username: profile.username || "",
               avatar: profile.avatar_url || "",
               phone: profile.phone || "",
+              birthday: profile.birthday || "",
               height: profile.height || "",
               weight: profile.weight || "",
             }
@@ -1329,6 +1331,7 @@ export function useAuth() {
       }));
   };
   const updateProfile = async (updates) => {
+    if(updates.birthday!==undefined && !validBirthday(updates.birthday))throw Error("Ngày sinh không hợp lệ hoặc nằm trong tương lai.");
     if (
       !updates.name?.trim() ||
       !Number.isInteger(Number(updates.number)) ||

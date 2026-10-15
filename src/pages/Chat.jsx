@@ -1,3 +1,4 @@
+import {birthdaysToday} from '../lib/announcements';
 import {BASIC_EMOJI,mentionAt,mentionCandidates,mentionLabel,insertComposerText,messageParts} from '../lib/chatComposer';
 import Pressable from '../components/Pressable';
 import {useViewedMessages} from '../hooks/useViewedMessages';
@@ -48,6 +49,7 @@ function ScopedChat({
   accountId,
   accessToken,
   birthdayEnabled = true,
+  timeZone = "Asia/Ho_Chi_Minh",
   language = "vi",
   teamName,
   teamLogo,
@@ -305,18 +307,7 @@ function ScopedChat({
   const visibleMessages = messages.filter(
     (m) => m && typeof m.text === "string",
   );
-  const birthdays = useMemo(
-    () =>
-      members.filter((m) => {
-        const today = new Date();
-        const parts = (m.birthday || "").split("-");
-        return (
-          Number(parts[1]) === today.getMonth() + 1 &&
-          Number(parts[2]) === today.getDate()
-        );
-      }),
-    [members],
-  );
+  const birthdays = useMemo(()=>birthdaysToday(members,timeZone),[members,timeZone]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;

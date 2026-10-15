@@ -1,3 +1,4 @@
+import {useAppNavigation} from './hooks/useAppNavigation';
 import FeedbackToast from './components/FeedbackToast';
 import {withFeedback} from './lib/feedback';
 import Pressable from './components/Pressable';
@@ -70,40 +71,9 @@ function Application({ onRetryStartup }) {
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
   const [quickOpen,setQuickOpen]=useState(false),[quickInvite,setQuickInvite]=useState(false);
   const [quickIntent,setQuickIntent]=useState(null),[quickMatch,setQuickMatch]=useState(null),[quickMatchError,setQuickMatchError]=useState('');
-  const [tab, setTab] = useState(
-    window.location.pathname.startsWith("/invite/")
-      ? "invite-landing"
-      : window.history?.state?.noOffsideTab || "dashboard",
-  );
-  useEffect(() => {
-    const allowed = new Set([
-      "dashboard",
-      "lineup",
-      "fund",
-      "chat",
-      "profile",
-      "team-settings",
-      "create-team",
-      "invite-landing",
-      "onboarding",
-      "personal-fund",
-      "governance",
-      "appearance",
-    ]);
-    if (!window.history?.state?.noOffsideTab)
-      window.history?.replaceState(
-        { ...window.history.state, noOffsideTab: tab },
-        "",
-      );
-    const back = (event) =>
-      setTab(
-        allowed.has(event.state?.noOffsideTab)
-          ? event.state.noOffsideTab
-          : "dashboard",
-      );
-    window.addEventListener("popstate", back);
-    return () => window.removeEventListener("popstate", back);
-  }, []);
+  const navigation=useAppNavigation();
+  const {tab}=navigation;
+  const fundViewStates=useRef(new Map());
   const [showNotices, setShowNotices] = useState(false);
   const [noticeReadError, setNoticeReadError] = useState("");
   useEffect(() => {
@@ -199,17 +169,15 @@ function Application({ onRetryStartup }) {
     });
     scrollRoute.current = scrollKey;
   }, [scrollKey, auth.isLoggedIn, auth.authLoading]);
-  const navigate = (target) => {
+  useEffect(()=>{
+    const remember=()=>{if(scrollRoute.current)scrollPositions.current.set(scrollRoute.current,window.scrollY);};
+    window.addEventListener('popstate',remember,true);return()=>window.removeEventListener('popstate',remember,true);
+  },[]);
+  const navigate = (target,options) => {
     setQuickOpen(false);setQuickIntent(null);
     if (activeTab !== "chat" && scrollRoute.current)
       scrollPositions.current.set(scrollRoute.current, window.scrollY);
-    if (target !== tab)
-      window.history?.pushState(
-        { noOffsideTab: target },
-        "",
-        target === "invite-landing" ? undefined : "/",
-      );
-    setTab(target);
+    navigation.navigate(target,options);
   };
   const runQuickAction=(action)=>{
     setQuickOpen(false);
@@ -377,7 +345,7 @@ function Application({ onRetryStartup }) {
           )}
           <main
             key={scrollKey}
-            className={activeTab === "chat" ? "" : "app-page-transition"}
+            className={activeTab === "chat" ? "" : "app-page-transition route-"+navigation.direction}
           >
             {activeTab === "dashboard" && (
               <GovernanceNotice
@@ -450,7 +418,7 @@ function Application({ onRetryStartup }) {
               <Governance
                 key={auth.accountId + auth.teamSettings.id}
                 governance={governance}
-                onBack={() => navigate("dashboard")}
+                onBack={() => navigation.back("profile")}
               />
             ) : activeTab === "team-settings" ? (
               <TeamSettings
@@ -476,6 +444,7 @@ function Application({ onRetryStartup }) {
             ) : activeTab === "fund" ? (
               !leader ? (
                 <PersonalFund
+                  onBack={navigation.hasParent ? ()=>navigation.back("profile") : undefined}
                   user={shared.user}
                   treasurerQr={auth.teamSettings.treasurerQr}
                   onMarkPaid={auth.markFundPaid}
@@ -483,6 +452,8 @@ function Application({ onRetryStartup }) {
               ) : (
                 <FundManagement
                   {...fundProps}
+                  viewState={fundViewStates.current.get(scrollKey)}
+                  onViewStateChange={value=>fundViewStates.current.set(scrollKey,value)}
                   createRequest={quickIntent?.action === "transaction" ? quickIntent.id : null}
                   onCreateOpened={() => setQuickIntent(null)}
                   actor={auth.user.name}
@@ -490,7 +461,7 @@ function Application({ onRetryStartup }) {
                   treasurerQr={auth.teamSettings.treasurerQr}
                   onUpdateTreasurerQr={auth.updateTreasurerQr}
                   currentUserRole={auth.currentUserRole}
-                  onBack={() => navigate("dashboard")}
+                  onBack={navigation.hasParent ? ()=>navigation.back("profile") : undefined}
                 />
               )
             ) : activeTab === "chat" ? (
@@ -504,6 +475,7 @@ function Application({ onRetryStartup }) {
                 user={auth.user}
                 members={auth.teamSettings.members}
                 language={preferences.value.language || "vi"}
+                timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
                 teamName={auth.teamSettings.teamName}
                 teamLogo={auth.teamSettings.logo}
                 onKeyboardChange={setChatKeyboardOpen}
@@ -664,7 +636,7 @@ function Application({ onRetryStartup }) {
               quickActionsOpen={quickOpen}
               onQuickActions={() => setQuickOpen(true)}
               visible={activeTab === "chat" ? !chatKeyboardOpen : navVisible}
-              onNavigate={navigate}
+              onNavigate={target=>navigate(target,{root:true})}
               onReveal={revealNav}
             />
           )}

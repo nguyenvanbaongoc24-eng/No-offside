@@ -5,6 +5,6 @@ import {motion, useReducedMotion} from 'framer-motion';
 const Pressable = forwardRef(function Pressable({whileTap,transition, ...props},ref) {
   const reduced = useReducedMotion();
   if(typeof document==='undefined' || typeof document.createElement!=='function')return <button ref={ref} {...props}/>;
-  return <motion.button ref={ref} {...props} whileTap={props.disabled || reduced ? undefined : whileTap || {scale:0.95}} transition={transition || {duration:0.18}} />;
+  return <motion.button ref={ref} {...props} whileTap={props.disabled || reduced ? undefined : whileTap || {scale:0.98}} transition={transition || {duration:0.12}} />;
 });
 export default Pressable;

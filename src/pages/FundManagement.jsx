@@ -1,3 +1,4 @@
+import {useLayerBack} from '../hooks/useLayerBack';
 import Pressable from '../components/Pressable';
 import { createWorkbook } from "../lib/exportWorkbook";
 import React, { useState, useRef, useEffect } from "react";
@@ -27,6 +28,8 @@ import { formatCurrency } from "../lib/formatCurrency";
 
 export default function FundManagement({
   onBack,
+  viewState,
+  onViewStateChange,
   createRequest,
   onCreateOpened,
   timeZone = "Asia/Ho_Chi_Minh",
@@ -41,16 +44,20 @@ export default function FundManagement({
 }) {
   const canManage = ["owner", "admin"].includes(currentUserRole);
   const moreRef = useRef(null);
-  const [periodFilter, setPeriodFilter] = useState({
+  const [periodFilter, setPeriodFilter] = useState(viewState?.periodFilter || {
     mode: "all",
     month: localTransactionTime(Date.now(), timeZone).slice(0, 7),
     from: "",
     to: "",
   });
-  const [activeTab, setActiveTab] = useState("transactions"); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
+  const [activeTab, setActiveTab] = useState(viewState?.activeTab || "transactions"); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
   const [showAddTxModal, setShowAddTxModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   useEffect(()=>{if(createRequest && canManage){setShowAddTxModal(true);onCreateOpened?.();}},[createRequest,canManage]);
+
+  const fundTabBeforeQr=useRef(activeTab);
+  useEffect(()=>{onViewStateChange?.({periodFilter,activeTab:activeTab==='qr-config'?fundTabBeforeQr.current:activeTab});},[periodFilter,activeTab]);
+  useLayerBack(showAddTxModal || !!editingTransaction || activeTab==='qr-config',()=>{setShowAddTxModal(false);setEditingTransaction(null);setActiveTab(prev=>prev==='qr-config'?fundTabBeforeQr.current:prev);});
 
   // QR config state
   const [qrBankName, setQrBankName] = useState(
@@ -318,12 +325,13 @@ export default function FundManagement({
           {txError}
         </p>
       )}
-      <header className="compact-header">
+      <header className="compact-header fund-header">
+        {onBack && <Pressable type="button" aria-label="Quay lại" className="header-back" onClick={onBack}><ChevronLeft size={22}/></Pressable>}
         <h1>Quỹ đội</h1>
         <details className="action-menu" ref={moreRef}>
           <summary aria-label="Thêm tùy chọn quỹ">
             <MoreHorizontal size={20} />
-            <span>Thêm</span>
+
           </summary>
           <div className="menu-popover">
             <Pressable
@@ -333,11 +341,12 @@ export default function FundManagement({
               }}
             >
               <FileSpreadsheet size={18} />
-              Xuất Excel
+              Xuất báo cáo
             </Pressable>
             {canManage && (
               <Pressable
                 onClick={() => {
+                  fundTabBeforeQr.current=activeTab;
                   setActiveTab("qr-config");
                   closeMore();
                 }}
@@ -350,11 +359,10 @@ export default function FundManagement({
         </details>
       </header>
       <section className="fund-summary">
-        <p className="text-sm text-slate-600">Tổng quan quỹ</p>
+        <p className="text-sm text-slate-600">Số dư hiện tại</p>
         <p className="fund-balance tabular-nums">
           {formatCurrency(currentBalance)}
         </p>
-        <p className="text-xs text-slate-500">Toàn bộ giao dịch đã ghi</p>
         <dl className="fund-totals">
           <div>
             <dt>Tổng thu</dt>
@@ -371,7 +379,7 @@ export default function FundManagement({
           {[
             ["transactions", "Giao dịch", transactions.length],
             ["approvals", "Chờ duyệt", pendingApprovals.length],
-            ["debtors", "Chưa nộp", debtors.length],
+            ["debtors", "Cần đóng", debtors.length],
           ].map(([id, label, count]) => (
             <Pressable
               key={id}
@@ -655,10 +663,10 @@ export default function FundManagement({
           <section>
             <Pressable
               className="text-action mb-3"
-              onClick={() => setActiveTab("transactions")}
+              onClick={() => setActiveTab(fundTabBeforeQr.current)}
             >
               <ChevronLeft size={18} />
-              Giao dịch
+              Quay lại Quỹ đội
             </Pressable>
             <h2>Tài khoản nhận quỹ</h2>
             <form className="match-form mt-4" onSubmit={handleSaveQrConfig}>

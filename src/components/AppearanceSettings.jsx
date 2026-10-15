@@ -16,7 +16,7 @@ export default function AppearanceSettings({ preferences }) {
 
       {/* 1. Theme sáng/tối */}
       <h3 className="text-sm font-medium mt-4 mb-2">{t("Chủ đề màu sắc")}</h3>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="appearance-segmented grid grid-cols-3">
         {[
           ["light", "Sáng", Sun],
           ["dark", "Tối", Moon],
@@ -46,7 +46,7 @@ export default function AppearanceSettings({ preferences }) {
         <Type size={16} />
         <span>{t("Cỡ chữ")}</span>
       </h3>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="appearance-segmented grid grid-cols-3">
         {[
           ["small", "Nhỏ"],
           ["medium", "Vừa"],
@@ -66,7 +66,7 @@ export default function AppearanceSettings({ preferences }) {
 
       {/* 3. Font chữ */}
       <h3 className="text-sm font-medium mt-5 mb-2">{t("Font chữ")}</h3>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="appearance-segmented grid grid-cols-2">
         {[
           ["system", "Hệ thống"],
           ["Be Vietnam Pro", "Be Vietnam Pro"],

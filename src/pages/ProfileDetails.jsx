@@ -1,3 +1,4 @@
+import {localToday,validBirthday,birthdayLabel} from '../lib/calendarDate';
 import {notify} from '../lib/feedback';
 import Pressable from '../components/Pressable';
 import { personalText } from "../lib/personalCopy";
@@ -73,6 +74,7 @@ export default function ProfileDetails({
   const [role, setRole] = useState(user.role ?? "");
   const [height, setHeight] = useState(user.height ?? "");
   const [weight, setWeight] = useState(user.weight ?? "");
+  const [birthday,setBirthday] = useState(user.birthday || "");
   const [phone, setPhone] = useState(user.phone || "");
   const [isSaved, setIsSaved] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false),
@@ -150,6 +152,7 @@ export default function ProfileDetails({
     setIsSaved(false);
     let finalAvatar = avatar;
     try {
+      if(!validBirthday(birthday))throw Error("Ngày sinh không hợp lệ hoặc nằm trong tương lai.");
       if (selectedAvatarFile) {
         finalAvatar = await uploadAvatarImage(
           selectedAvatarFile,
@@ -166,6 +169,7 @@ export default function ProfileDetails({
         weight: weight === "" ? "" : Number(weight),
         avatar: finalAvatar,
         phone: phone.trim(),
+        birthday,
       });
       profileForm?.dispatchEvent(
         new Event("no-offside-form-saved", { bubbles: true }),
@@ -403,6 +407,9 @@ export default function ProfileDetails({
             </div>
 
             <div>
+              <label htmlFor="profile-birthday" className="block text-sm font-medium mb-2">{t("Ngày sinh")}</label>
+              <input id="profile-birthday" type="date" lang="vi-VN" value={birthday} max={localToday()} onInput={e=>setBirthday(e.currentTarget.value)} onChange={e=>setBirthday(e.target.value)} aria-describedby="profile-birthday-hint"/>
+              <p id="profile-birthday-hint" className="field-hint mt-2 mb-4">{birthday ? birthdayLabel(birthday) : t("Không bắt buộc")} · {t("Năm sinh chỉ hiển thị trong hồ sơ của bạn.")}</p>
               <label
                 htmlFor="profile-phone"
                 className="text-gray-600 block mb-1 font-bold"
@@ -424,7 +431,6 @@ export default function ProfileDetails({
             </div>
 
             <Pressable
-              whileTap={{ scale: 0.95 }}
               type="submit"
               disabled={savingProfile || readingAvatar}
               className="w-full h-11 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-bold text-xs shadow-lg shadow-green-500/30 flex items-center justify-center whitespace-nowrap cursor-pointer mt-1"
@@ -493,8 +499,7 @@ export default function ProfileDetails({
 
                 <div className="flex items-center gap-1.5">
                   <Pressable
-                    whileTap={{ scale: 0.95 }}
-                    onClick={async () => {
+                          onClick={async () => {
                       try {
                         if (onApproveAdminRequest)
                           await onApproveAdminRequest(req.id);
@@ -573,8 +578,7 @@ export default function ProfileDetails({
                   className="flex-1 h-10 bg-white border border-gray-200 rounded-xl px-3 text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner"
                 />
                 <Pressable
-                  whileTap={{ scale: 0.95 }}
-                  type="submit"
+                      type="submit"
                   className="h-10 px-3.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shrink-0 cursor-pointer whitespace-nowrap flex items-center justify-center"
                 >
                   {teamNameSaved ? " Đã Lưu" : "Đổi Tên"}
@@ -773,8 +777,7 @@ export default function ProfileDetails({
               </div>
 
               <Pressable
-                whileTap={{ scale: 0.95 }}
-                type="button"
+                  type="button"
                 onClick={handleUpdateTitleSubmit}
                 className="w-full h-11 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer mt-2 whitespace-nowrap flex items-center justify-center"
               >
@@ -843,8 +846,7 @@ export default function ProfileDetails({
 
             <div className="mt-4 space-y-2">
               <Pressable
-                whileTap={{ scale: 0.95 }}
-                onClick={handleConfirmPromote}
+                  onClick={handleConfirmPromote}
                 className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 cursor-pointer whitespace-nowrap flex items-center justify-center"
               >
                 {isOwner
@@ -890,8 +892,7 @@ export default function ProfileDetails({
 
             <div className="mt-5 space-y-2">
               <Pressable
-                whileTap={{ scale: 0.95 }}
-                onClick={handleConfirmRemoveAdmin}
+                  onClick={handleConfirmRemoveAdmin}
                 className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-md shadow-rose-600/20 cursor-pointer whitespace-nowrap flex items-center justify-center"
               >
                 Xác Nhận Giáng Chức
@@ -975,8 +976,7 @@ export default function ProfileDetails({
 
             <div className="space-y-2">
               <Pressable
-                whileTap={{ scale: 0.95 }}
-                disabled={!selectedNewOwner}
+                  disabled={!selectedNewOwner}
                 onClick={handleConfirmTransferOwner}
                 className={`w-full py-3.5 rounded-full font-bold text-xs shadow-md transition-all whitespace-nowrap flex items-center justify-center ${
                   selectedNewOwner

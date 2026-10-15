@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { matchesMemberSearch } from "../lib/memberSearch";
 import Avatar from "../components/Avatar";
+import MemberQuickProfileModal from "../components/MemberQuickProfileModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -13,6 +15,8 @@ import {
   Cake,
   AlertTriangle,
   QrCode,
+  ChevronRight,
+  Eye,
 } from "lucide-react";
 
 export default function TeamManager({
@@ -28,6 +32,7 @@ export default function TeamManager({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterRole, setFilterRole] = useState("all"); // 'all' | 'leaders' | 'members'
   const [memberToDelete, setMemberToDelete] = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null);
   const [linking, setLinking] = useState(null);
   const [linkTarget, setLinkTarget] = useState("");
   const [linkError, setLinkError] = useState("");
@@ -97,12 +102,12 @@ export default function TeamManager({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div
         role="dialog"
         aria-modal="true"
-        className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
+        className="fixed inset-0 z-[180] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
       >
         {/* Backdrop Click to close */}
         <div className="absolute inset-0" onClick={onClose} />
@@ -252,10 +257,16 @@ export default function TeamManager({
                 </div>
               )}
             </div>
+
+            {/* Hint xem hồ sơ nhanh */}
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 px-1 pt-1 font-medium">
+              <Eye size={12} className="text-emerald-500 shrink-0" />
+              <span>Chạm vào thành viên bất kỳ để xem nhanh hồ sơ & liên hệ</span>
+            </div>
           </div>
 
           {/* Members List Container */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2.5 max-h-[55vh]">
+          <div className="flex-1 overflow-y-auto p-4 pb-12 space-y-2.5 max-h-[60vh] sm:max-h-[65vh]">
             {linking && (
               <section
                 className="settings-card p-3"
@@ -302,15 +313,16 @@ export default function TeamManager({
                     type="button"
                     className="primary-button"
                     disabled={!linkTarget || linkBusy}
-                    onClick={async () => {
+                    onClick={async (e) => {
+                      e.stopPropagation();
                       setLinkBusy(true);
                       setLinkError("");
                       try {
                         await onLinkMember(linking.id, linkTarget);
                         setLinking(null);
                         setLinkTarget("");
-                      } catch (e) {
-                        setLinkError(e.message || "Không liên kết được hồ sơ.");
+                      } catch (err) {
+                        setLinkError(err.message || "Không liên kết được hồ sơ.");
                       } finally {
                         setLinkBusy(false);
                       }
@@ -322,7 +334,10 @@ export default function TeamManager({
                     type="button"
                     className="choice-button"
                     disabled={linkBusy}
-                    onClick={() => setLinking(null)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLinking(null);
+                    }}
                   >
                     Hủy
                   </button>
@@ -350,7 +365,9 @@ export default function TeamManager({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="member-row p-3 bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/60 flex items-center justify-between transition-colors shadow-2xs"
+                    onClick={() => setSelectedMember(member)}
+                    className="member-row p-3 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/60 hover:border-emerald-500/40 dark:hover:border-emerald-500/40 flex items-center justify-between transition-all shadow-2xs cursor-pointer active:scale-[0.99] group"
+                    title="Chạm để xem thông tin hồ sơ nhanh"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Avatar with Shirt number badge */}
@@ -373,7 +390,8 @@ export default function TeamManager({
                             <button
                               type="button"
                               className="text-xs text-emerald-700 min-h-11"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setLinking(member);
                                 setLinkTarget("");
                                 setLinkError("");
@@ -383,7 +401,7 @@ export default function TeamManager({
                             </button>
                           )}
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                             {member.name}
                           </p>
 
@@ -424,11 +442,14 @@ export default function TeamManager({
                       </div>
                     </div>
 
-                    {/* Action buttons: Delete from team */}
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                    {/* Action buttons: Delete from team & View profile arrow */}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       {canDelete ? (
                         <button
-                          onClick={() => setMemberToDelete(member)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMemberToDelete(member);
+                          }}
                           className="px-2.5 py-1.5 rounded-full bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-200/80 dark:border-rose-800/80 active:scale-95 transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap outline-none"
                           title="Xóa cầu thủ này khỏi đội"
                         >
@@ -442,6 +463,10 @@ export default function TeamManager({
                           </span>
                         )
                       )}
+
+                      <div className="p-1 rounded-full text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all">
+                        <ChevronRight size={16} />
+                      </div>
                     </div>
                   </motion.div>
                 );
@@ -459,7 +484,7 @@ export default function TeamManager({
             <div
               role="dialog"
               aria-modal="true"
-              className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
+              className="fixed inset-0 z-[260] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200"
             >
               <div className="w-full max-w-sm rounded-[32px] bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800 text-center">
                 <div className="w-14 h-14 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
@@ -505,6 +530,15 @@ export default function TeamManager({
           )}
         </motion.div>
       </div>
-    </AnimatePresence>
+
+      {/* Modal xem nhanh hồ sơ thành viên */}
+      <MemberQuickProfileModal
+        isOpen={Boolean(selectedMember)}
+        member={selectedMember}
+        onClose={() => setSelectedMember(null)}
+        currentUserRole={currentUserRole}
+      />
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -146,7 +146,7 @@ button .lucide { width: 20px; height: 20px; flex-shrink: 0; }
 .fund-person-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 0; border-bottom: 1px solid #e2e8f0; }
 .fund-person-row h3 { font-size: 14px; font-weight: 500; }
 .panel-empty { color: #64748b; padding: 24px 0; font-size: 14px; }
-.match-form-overlay { position: fixed; inset: 0; z-index: 150; display: flex; justify-content: center; align-items: flex-end; padding: 0 0 var(--keyboard-inset); background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.match-form-overlay { position: fixed; inset: 0; z-index: 200; display: flex; justify-content: center; align-items: flex-end; padding: 0 0 var(--keyboard-inset); background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .match-form-sheet { width: 100%; max-width: 480px; min-width: 0; max-height: 90vh; max-height: calc(var(--visual-viewport-height,90dvh) - 16px); overflow-y: auto; overscroll-behavior: contain; background: #ffffff; color: #0f172a; border-radius: 32px 32px 0 0; border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.15); }
 .match-form-overlay > .match-form-sheet { max-height: 90vh; max-height: calc(var(--visual-viewport-height,90dvh) - max(16px,env(safe-area-inset-top,0px))); }
 .sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px 14px; border-bottom: 1px solid #f1f5f9; }

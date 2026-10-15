@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatCompactCurrency } from "../lib/formatCurrency";
 import TeamManager from "./TeamManager";
+import MemberQuickProfileModal from "../components/MemberQuickProfileModal";
 import InviteShare from "../components/InviteShare";
 import { rosterFor, qrUrl, monthKey } from "../lib/teamModel";
 import WelcomeAnnouncementModal from "../components/WelcomeAnnouncementModal";
@@ -94,6 +95,7 @@ export default function PlayerDashboard({
   const [showCreateMatchModal, setShowCreateMatchModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
+  const [quickProfileMember, setQuickProfileMember] = useState(null);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const invite = useTeamInvite(
@@ -773,59 +775,74 @@ export default function PlayerDashboard({
           )}
         </section>
 
-        {/* YÊU CẦU 2: CARD NẰM NGANG [Thành viên đội] VỚI NÚT [THÊM THÀNH VIÊN] (DÀNH CHO OWNER & ADMIN) */}
-        {isLeader && (
-          <div className="dashboard-roster w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all group text-left relative overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowTeamManagerModal(true)}
-              className="flex items-center gap-3.5 relative z-10 min-w-0 flex-1 cursor-pointer text-left outline-none"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-                <Users2 className="w-6 h-6" />
+        {/* CARD NẰM NGANG [Thành viên đội] - HIỂN THỊ CHO TẤT CẢ THÀNH VIÊN */}
+        <div className="dashboard-roster w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all group text-left relative overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowTeamManagerModal(true)}
+            className="flex items-center gap-3.5 relative z-10 min-w-0 flex-1 cursor-pointer text-left outline-none"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
+              <Users2 className="w-6 h-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  Thành viên đội
+                </h3>
+                <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 tabular-nums">
+                  {
+                    members.filter((m) => m.membershipStatus !== "removed")
+                      .length
+                  }{" "}
+                  người
+                </span>
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                    Thành viên đội
-                  </h3>
-                  <span className="text-xs font-semibold whitespace-nowrap shrink-0 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 tabular-nums">
-                    {
-                      members.filter((m) => m.membershipStatus !== "removed")
-                        .length
-                    }{" "}
-                    người
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
-                  Danh sách, phân quyền và sinh nhật
-                </p>
-              </div>
-            </button>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 truncate">
+                {isLeader
+                  ? "Danh sách, phân quyền và sinh nhật"
+                  : "Xem danh sách và thông tin đồng đội"}
+              </p>
+            </div>
+          </button>
 
-            <div className="flex items-center gap-1.5 shrink-0 relative z-10 pl-2">
-              {/* Nút Thêm thành viên thủ công */}
+          <div className="flex items-center gap-1.5 shrink-0 relative z-10 pl-2">
+            {isLeader ? (
+              <>
+                {/* Nút Thêm thành viên thủ công */}
+                <button
+                  type="button"
+                  onClick={() => setShowAddMemberModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
+                  title="Thêm thành viên thủ công"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span className="whitespace-nowrap">Thêm thành viên</span>
+                </button>
+
+                {/* Nút Mời QR */}
+                <button
+                  type="button"
+                  onClick={openInvite}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
+                  title="Mời qua QR & Mã Club"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span className="whitespace-nowrap">Mã / QR</span>
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                onClick={() => setShowAddMemberModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
-                title="Thêm thành viên thủ công"
+                onClick={() => setShowTeamManagerModal(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200/80 dark:border-emerald-800/80 transition-all cursor-pointer outline-none"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                <span className="whitespace-nowrap">Thêm thành viên</span>
+                <span>Xem danh sách</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
+            )}
 
-              {/* Nút Mời QR */}
-              <button
-                type="button"
-                onClick={openInvite}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer outline-none"
-                title="Mời qua QR & Mã Club"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span className="whitespace-nowrap">Mã / QR</span>
-              </button>
-
+            {isLeader && (
               <button
                 type="button"
                 aria-label="Xem chi tiết danh sách"
@@ -834,9 +851,9 @@ export default function PlayerDashboard({
               >
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
               </button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* CARD MỜI VÀO ĐỘI (MÃ CLUB & QR CODE) */}
         <div className="dashboard-invite-panel w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 text-left">
@@ -1137,7 +1154,9 @@ export default function PlayerDashboard({
                 roster.attending.map((p) => (
                   <div
                     key={p.id}
-                    className="p-2.5 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between"
+                    onClick={() => setQuickProfileMember(p)}
+                    className="p-2.5 rounded-2xl bg-gray-50 hover:bg-emerald-50/40 border border-gray-100 hover:border-emerald-200 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+                    title="Chạm để xem hồ sơ"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">
@@ -1162,7 +1181,9 @@ export default function PlayerDashboard({
                 roster.maybe.map((p) => (
                   <div
                     key={p.id}
-                    className="p-2.5 rounded-2xl bg-amber-50/50 border border-amber-100 flex items-center justify-between"
+                    onClick={() => setQuickProfileMember(p)}
+                    className="p-2.5 rounded-2xl bg-amber-50/50 hover:bg-amber-100/60 border border-amber-100 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+                    title="Chạm để xem hồ sơ"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">
@@ -1187,7 +1208,9 @@ export default function PlayerDashboard({
                 roster.absent.map((p) => (
                   <div
                     key={p.id}
-                    className="p-2.5 rounded-2xl bg-rose-50/50 border border-rose-100 flex items-center justify-between"
+                    onClick={() => setQuickProfileMember(p)}
+                    className="p-2.5 rounded-2xl bg-rose-50/50 hover:bg-rose-100/60 border border-rose-100 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+                    title="Chạm để xem hồ sơ"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-800 font-bold text-xs flex items-center justify-center">
@@ -1216,7 +1239,9 @@ export default function PlayerDashboard({
                   roster.unvoted.map((p) => (
                     <div
                       key={p.id}
-                      className="p-2.5 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between"
+                      onClick={() => setQuickProfileMember(p)}
+                      className="p-2.5 rounded-2xl bg-gray-50 hover:bg-emerald-50/40 border border-gray-200 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+                      title="Chạm để xem hồ sơ"
                     >
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 font-bold text-xs flex items-center justify-center">
@@ -1233,7 +1258,7 @@ export default function PlayerDashboard({
                       </div>
 
                       {isLeader ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleRemindUnvoted(p.name)}
                             className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
@@ -1592,6 +1617,15 @@ export default function PlayerDashboard({
               "noopener,noreferrer",
             );
         }}
+      />
+
+      {/* MODAL XEM HỒ SƠ NHANH CỦA THÀNH VIÊN */}
+      <MemberQuickProfileModal
+        isOpen={Boolean(quickProfileMember)}
+        member={quickProfileMember}
+        onClose={() => setQuickProfileMember(null)}
+        currentUserRole={currentUserRole}
+        teamName={teamSettings?.teamName || user?.teamName || "No Offside FC"}
       />
     </div>
   );

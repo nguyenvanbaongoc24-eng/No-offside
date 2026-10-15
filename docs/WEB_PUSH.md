@@ -66,3 +66,11 @@ Theo dõi DB bằng truy vấn quản trị chỉ lấy số lượng theo state
 `npm test`, `npm run build`, `npm audit --omit=dev`. Test SQL chạy PGlite cô lập với user/đội giả; không ghi tin hoặc subscription thử vào production. Có kiểm tra interleaving ranh giới đọc/tin đến, retry idempotent, quyền chéo đội, subscription private, hai installation, detach, locked, provider 410/backoff, preview, throttle/coalesce, nhóm thực tế, safe link và SW đổi tài khoản. Đây là mô phỏng trình tự, không phải load test PostgreSQL nhiều connection hay xác nhận giao nhận push thật.
 
 UI kiểm tra riêng bằng fixture không kết nối dữ liệu thật. Chưa kiểm chứng iPhone Home Screen/Android thật, trạng thái đóng app và giao nhận provider end-to-end: chờ đội và hai tài khoản test do chủ app chỉ định; không gửi thử tới người dùng khác. Không suy ra iPhone hoạt động từ test desktop.
+
+### Kết quả triển khai ngày 15/10/2026
+
+- 159/159 kiểm tra tự động đạt; production build/PWA đạt; audit dependency runtime: 0 lỗ hổng được báo.
+- Migration receipt `push-20261015`, SHA256 `36066ce1fd35969853401b254638e42c6d9d49956ed026a6068d7b6f6909b367`. Transaction xác nhận giữ nguyên 3 đội, 6 membership, 8 tin nhắn tại thời điểm chạy; tạo 6 marker baseline. Không thêm tài khoản, tin nhắn hay subscription thử vào production.
+- Kiểm tra production: RLS bật, authenticated không SELECT được subscription, không EXECUTE được worker; RPC unread bằng quyền authenticated chỉ nhìn marker của chính mình. Lúc áp dụng chưa có installation đăng ký/job gửi.
+- Preview fixture Light/Dark 320/360/390/430 px: không tràn ngang, badge tuyệt đối cao 17 px, 100 tin đọc thành `99+`, accessible name giữ 100; vùng chạm navigation tối thiểu 54 × 56 px.
+- Chưa kiểm chứng giao nhận Web Push trên iPhone/Android thật; chờ đội và hai tài khoản test do chủ app cung cấp.

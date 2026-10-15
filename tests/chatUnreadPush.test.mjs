@@ -70,5 +70,3 @@ test('server dispatcher never sends invalid endpoints and distinguishes provider
  const result=await dispatchPush({client,send:async()=>{sent++;return {statusCode:201};}});assert.equal(sent,1);assert.equal(result.accepted,1);assert.equal(finished.find(x=>x.p_id==='bad').p_outcome,'expired');
  finished.length=0;await dispatchPush({client,send:async()=>{throw {statusCode:410};}});assert.equal(finished.find(x=>x.p_id==='one').p_outcome,'expired');
 });
-
-

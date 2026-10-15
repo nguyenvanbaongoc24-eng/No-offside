@@ -352,6 +352,31 @@ button[class*="duration-"],summary[class*="duration-"] { transition-duration:var
 .match-form-sheet > header, .match-form-sheet > .sheet-header { flex-shrink:0; z-index:10; background:var(--elevated-surface) !important; }
 .match-form-sheet form, .match-form-sheet .match-form { flex:1 1 auto; overflow-y:auto; min-height:0; overscroll-behavior:contain; }
 .match-form-sheet footer, .match-form-sheet .sheet-footer { flex-shrink:0; z-index:10; background:var(--elevated-surface) !important; }
+.match-form-sheet .match-form fieldset { background: transparent !important; border: 0 !important; }
+.match-form-sheet .primary-button {
+  height: 56px !important;
+  min-height: 56px !important;
+  border-radius: 9999px !important;
+  background-image: linear-gradient(to right, #22c55e, #059669) !important;
+  background-color: #16a34a !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px -4px rgba(22, 163, 74, 0.35) !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+}
+.match-form-sheet .sheet-footer button:first-child {
+  height: 56px !important;
+  min-height: 56px !important;
+  border-radius: 9999px !important;
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 0 !important;
+  font-weight: 700 !important;
+}
+[data-theme="dark"] .match-form-sheet .sheet-footer button:first-child {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
 
 /* Team conversation: its own scroll viewport, independently of page navigation. */
 .person-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; flex-shrink:0; }

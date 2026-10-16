@@ -1,0 +1,22 @@
+import {build} from 'esbuild';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const output=await build({absWorkingDir:root,stdin:{resolveDir:root,loader:'jsx',contents:`
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import Summary from './src/components/matches/MatchCardSummary';
+import {MoreHorizontal} from './src/components/icons';
+const p=new URLSearchParams(location.search);
+document.documentElement.dataset.theme=p.get('theme')||'light';
+document.documentElement.dataset.font='vietnam';
+document.documentElement.dataset.fontSize=p.get('size')||'medium';
+const base={title:'Kèo sân 7 — FC Sài Gòn',category:'Sân 7',venue:'Sân Chuyên Việt · Tân Bình',datetime:'2026-10-24T11:30:00Z',deadline:new Date(Date.now()+90000000).toISOString(),status:'upcoming',penaltyEnabled:true,penaltyAmount:'50.000 đ'};
+const cases={open:{},long:{title:'Trận giao hữu với Câu lạc bộ bóng đá phong trào thành phố Hồ Chí Minh',venue:'Sân vận động Chuyên Việt, đường Trường Chinh, phường Tân Bình, Thành phố Hồ Chí Minh',penaltyAmount:'9.999.999.999 đ'},off:{penaltyEnabled:false},unknown:{penaltyEnabled:undefined},zero:{penaltyAmount:0},missing:{deadline:null},expired:{deadline:'2026-01-01T10:00:00Z'},completed:{status:'completed'},cancelled:{status:'cancelled'},brokenlogo:{opponentLogo:'/missing-opponent-logo.png',opponent:'FC Sài Gòn'}};
+const match={...base,...cases[p.get('case')||'open']};
+createRoot(document.getElementById('root')).render(<main style={{maxWidth:448,margin:'0 auto',padding:16}}><p className="match-summary-secondary" style={{marginBottom:12}}>Preview · dữ liệu kiểm thử</p><section className="match-card-container"><Summary match={match} menu={<button type="button" aria-label="Tùy chọn trận đấu" style={{width:44,height:44,display:'grid',placeItems:'center',flexShrink:0}}><MoreHorizontal size={22}/></button>} onOpenRules={()=>{}}/></section></main>);
+`},bundle:true,format:'esm',write:false,logLevel:'silent'});
+await mkdir(root+'.ui-review',{recursive:true});
+await writeFile(root+'.ui-review/match-card.js',output.outputFiles[0].text);
+await writeFile(root+'.ui-review/match-card.html','<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>No Offside — Preview thẻ trận</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">'+['index','refinement','soft-ui','pro','matchCard'].map(name=>'<link rel="stylesheet" href="/src/styles/'+name+'.css">').join('')+'</head><body><div id="root"></div><script type="module" src="./match-card.js?v='+Date.now()+'"></script></body></html>');
+console.log('Preview: /.ui-review/match-card.html?theme=light&case=open');

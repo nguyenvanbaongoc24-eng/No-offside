@@ -6,6 +6,7 @@ import './styles/index.css'
 import './styles/refinement.css'
 import './styles/soft-ui.css'
 import './styles/pro.css'
+import './styles/matchCard.css'
 
 window.clearTimeout(window.noOffsideBootTimer)
 delete window.noOffsideBootTimer

@@ -4,7 +4,7 @@ import MyAttendanceControl from "../components/MyAttendanceControl";
 import Avatar from "../components/Avatar";
 import { localTransactionTime } from "../lib/transactionTime";
 import TeamIdentityHeader from "../components/TeamIdentityHeader";
-import MatchCountdown from "../components/MatchCountdown";
+import MatchCardSummary from "../components/matches/MatchCardSummary";
 import { useTeamInvite } from "../hooks/useTeamInvite";
 import LateArrivalPanel from "../components/LateArrivalPanel";
 import { matchTimeLabel } from '../lib/matchTime';
@@ -62,123 +62,6 @@ import InviteShare from "../components/InviteShare";
 import { rosterFor, qrUrl, monthKey } from "../lib/teamModel";
 import WelcomeAnnouncementModal from "../components/WelcomeAnnouncementModal";
 import AddMemberModal from "../components/AddMemberModal";
-
-function MatchDeadlineCard({
-  deadline,
-  timezone = "Asia/Ho_Chi_Minh",
-  penaltyEnabled,
-  penaltyAmount,
-}) {
-  const [now, setNow] = useState(Date.now());
-  const end = deadline ? Date.parse(deadline) : NaN;
-  const hasDeadline = Number.isFinite(end);
-
-  useEffect(() => {
-    if (!hasDeadline || end <= Date.now()) return;
-    const diff = end - Date.now();
-    // Khi còn trên 1 giờ, chỉ cần update mỗi 30 giây để tránh re-render liên tục
-    // Khi còn dưới 1 giờ, đếm lùi từng giây
-    const intervalTime = diff > 3600000 ? 30000 : 1000;
-    const timer = setInterval(() => {
-      const current = Date.now();
-      setNow(current);
-      if (current >= end) clearInterval(timer);
-    }, intervalTime);
-    return () => clearInterval(timer);
-  }, [end, hasDeadline]);
-
-  if (!hasDeadline) {
-    return (
-      <div className="match-deadline-box mt-3.5 p-4 rounded-xl bg-black/25 dark:bg-black/35 border border-white/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-white">
-        <div className="min-w-0 flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-emerald-300 shrink-0" />
-            <span className="text-xs font-semibold text-emerald-200/90 tracking-wider uppercase">
-              Hạn điểm danh
-            </span>
-          </div>
-          <div className="pl-7">
-            <span className="text-xs font-medium text-white/80">
-              Chưa đặt hạn điểm danh
-            </span>
-          </div>
-        </div>
-        <div className="pl-7 sm:pl-0 sm:shrink-0 flex items-center">
-          <span className="text-[11px] font-semibold text-white/85 bg-black/20 border border-white/15 px-2.5 py-1 rounded-lg whitespace-nowrap">
-            {penaltyEnabled ? `Phạt ${penaltyAmount}` : "Không áp dụng phạt"}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  const seconds = Math.max(0, Math.ceil((end - now) / 1000));
-  const isClosed = seconds === 0;
-
-  // Format ngày giờ chính xác theo múi giờ: VD "18:30 · 17/10/2026"
-  const formattedDate = matchTimeLabel(deadline, timezone).replace(" - ", " · ");
-
-  // Thời gian còn lại: khi còn trên 1 giờ không hiển thị giây
-  let remainingText = "";
-  if (isClosed) {
-    remainingText = "Đã chốt điểm danh";
-  } else if (seconds >= 86400) {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    remainingText = `Còn ${days} ngày${hours > 0 ? ` ${hours} giờ` : ""}`;
-  } else if (seconds >= 3600) {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    remainingText = `Còn ${hours} giờ${minutes > 0 ? ` ${minutes} phút` : ""}`;
-  } else if (seconds >= 60) {
-    const minutes = Math.floor(seconds / 60);
-    const sec = seconds % 60;
-    remainingText = `Còn ${minutes} phút ${sec} giây`;
-  } else {
-    remainingText = `Còn ${seconds} giây`;
-  }
-
-  return (
-    <div className="match-deadline-box mt-3.5 p-4 rounded-xl bg-black/25 dark:bg-black/35 border border-white/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-white">
-      <div className="min-w-0 flex flex-col gap-1">
-        {/* Hàng 1: icon đồng hồ (20px) + "Hạn điểm danh" (gap 8px) */}
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-emerald-300 shrink-0" />
-          <span className="text-xs font-semibold text-emerald-200/90 tracking-wider uppercase">
-            Hạn điểm danh
-          </span>
-        </div>
-
-        {/* Hàng 2: ngày giờ & Hàng 3: countdown - cùng trục chữ với tiêu đề */}
-        <div className="pl-7 flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-white tracking-tight">
-            {formattedDate}
-          </span>
-          <span
-            className={`text-xs font-semibold ${
-              isClosed ? "text-rose-300" : "text-amber-300"
-            }`}
-          >
-            {remainingText}
-          </span>
-        </div>
-      </div>
-
-      {/* Chính sách phạt: hàng phụ phía dưới trên mobile, bên phải khi màn đủ rộng */}
-      <div className="pl-7 sm:pl-0 sm:shrink-0 flex items-center">
-        <span
-          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg border whitespace-nowrap ${
-            penaltyEnabled
-              ? "text-amber-200 bg-amber-950/60 border-amber-400/30"
-              : "text-white/85 bg-black/20 border-white/15"
-          }`}
-        >
-          {penaltyEnabled ? `Phạt ${penaltyAmount}` : "Không áp dụng phạt"}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export default function PlayerDashboard({
   user,
@@ -729,42 +612,12 @@ export default function PlayerDashboard({
           onDelete={onDeleteMatch}
         >
           <section className="match-card-container rounded-[20px] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all bg-white dark:bg-[#141E1A]">
-            {/* KHU VỰC A: THÔNG TIN TRẬN - GRADIENT XANH NHẬN DIỆN */}
-            <div className="match-card-header p-4 sm:p-5 text-white relative bg-gradient-to-br from-[#0d5c2e] to-[#17843b] dark:from-[#0e3720] dark:to-[#154c2b]">
-              {/* Hàng 1: Trạng thái thực, Tag & Menu ba chấm quản lý */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-100 bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-400/30">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        matchStatus === "completed"
-                          ? "bg-slate-400"
-                          : activeMatch.archivedAt
-                            ? "bg-rose-400"
-                            : "bg-emerald-400 animate-pulse"
-                      }`}
-                    />
-                    <span>
-                      {matchStatus === "completed"
-                        ? "Đã kết thúc"
-                        : activeMatch.archivedAt
-                          ? "Đã hủy"
-                          : "Sắp diễn ra"}
-                    </span>
-                  </span>
-                  {matchInfo.category && matchInfo.category.trim() && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-white/90 bg-black/25 px-2.5 py-1 rounded-full border border-white/15">
-                      <span>{matchInfo.category.trim()}</span>
-                    </span>
-                  )}
-                </div>
-
-                {/* Menu ba chấm góc phải */}
+            <MatchCardSummary match={activeMatch} timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"} onOpenRules={() => onNavigate("governance")} menu={
                 <div className="relative shrink-0">
                   <Pressable
                     type="button"
                     className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-black/25 hover:bg-black/35 active:scale-95 text-white flex items-center justify-center border border-white/20 transition-all outline-none cursor-pointer"
-                    aria-label="Tùy chọn trận đấu"
+                    aria-label="Tùy chọn trận đấu" aria-expanded={showMatchActionMenu}
                     onClick={() => setShowMatchActionMenu((prev) => !prev)}
                   >
                     <MoreHorizontal size={20} className="text-white" />
@@ -855,42 +708,10 @@ export default function PlayerDashboard({
                     </>
                   )}
                 </div>
-              </div>
-
-              {/* 2. Tên trận / Đối thủ */}
-              <h2 className="text-xl sm:text-[22px] font-bold text-white tracking-tight leading-snug break-words mt-3">
-                {matchInfo.title}
-              </h2>
-
-              {/* 3. Thời gian thi đấu & 4. Địa điểm */}
-              <div className="mt-2.5 space-y-1.5 text-xs text-white/95">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-200 shrink-0" />
-                  <span className="font-semibold text-white tracking-tight">
-                    {matchInfo.dateText}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
-                  <span className="text-white/90 break-words leading-relaxed">
-                    {matchInfo.venue}
-                  </span>
-                </div>
-              </div>
-
-              {/* 5. Khối hạn điểm danh khi trận sắp đá */}
-              {matchStatus === "upcoming" && (
-                <MatchDeadlineCard
-                  deadline={activeMatch.deadline}
-                  timezone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}
-                  penaltyEnabled={matchInfo.penaltyEnabled}
-                  penaltyAmount={matchInfo.penaltyAmount}
-                />
-              )}
-            </div>
+            }/>
 
             {/* THÂN THẺ: NỀN SURFACE ỔN ĐỊNH CHO TƯƠNG PHẢN TỐT NHẤT */}
-            <div className="p-4 sm:p-5 space-y-4 bg-white dark:bg-[#141E1A]">
+            <div className="p-4 space-y-4 bg-white dark:bg-[#141E1A]">
               {/* KHU VỰC B: ĐIỂM DANH */}
               <MyAttendanceControl
                 status={attendance[user.id]}

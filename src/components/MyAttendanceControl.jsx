@@ -34,7 +34,7 @@ export default function MyAttendanceControl({
       aria-label="Điểm danh của bạn"
     >
       {/* Header khu vực điểm danh */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-1.5">
           <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             Điểm danh của tôi

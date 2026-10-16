@@ -71,7 +71,6 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .text-amber-500, .text-amber-600 { color: var(--warning); }
 .text-rose-500, .text-rose-600 { color: var(--danger); }
 [data-theme="dark"] .text-rose-800 { color: var(--danger); }
-[data-theme="dark"] [class*="bg-white/"] { background-color: var(--surface); }
 [data-theme="dark"] [class*="hover:bg-white"]:hover { background-color: var(--elevated-surface); }
 .tactics-player .text-slate-950 { color: var(--on-highlight); }
 .dashboard-card-flow [class*="blur-"] { display: none; }
@@ -387,7 +386,7 @@ h1,h2,h3 { font-weight:700; letter-spacing:normal; }
 .text-muted { color:var(--text-muted); }
 .app-frame { max-width:480px; }
 .pb-safe-nav { padding-bottom:calc(var(--nav-height) + 2 * var(--nav-gap) + 16px + env(safe-area-inset-bottom,0px)); }
-html[data-theme] .bg-white, html[data-theme] .bg-slate-800, html[data-theme] [class*="bg-white/"],
+html[data-theme] .bg-white, html[data-theme] .bg-slate-800,
 html[data-theme="dark"] [class*="dark:bg-slate-900"], html[data-theme="dark"] [class*="dark:bg-slate-800"] { background-color:var(--surface); }
 html[data-theme] .bg-slate-50, html[data-theme] .bg-slate-100, html[data-theme] .bg-gray-50, html[data-theme] .bg-gray-100 { background-color:var(--surface-secondary); }
 html[data-theme] .text-slate-900, html[data-theme] .text-gray-900, html[data-theme] .text-gray-800 { color:var(--text); }

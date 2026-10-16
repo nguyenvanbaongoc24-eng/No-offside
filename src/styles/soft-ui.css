@@ -51,10 +51,8 @@ html[data-theme] .split-navigation.nav-hidden{transform:translateY(calc(100% + 3
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important}.split-navigation,.quick-sheet,.welcome-card{transition:none!important}}
 
 .large-match-swipe,.large-match-gesture{border-radius:32px}.large-match-gesture{overflow:hidden}.large-match-delete{border-radius:0 32px 32px 0}
-.match-deadline{background:var(--accent-soft);border:0}.match-deadline p,.match-deadline .match-countdown{color:var(--text-primary)}
-
+.match-card-menu{display:none!important}
 html[data-theme] .dashboard-page,html[data-theme] .app-shell,html[data-theme] .app-frame{background:var(--background)}
-html[data-theme] .match-deadline{background:var(--accent-soft)!important;border:0}html[data-theme] .match-deadline p,html[data-theme] .match-deadline .match-countdown{color:var(--text-primary)!important}
 
 .dashboard-page>.birthday-banner{margin:16px}.empty-team>.birthday-banner{margin-bottom:16px}
 
@@ -229,10 +227,8 @@ html[data-theme="dark"] .match-card-header {
 }
 
 /* Bảo đảm tương phản cho text trên phần header xanh */
-.match-card-header h2,
-.match-card-header span,
-.match-card-header time {
-  color: #ffffff;
+.match-card-header h2 {
+  color: #ffffff !important;
 }
 
 /* Nội dung cuối trang cuộn trên navigation */

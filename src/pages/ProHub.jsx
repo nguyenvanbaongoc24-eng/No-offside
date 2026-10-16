@@ -45,7 +45,7 @@ export default function ProHub({
   initialSection = "board",
   onBack,
   onNavigate,
-  onWorkspaceRefresh,
+  onWorkspaceRefresh, onOpenFund,
 }) {
   const { state, loading, error, busy, demo } = pro,
     leader = ["owner", "admin"].includes(role);
@@ -473,7 +473,7 @@ export default function ProHub({
                   {formatCurrency(
                     ownCharges
                       .filter((c) => c.kind === "third")
-                      .reduce((n, c) => n + Number(c.amount), 0),
+                      .reduce((n, c) => n + Math.max(0,Number(c.amount)-Number(c.paid_amount||0)), 0),
                   )}
                 </strong>
                 {leader && (
@@ -481,7 +481,7 @@ export default function ProHub({
                     className="primary-button pro-bill-action"
                     disabled={busy || demo}
                     onClick={() =>
-                      open("bill", {
+                      onOpenFund?onOpenFund("bill"):open("bill", {
                         title: "Sinh Tố Lúa Mạch",
                         total: "",
                         participants: [],
@@ -493,7 +493,7 @@ export default function ProHub({
                   </Pressable>
                 )}
                 <p className="field-hint">
-                  Tách biệt với quỹ đội. Đối soát thực tế trước khi xác nhận đã
+                  Dùng chung nghĩa vụ và đối soát ở Quỹ đội. Chỉ xác nhận đã
                   nhận tiền.
                 </p>
               </section>
@@ -552,13 +552,13 @@ export default function ProHub({
                     </div>
                     <div>
                       <strong className={c.kind === "fine" ? "pro-debt" : ""}>
-                        {formatCurrency(Number(c.amount))}
+                        {formatCurrency(Math.max(0,Number(c.amount)-Number(c.paid_amount||0)))}
                       </strong>
                       {leader && c.status === "owed" && (
                         <Pressable
                           className="text-action"
                           onClick={() =>
-                            open("charge", {
+                            onOpenFund?onOpenFund():open("charge", {
                               chargeId: c.id,
                               kind: c.kind,
                               reason: "",

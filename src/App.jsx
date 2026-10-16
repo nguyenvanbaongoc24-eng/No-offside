@@ -1,22 +1,24 @@
-import {usePro} from './hooks/usePro';
-import ProDashboard from './components/pro/ProDashboard';
-import {weeklyAwards} from './lib/pro';
-import {useAppNavigation} from './hooks/useAppNavigation';
-import FeedbackToast from './components/FeedbackToast';
-import {withFeedback} from './lib/feedback';
-import Pressable from './components/Pressable';
-import QuickActions from './components/QuickActions';
-import QuickInvite from './components/QuickInvite';
-import MatchFormSheet from './components/MatchFormSheet';
-import WelcomeAnnouncementModal from './components/WelcomeAnnouncementModal';
-import {birthdaysToday} from './lib/announcements';
-import NotificationSettings from './components/NotificationSettings';
-import {useChatUnread} from './hooks/useChatUnread';
-import {safePushTarget} from './lib/pushDevice';
+import { useFundCollections } from "./hooks/useFundCollections";
+import FundOperations from "./components/FundOperations";
+import { usePro } from "./hooks/usePro";
+import ProDashboard from "./components/pro/ProDashboard";
+import { weeklyAwards } from "./lib/pro";
+import { useAppNavigation } from "./hooks/useAppNavigation";
+import FeedbackToast from "./components/FeedbackToast";
+import { withFeedback } from "./lib/feedback";
+import Pressable from "./components/Pressable";
+import QuickActions from "./components/QuickActions";
+import QuickInvite from "./components/QuickInvite";
+import MatchFormSheet from "./components/MatchFormSheet";
+import WelcomeAnnouncementModal from "./components/WelcomeAnnouncementModal";
+import { birthdaysToday } from "./lib/announcements";
+import NotificationSettings from "./components/NotificationSettings";
+import { useChatUnread } from "./hooks/useChatUnread";
+import { safePushTarget } from "./lib/pushDevice";
 import TeamAccessState from "./pages/TeamAccessState";
 import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
 import StartupGate from "./components/StartupGate";
-import {systemNoticeTitle} from './lib/menuLabels';
+import { systemNoticeTitle } from "./lib/menuLabels";
 import {
   Home,
   Network,
@@ -55,7 +57,7 @@ import { useGovernance } from "./hooks/useGovernance";
 import GovernanceNotice from "./components/GovernanceNotice";
 import VersionNotice from "./components/VersionNotice";
 
-const ProHub=React.lazy(()=>import('./pages/ProHub'));
+const ProHub = React.lazy(() => import("./pages/ProHub"));
 
 export default function App() {
   const [startupAttempt, setStartupAttempt] = useState(0);
@@ -65,27 +67,66 @@ export default function App() {
         key={startupAttempt}
         onRetryStartup={() => setStartupAttempt((attempt) => attempt + 1)}
       />
-      <FeedbackToast/>
+      <FeedbackToast />
       <VersionNotice />
     </>
   );
 }
 function Application({ onRetryStartup }) {
   const auth = useAuth();
-  const [proSection,setProSection]=useState('board');
-  const pro=usePro({teamId:auth.teamSettings.id,accountId:auth.accountId,token:auth.authSession?.access_token,demo:auth.demoSession,enabled:!auth.authLoading&&auth.isLoggedIn&&auth.hasTeam&&!auth.teamRestriction,matchVersion:auth.matches.map(m=>m.id+':'+m.status).join('|')});
-  const proWinners=weeklyAwards(pro.state.awards);
-  const displayMembers=auth.teamSettings.members.map(m=>({...m,motm:!!proWinners[m.id]}));
-  const displayTeam={...auth.teamSettings,members:displayMembers};
+  const fund = useFundCollections({
+    teamId: auth.teamSettings.id,
+    accountId: auth.accountId,
+    token: auth.authSession?.access_token,
+    demo: auth.demoSession,
+    enabled:
+      !auth.authLoading &&
+      auth.isLoggedIn &&
+      auth.hasTeam &&
+      !auth.teamRestriction,
+    onUpdated: () => auth.refreshWorkspace(auth.teamSettings.id),
+  });
+  const fundAccess = fund.data.canManage,
+    treasurer = fund.data.treasurer && fundAccess;
+  const [attendanceFocus, setAttendanceFocus] = useState(null);
+  const [proSection, setProSection] = useState("board");
+  const pro = usePro({
+    teamId: auth.teamSettings.id,
+    accountId: auth.accountId,
+    token: auth.authSession?.access_token,
+    demo: auth.demoSession,
+    enabled:
+      !auth.authLoading &&
+      auth.isLoggedIn &&
+      auth.hasTeam &&
+      !auth.teamRestriction,
+    matchVersion: auth.matches.map((m) => m.id + ":" + m.status).join("|"),
+  });
+  const proWinners = weeklyAwards(pro.state.awards);
+  const displayMembers = auth.teamSettings.members.map((m) => ({
+    ...m,
+    motm: !!proWinners[m.id],
+  }));
+  const displayTeam = { ...auth.teamSettings, members: displayMembers };
 
-  const chatUnread = useChatUnread(auth.accountId, auth.demoSession ? null : auth.authSession?.access_token, !auth.authLoading);
-  const memberships = (auth.dbMemberships || []).map(m => ({...m, chatUnread: chatUnread.countFor(m.teamId || m.team_id)}));
+  const chatUnread = useChatUnread(
+    auth.accountId,
+    auth.demoSession ? null : auth.authSession?.access_token,
+    !auth.authLoading,
+  );
+  const memberships = (auth.dbMemberships || []).map((m) => ({
+    ...m,
+    chatUnread: chatUnread.countFor(m.teamId || m.team_id),
+  }));
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
-  const [quickOpen,setQuickOpen]=useState(false),[quickInvite,setQuickInvite]=useState(false);
-  const [quickIntent,setQuickIntent]=useState(null),[quickMatch,setQuickMatch]=useState(null),[quickMatchError,setQuickMatchError]=useState('');
-  const navigation=useAppNavigation();
-  const {tab}=navigation;
-  const fundViewStates=useRef(new Map());
+  const [quickOpen, setQuickOpen] = useState(false),
+    [quickInvite, setQuickInvite] = useState(false);
+  const [quickIntent, setQuickIntent] = useState(null),
+    [quickMatch, setQuickMatch] = useState(null),
+    [quickMatchError, setQuickMatchError] = useState("");
+  const navigation = useAppNavigation();
+  const { tab } = navigation;
+  const fundViewStates = useRef(new Map());
   const [showNotices, setShowNotices] = useState(false);
   const [noticeReadError, setNoticeReadError] = useState("");
   useEffect(() => {
@@ -181,65 +222,208 @@ function Application({ onRetryStartup }) {
     });
     scrollRoute.current = scrollKey;
   }, [scrollKey, auth.isLoggedIn, auth.authLoading]);
-  useEffect(()=>{
-    const remember=()=>{if(scrollRoute.current)scrollPositions.current.set(scrollRoute.current,window.scrollY);};
-    window.addEventListener('popstate',remember,true);return()=>window.removeEventListener('popstate',remember,true);
-  },[]);
-  const navigate = (target,options) => {
-    setQuickOpen(false);setQuickIntent(null);
+  useEffect(() => {
+    const remember = () => {
+      if (scrollRoute.current)
+        scrollPositions.current.set(scrollRoute.current, window.scrollY);
+    };
+    window.addEventListener("popstate", remember, true);
+    return () => window.removeEventListener("popstate", remember, true);
+  }, []);
+  const navigate = (target, options) => {
+    setQuickOpen(false);
+    setQuickIntent(null);
     if (activeTab !== "chat" && scrollRoute.current)
       scrollPositions.current.set(scrollRoute.current, window.scrollY);
-    navigation.navigate(target,options);
+    navigation.navigate(target, options);
   };
-  const openPro=section=>{setProSection(section);navigate("pro");};
-  const runQuickAction=(action)=>{
+  const openFund = (action) => {
+    navigate("fund");
+    if (action) setQuickIntent({ id: crypto.randomUUID(), action });
+  };
+  const openPro = (section) => {
+    if (section === "finance") {
+      openFund("bill");
+      return;
+    }
+    setProSection(section);
+    navigate("pro");
+  };
+  const runQuickAction = (action) => {
     setQuickOpen(false);
-    if(!leader || !auth.hasTeam || auth.teamRestriction)return;
-    if(['board','stars','finance','media'].includes(action)){openPro(action);return;}
-    if(action==='match'){
-      setQuickMatchError('');setQuickMatch({opponent:'',datetime:'',timeoutDatetime:'',venue:auth.teamSettings.venue||'',penaltyEnabled:true,penaltyFine:"50000"});
-    }else if(action==='transaction' || action==='formation'){
-      navigate(action==='transaction'?'fund':'lineup');setQuickIntent({id:crypto.randomUUID(),action});
-    }else if(action==='invite')setQuickInvite(true);
-    else if(action==='settings' && auth.currentUserRole==='owner')navigate('team-settings');
+    if (!auth.hasTeam || auth.teamRestriction) return;
+    if (action === "fund") {
+      if (fundAccess || leader) openFund();
+      return;
+    }
+    if (action === "reminder") {
+      if (fundAccess) openFund("reminder");
+      return;
+    }
+    if (action === "finance" && fundAccess) {
+      openFund("bill");
+      return;
+    }
+    if (!leader) return;
+    if (["board", "stars", "finance", "media"].includes(action)) {
+      openPro(action);
+      return;
+    }
+    if (action === "match") {
+      setQuickMatchError("");
+      setQuickMatch({
+        opponent: "",
+        datetime: "",
+        timeoutDatetime: "",
+        venue: auth.teamSettings.venue || "",
+        penaltyEnabled: true,
+        penaltyFine: "50000",
+      });
+    } else if (action === "transaction" || action === "formation") {
+      navigate(action === "transaction" ? "fund" : "lineup");
+      setQuickIntent({ id: crypto.randomUUID(), action });
+    } else if (action === "invite") setQuickInvite(true);
+    else if (action === "settings" && auth.currentUserRole === "owner")
+      navigate("team-settings");
   };
-  const openNotice=async(notice)=>{
-    try{if(notice.matchId && auth.matches.some(m=>m.id===notice.matchId))await auth.selectMatch(notice.matchId);}catch{setPushError('Không mở được trận đấu từ thông báo. Bạn có thể thử lại từ Trang chủ.');}
-    navigate(['dashboard','fund','profile','lineup','chat','governance'].includes(notice.route)?notice.route:'dashboard');
+  const openNotice = async (notice) => {
+    try {
+      if (notice.matchId) {
+        if (!auth.matches.some((m) => m.id === notice.matchId))
+          throw Error(
+            "Trận trong thông báo không còn khả dụng với tài khoản này.",
+          );
+        await auth.selectMatch(notice.matchId);
+        if (notice.memberId)
+          setAttendanceFocus({
+            matchId: notice.matchId,
+            memberId: String(notice.memberId),
+            key: crypto.randomUUID(),
+          });
+      }
+      navigate(
+        [
+          "dashboard",
+          "fund",
+          "profile",
+          "lineup",
+          "chat",
+          "governance",
+        ].includes(notice.route)
+          ? notice.route
+          : "dashboard",
+      );
+    } catch (e) {
+      setPushError(e.message || "Không mở được thông báo.");
+    }
   };
-  const birthdayMembers=auth.teamSettings.appearance.birthdayReportEnabled===false?[]:birthdaysToday(auth.teamSettings.members,auth.teamSettings.timezone);
-  useEffect(()=>{setQuickOpen(false);setQuickInvite(false);setQuickMatch(null);setQuickIntent(null);},[auth.accountId,auth.teamSettings.id]);
-  const [pushTarget,setPushTarget] = useState(() => {
+  const birthdayMembers =
+    auth.teamSettings.appearance.birthdayReportEnabled === false
+      ? []
+      : birthdaysToday(auth.teamSettings.members, auth.teamSettings.timezone);
+  useEffect(() => {
+    setQuickOpen(false);
+    setQuickInvite(false);
+    setQuickMatch(null);
+    setQuickIntent(null);
+    setAttendanceFocus(null);
+  }, [auth.accountId, auth.teamSettings.id]);
+  const [pushTarget, setPushTarget] = useState(() => {
     const target = safePushTarget(window.location.href);
-    try { return target || JSON.parse(sessionStorage.getItem('no_offside_push_target') || 'null'); } catch { return target; }
+    try {
+      return (
+        target ||
+        JSON.parse(sessionStorage.getItem("no_offside_push_target") || "null")
+      );
+    } catch {
+      return target;
+    }
   });
-  const [pushError,setPushError] = useState('');
+  const [pushError, setPushError] = useState("");
   const openingPush = useRef(false);
-  const pushAccount = useRef(auth.accountId); pushAccount.current = auth.accountId;
+  const pushAccount = useRef(auth.accountId);
+  pushAccount.current = auth.accountId;
   useEffect(() => {
-    const receive = event => {
-      if(event.data?.type !== 'NO_OFFSIDE_PUSH_OPEN') return;
+    const receive = (event) => {
+      if (event.data?.type !== "NO_OFFSIDE_PUSH_OPEN") return;
       const target = safePushTarget(event.data.url);
-      if(target) { sessionStorage.setItem('no_offside_push_target',JSON.stringify(target)); setPushTarget(target); }
+      if (target) {
+        sessionStorage.setItem(
+          "no_offside_push_target",
+          JSON.stringify(target),
+        );
+        setPushTarget(target);
+      }
     };
-    navigator.serviceWorker?.addEventListener('message',receive);
-    return () => navigator.serviceWorker?.removeEventListener('message',receive);
-  },[]);
+    navigator.serviceWorker?.addEventListener("message", receive);
+    return () =>
+      navigator.serviceWorker?.removeEventListener("message", receive);
+  }, []);
   useEffect(() => {
-    if(!pushTarget) return;
-    sessionStorage.setItem('no_offside_push_target',JSON.stringify(pushTarget));
-    if(auth.authLoading || auth.startupPending || !auth.isLoggedIn || auth.switchingTeam || openingPush.current) return;
-    if((pushTarget.accountId && pushTarget.accountId !== auth.accountId) || !memberships.some(m => (m.teamId || m.team_id) === pushTarget.teamId)) {
-      setPushError('Thông báo thuộc tài khoản hoặc đội bạn không có quyền truy cập.');
-      setPushTarget(null); sessionStorage.removeItem('no_offside_push_target'); return;
+    if (!pushTarget) return;
+    sessionStorage.setItem(
+      "no_offside_push_target",
+      JSON.stringify(pushTarget),
+    );
+    if (
+      auth.authLoading ||
+      auth.startupPending ||
+      !auth.isLoggedIn ||
+      auth.switchingTeam ||
+      openingPush.current
+    )
+      return;
+    if (
+      (pushTarget.accountId && pushTarget.accountId !== auth.accountId) ||
+      !memberships.some((m) => (m.teamId || m.team_id) === pushTarget.teamId)
+    ) {
+      setPushError(
+        "Thông báo thuộc tài khoản hoặc đội bạn không có quyền truy cập.",
+      );
+      setPushTarget(null);
+      sessionStorage.removeItem("no_offside_push_target");
+      return;
     }
     openingPush.current = true;
     (async () => {
-      try { if(auth.teamSettings.id !== pushTarget.teamId) await auth.switchTeam(pushTarget.teamId); if(pushAccount.current !== auth.accountId)return; navigate(pushTarget.view); setPushTarget(null); sessionStorage.removeItem('no_offside_push_target'); }
-      catch { setPushError('Không mở được đội từ thông báo. Hãy kiểm tra kết nối rồi mở lại thông báo.'); }
-      finally { openingPush.current = false; }
+      try {
+        if (auth.teamSettings.id !== pushTarget.teamId) {
+          await auth.switchTeam(pushTarget.teamId);
+          openingPush.current = false;
+          setPushTarget((p) => (p ? { ...p } : null));
+          return;
+        }
+        if (pushAccount.current !== auth.accountId) return;
+        if (pushTarget.matchId) {
+          if (!auth.matches.some((m) => m.id === pushTarget.matchId))
+            throw Error("Trận không còn khả dụng.");
+          await auth.selectMatch(pushTarget.matchId);
+          setAttendanceFocus({
+            matchId: pushTarget.matchId,
+            memberId: pushTarget.memberId,
+            key: crypto.randomUUID(),
+          });
+        }
+        navigate(pushTarget.view);
+        setPushTarget(null);
+        sessionStorage.removeItem("no_offside_push_target");
+      } catch {
+        setPushError(
+          "Không mở được đội từ thông báo. Hãy kiểm tra kết nối rồi mở lại thông báo.",
+        );
+      } finally {
+        openingPush.current = false;
+      }
     })();
-  },[pushTarget,auth.authLoading,auth.startupPending,auth.isLoggedIn,auth.switchingTeam,auth.accountId,auth.teamSettings.id]);
+  }, [
+    pushTarget,
+    auth.authLoading,
+    auth.startupPending,
+    auth.isLoggedIn,
+    auth.switchingTeam,
+    auth.accountId,
+    auth.teamSettings.id,
+  ]);
   let inviteCode =
     window.location.pathname.split("/invite/")[1]?.split("/")[0] ||
     auth.teamSettings.id;
@@ -333,7 +517,12 @@ function Application({ onRetryStartup }) {
   const tabs = [
     { id: "dashboard", label: "Trang chủ", Icon: Home },
     { id: "lineup", label: "Chiến Thuật", Icon: Network },
-    { id: "chat", label: "Chat", Icon: MessageSquare, unreadCount: chatUnread.countFor(auth.teamSettings.id) },
+    {
+      id: "chat",
+      label: "Chat",
+      Icon: MessageSquare,
+      unreadCount: chatUnread.countFor(auth.teamSettings.id),
+    },
     { id: "profile", label: "Tài khoản", Icon: User },
   ];
   return (
@@ -346,7 +535,11 @@ function Application({ onRetryStartup }) {
             (activeTab === "chat" ? " app-chat-frame" : "")
           }
         >
-          {pushError && <p role="alert" className="form-error p-3">{pushError}</p>}
+          {pushError && (
+            <p role="alert" className="form-error p-3">
+              {pushError}
+            </p>
+          )}
           {auth.storageError && (
             <div role="alert" className="p-3 bg-rose-50 text-rose-700">
               {auth.storageError}
@@ -359,7 +552,11 @@ function Application({ onRetryStartup }) {
           )}
           <main
             key={scrollKey}
-            className={activeTab === "chat" ? "" : "app-page-transition route-"+navigation.direction}
+            className={
+              activeTab === "chat"
+                ? ""
+                : "app-page-transition route-" + navigation.direction
+            }
           >
             {activeTab === "dashboard" && (
               <GovernanceNotice
@@ -446,7 +643,9 @@ function Application({ onRetryStartup }) {
               <LineupBuilder
                 serverLineups={auth.lineups}
                 onSaveLineups={auth.saveLineups}
-                createRequest={quickIntent?.action === "formation" ? quickIntent.id : null}
+                createRequest={
+                  quickIntent?.action === "formation" ? quickIntent.id : null
+                }
                 onCreateOpened={() => setQuickIntent(null)}
                 key={auth.accountId + auth.teamSettings.id}
                 teamId={auth.teamSettings.id}
@@ -456,28 +655,91 @@ function Application({ onRetryStartup }) {
                 onBack={() => navigate("dashboard")}
               />
             ) : activeTab === "pro" ? (
-              <React.Suspense fallback={<div className="pro-loading" role="status">Đang mở No Offside Pro…</div>}><ProHub key={auth.accountId+'::'+auth.teamSettings.id} pro={pro} team={auth.teamSettings} user={auth.user} role={auth.currentUserRole} matches={auth.matches} initialSection={proSection} onBack={()=>navigation.back('profile')} onNavigate={navigate} onWorkspaceRefresh={auth.refreshWorkspace}/></React.Suspense>
-            ) : activeTab === "fund" ? (
-              !leader ? (
-                <PersonalFund
-                  onBack={navigation.hasParent ? ()=>navigation.back("profile") : undefined}
-                  user={shared.user}
-                  treasurerQr={auth.teamSettings.treasurerQr}
-                  onMarkPaid={auth.markFundPaid}
+              <React.Suspense
+                fallback={
+                  <div className="pro-loading" role="status">
+                    Đang mở No Offside Pro…
+                  </div>
+                }
+              >
+                <ProHub
+                  key={auth.accountId + "::" + auth.teamSettings.id}
+                  pro={pro}
+                  team={auth.teamSettings}
+                  user={auth.user}
+                  role={auth.currentUserRole}
+                  matches={auth.matches}
+                  initialSection={proSection}
+                  onBack={() => navigation.back("profile")}
+                  onNavigate={navigate}
+                  onWorkspaceRefresh={auth.refreshWorkspace}
+                  onOpenFund={openFund}
                 />
+              </React.Suspense>
+            ) : activeTab === "fund" ? (
+              !leader && !fundAccess ? (
+                <>
+                  <PersonalFund
+                    onBack={
+                      navigation.hasParent
+                        ? () => navigation.back("profile")
+                        : undefined
+                    }
+                    user={shared.user}
+                    treasurerQr={auth.teamSettings.treasurerQr}
+                    onMarkPaid={auth.markFundPaid}
+                  />
+                  <div className="p-4">
+                    <FundOperations
+                      fund={fund}
+                      mode="collections"
+                      qr={auth.teamSettings.treasurerQr}
+                      accountId={auth.accountId}
+                      permissions={auth.teamSettings.members}
+                    />
+                    <FundOperations
+                      fund={fund}
+                      mode="charges"
+                      qr={auth.teamSettings.treasurerQr}
+                      accountId={auth.accountId}
+                      permissions={auth.teamSettings.members}
+                    />
+                  </div>
+                </>
               ) : (
                 <FundManagement
+                  fund={fund}
+                  accountId={auth.accountId}
+                  teamMembers={auth.teamSettings.members}
+                  fundIntent={
+                    ["reminder", "collection", "bill"].includes(
+                      quickIntent?.action,
+                    )
+                      ? quickIntent
+                      : null
+                  }
+                  onFundIntentUsed={() => setQuickIntent(null)}
                   {...fundProps}
                   viewState={fundViewStates.current.get(scrollKey)}
-                  onViewStateChange={value=>fundViewStates.current.set(scrollKey,value)}
-                  createRequest={quickIntent?.action === "transaction" ? quickIntent.id : null}
+                  onViewStateChange={(value) =>
+                    fundViewStates.current.set(scrollKey, value)
+                  }
+                  createRequest={
+                    quickIntent?.action === "transaction"
+                      ? quickIntent.id
+                      : null
+                  }
                   onCreateOpened={() => setQuickIntent(null)}
                   actor={auth.user.name}
                   timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
                   treasurerQr={auth.teamSettings.treasurerQr}
                   onUpdateTreasurerQr={auth.updateTreasurerQr}
                   currentUserRole={auth.currentUserRole}
-                  onBack={navigation.hasParent ? ()=>navigation.back("profile") : undefined}
+                  onBack={
+                    navigation.hasParent
+                      ? () => navigation.back("profile")
+                      : undefined
+                  }
                 />
               )
             ) : activeTab === "chat" ? (
@@ -505,6 +767,9 @@ function Application({ onRetryStartup }) {
               <React.Fragment key={auth.accountId + auth.teamSettings.id}>
                 <Profile
                   onOpenPro={openPro}
+                  onFundReminder={
+                    fundAccess ? () => openFund("reminder") : undefined
+                  }
                   motm={proWinners[auth.user.id]}
                   {...shared}
                   authSession={auth.demoSession ? null : auth.authSession}
@@ -516,21 +781,30 @@ function Application({ onRetryStartup }) {
                   onReadInvite={auth.readInvite}
                   onRevokeInvite={auth.revokeInvite}
                   onUpdateUsername={withFeedback(auth.updateUsername)}
-                  onTeamExit={withFeedback(auth.exitTeam, "Đã cập nhật đội đang tham gia")}
+                  onTeamExit={withFeedback(
+                    auth.exitTeam,
+                    "Đã cập nhật đội đang tham gia",
+                  )}
                   passwordToken={auth.authSession?.access_token}
                   demoSession={auth.demoSession}
                   onToggleRole={auth.demoSession ? auth.toggleRole : undefined}
-                  onLogout={withFeedback(auth.logout,"Đã đăng xuất")}
+                  onLogout={withFeedback(auth.logout, "Đã đăng xuất")}
                   accountPanel={
                     <AccountControls
                       user={auth.user}
                       accountId={auth.accountId}
                       session={auth.demoSession ? null : auth.authSession}
-                      onLogout={withFeedback(auth.logout,"Đã đăng xuất")}
+                      onLogout={withFeedback(auth.logout, "Đã đăng xuất")}
                       onNavigate={navigate}
                     />
                   }
-                  notificationPanel={<NotificationSettings accountId={auth.accountId} token={auth.authSession?.access_token} demo={auth.demoSession} />}
+                  notificationPanel={
+                    <NotificationSettings
+                      accountId={auth.accountId}
+                      token={auth.authSession?.access_token}
+                      demo={auth.demoSession}
+                    />
+                  }
                   appearancePanel={
                     <AppearanceSettings preferences={preferences} />
                   }
@@ -575,8 +849,10 @@ function Application({ onRetryStartup }) {
               />
             ) : (
               <PlayerDashboard
+                treasurer={treasurer}
+                attendanceFocus={attendanceFocus}
                 onOpenPro={openPro}
-                onOpenPoster={()=>openPro('media')}
+                onOpenPoster={() => openPro("media")}
                 {...shared}
                 {...fundProps}
                 members={displayMembers}
@@ -611,7 +887,17 @@ function Application({ onRetryStartup }) {
                 onRevokeInvite={auth.revokeInvite}
               />
             )}
-            {activeTab==='dashboard'&&auth.hasTeam&&<ProDashboard pro={pro} members={displayMembers} matches={auth.matches} user={auth.user} leader={leader} onOpen={openPro} onLineup={()=>navigate('lineup')}/>}
+            {activeTab === "dashboard" && auth.hasTeam && (
+              <ProDashboard
+                pro={pro}
+                members={displayMembers}
+                matches={auth.matches}
+                user={auth.user}
+                leader={leader}
+                onOpen={openPro}
+                onLineup={() => navigate("lineup")}
+              />
+            )}
           </main>
           {activeTab === "dashboard" && auth.archivedMatches.length > 0 && (
             <details className="mx-4 my-5 settings-card">
@@ -653,18 +939,64 @@ function Application({ onRetryStartup }) {
             <FloatingBottomNavigation
               tabs={tabs}
               activeTab={activeTab}
-              canManage={leader && auth.hasTeam && !auth.teamRestriction}
+              canManage={
+                (leader || fundAccess) && auth.hasTeam && !auth.teamRestriction
+              }
               quickActionsOpen={quickOpen}
               onQuickActions={() => setQuickOpen(true)}
               visible={activeTab === "chat" ? !chatKeyboardOpen : navVisible}
-              onNavigate={target=>navigate(target,{root:true})}
+              onNavigate={(target) => navigate(target, { root: true })}
               onReveal={revealNav}
             />
           )}
-          <QuickActions open={quickOpen} onClose={()=>setQuickOpen(false)} role={auth.currentUserRole} onAction={runQuickAction}/>
-          {quickMatch && leader && <MatchFormSheet draft={quickMatch} onChange={setQuickMatch} error={quickMatchError} onClose={()=>setQuickMatch(null)} onSubmit={async event=>{event.preventDefault();try{await saveMatch(quickMatch);setQuickMatch(null);}catch(error){setQuickMatchError(error.message||'Không lưu được trận đấu.');}}}/>}
-          {quickInvite && leader && <QuickInvite team={auth.teamSettings} role={auth.currentUserRole} onClose={()=>setQuickInvite(false)} onCreate={auth.createInvite} onRead={auth.readInvite} onRevoke={auth.revokeInvite}/>}
-          {auth.hasTeam && !auth.teamRestriction && !['invite-landing','create-team'].includes(activeTab) && <WelcomeAnnouncementModal key={auth.accountId} accountId={auth.accountId} notices={auth.notices} birthdays={birthdayMembers} onOpenNotice={openNotice}/>}
+          <QuickActions
+            treasurer={treasurer}
+            fundManager={fundAccess}
+            open={quickOpen}
+            onClose={() => setQuickOpen(false)}
+            role={auth.currentUserRole}
+            onAction={runQuickAction}
+          />
+          {quickMatch && leader && (
+            <MatchFormSheet
+              draft={quickMatch}
+              onChange={setQuickMatch}
+              error={quickMatchError}
+              onClose={() => setQuickMatch(null)}
+              onSubmit={async (event) => {
+                event.preventDefault();
+                try {
+                  await saveMatch(quickMatch);
+                  setQuickMatch(null);
+                } catch (error) {
+                  setQuickMatchError(
+                    error.message || "Không lưu được trận đấu.",
+                  );
+                }
+              }}
+            />
+          )}
+          {quickInvite && leader && (
+            <QuickInvite
+              team={auth.teamSettings}
+              role={auth.currentUserRole}
+              onClose={() => setQuickInvite(false)}
+              onCreate={auth.createInvite}
+              onRead={auth.readInvite}
+              onRevoke={auth.revokeInvite}
+            />
+          )}
+          {auth.hasTeam &&
+            !auth.teamRestriction &&
+            !["invite-landing", "create-team"].includes(activeTab) && (
+              <WelcomeAnnouncementModal
+                key={auth.accountId}
+                accountId={auth.accountId}
+                notices={auth.notices}
+                birthdays={birthdayMembers}
+                onOpenNotice={openNotice}
+              />
+            )}
           {auth.deletedMatch && leader && (
             <div className="match-undo" role="status">
               <span className="flex-1 text-sm">Đã lưu trữ trận đấu</span>
@@ -707,27 +1039,13 @@ function Application({ onRetryStartup }) {
                         type="button"
                         className="w-full text-left min-h-11"
                         onClick={async () => {
-                          if (
-                            n.matchId &&
-                            auth.matches.some((m) => m.id === n.matchId)
-                          )
-                            await auth.selectMatch(n.matchId);
                           setShowNotices(false);
-                          navigate(
-                            [
-                              "dashboard",
-                              "fund",
-                              "profile",
-                              "lineup",
-                              "chat",
-                              "governance",
-                            ].includes(n.route)
-                              ? n.route
-                              : "dashboard",
-                          );
+                          await openNotice(n);
                         }}
                       >
-                        <h3 className="font-semibold">{systemNoticeTitle(n.title)}</h3>
+                        <h3 className="font-semibold">
+                          {systemNoticeTitle(n.title)}
+                        </h3>
                         <span className="text-xs text-emerald-700">
                           Mở nội dung
                         </span>

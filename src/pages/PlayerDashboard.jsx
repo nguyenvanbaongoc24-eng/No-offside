@@ -1,5 +1,5 @@
-import BirthdayBanner from '../components/BirthdayBanner';
-import Pressable from '../components/Pressable';
+import BirthdayBanner from "../components/BirthdayBanner";
+import Pressable from "../components/Pressable";
 import MyAttendanceControl from "../components/MyAttendanceControl";
 import Avatar from "../components/Avatar";
 import { localTransactionTime } from "../lib/transactionTime";
@@ -7,7 +7,7 @@ import TeamIdentityHeader from "../components/TeamIdentityHeader";
 import MatchCardSummary from "../components/matches/MatchCardSummary";
 import { useTeamInvite } from "../hooks/useTeamInvite";
 import LateArrivalPanel from "../components/LateArrivalPanel";
-import { matchTimeLabel } from '../lib/matchTime';
+import { matchTimeLabel } from "../lib/matchTime";
 import SwipeMatchCard from "../components/SwipeMatchCard";
 import QrPreview from "../components/QrPreview";
 import React, { useState, useEffect, useMemo } from "react";
@@ -65,6 +65,8 @@ import AddMemberModal from "../components/AddMemberModal";
 
 export default function PlayerDashboard({
   user,
+  treasurer = false,
+  attendanceFocus,
   onOpenPoster,
   onOpenPro,
   governance,
@@ -129,7 +131,29 @@ export default function PlayerDashboard({
     setShowInviteModal(true);
     invite.load().catch(() => {});
   };
-  const [attendanceActiveTab, setAttendanceActiveTab] = useState("attending"); // 'attending' | 'maybe' | 'absent' | 'unvoted'
+  const [attendanceActiveTab, setAttendanceActiveTab] = useState("attending");
+  useEffect(() => {
+    if (
+      attendanceFocus?.memberId &&
+      attendanceFocus.matchId === activeMatch?.id
+    ) {
+      setShowAttendanceModal(true);
+      setAttendanceActiveTab(
+        ["attending", "absent"].includes(attendance[attendanceFocus.memberId])
+          ? attendance[attendanceFocus.memberId]
+          : "unvoted",
+      );
+    }
+  }, [attendanceFocus?.key, activeMatch?.id]);
+  useEffect(() => {
+    if (!showAttendanceModal || !attendanceFocus?.memberId) return;
+    const frame = requestAnimationFrame(() =>
+      document
+        .getElementById("attendance-member-" + attendanceFocus.memberId)
+        ?.scrollIntoView({ block: "nearest" }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [showAttendanceModal, attendanceActiveTab, attendanceFocus?.key]); // 'attending' | 'maybe' | 'absent' | 'unvoted'
   const [copiedField, setCopiedField] = useState("");
 
   // Weekly matches count (Requirement: Max 4 matches per week)
@@ -149,7 +173,10 @@ export default function PlayerDashboard({
   // Match details state
   const matchInfo = {
     ...activeMatch,
-    dateText: matchTimeLabel(activeMatch.datetime, teamSettings.timezone || 'Asia/Ho_Chi_Minh'),
+    dateText: matchTimeLabel(
+      activeMatch.datetime,
+      teamSettings.timezone || "Asia/Ho_Chi_Minh",
+    ),
   };
 
   // Match Status: 'upcoming' | 'completed' (Cho phép tự báo cáo thành tích sau trận)
@@ -559,9 +586,19 @@ export default function PlayerDashboard({
     return actions.length > 0 ? actions : allCatalogActions.slice(0, 4);
   }, [selectedActionIds, allCatalogActions]);
 
+  const prioritizedActions = treasurer
+    ? [
+        {
+          ...allCatalogActions.find((a) => a.id === "fund"),
+          label: "Quỹ đội",
+          onClick: () => onNavigate("fund"),
+        },
+        ...validActiveActions.filter((a) => a.id !== "fund"),
+      ]
+    : validActiveActions;
   const displayedActions = expandAllShortcuts
-    ? validActiveActions
-    : validActiveActions.slice(0, 4);
+    ? prioritizedActions
+    : prioritizedActions.slice(0, 4);
 
   return (
     <div className="dashboard-page relative bg-slate-50 text-gray-900 font-sans antialiased">
@@ -584,7 +621,7 @@ export default function PlayerDashboard({
         onOpenNotifications={onOpenNotifications}
         unreadCount={unreadCount}
       />
-      <BirthdayBanner members={birthdays} accountId={accountId} celebrate/>
+      <BirthdayBanner members={birthdays} accountId={accountId} celebrate />
       {demoSession && (
         <Pressable className="demo-role-toggle" onClick={onToggleRole}>
           Đổi vai trò trải nghiệm
@@ -612,12 +649,17 @@ export default function PlayerDashboard({
           onDelete={onDeleteMatch}
         >
           <section className="match-card-container rounded-[20px] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all bg-white dark:bg-[#141E1A]">
-            <MatchCardSummary match={activeMatch} timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"} onOpenRules={() => onNavigate("governance")} menu={
+            <MatchCardSummary
+              match={activeMatch}
+              timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}
+              onOpenRules={() => onNavigate("governance")}
+              menu={
                 <div className="relative shrink-0">
                   <Pressable
                     type="button"
                     className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-black/25 hover:bg-black/35 active:scale-95 text-white flex items-center justify-center border border-white/20 transition-all outline-none cursor-pointer"
-                    aria-label="Tùy chọn trận đấu" aria-expanded={showMatchActionMenu}
+                    aria-label="Tùy chọn trận đấu"
+                    aria-expanded={showMatchActionMenu}
                     onClick={() => setShowMatchActionMenu((prev) => !prev)}
                   >
                     <MoreHorizontal size={20} className="text-white" />
@@ -708,7 +750,8 @@ export default function PlayerDashboard({
                     </>
                   )}
                 </div>
-            }/>
+              }
+            />
 
             {/* THÂN THẺ: NỀN SURFACE ỔN ĐỊNH CHO TƯƠNG PHẢN TỐT NHẤT */}
             <div className="p-4 space-y-4 bg-white dark:bg-[#141E1A]">
@@ -742,14 +785,21 @@ export default function PlayerDashboard({
                       <div
                         className="bg-emerald-600 h-full transition-all"
                         style={{
-                          width: (roster.attending.length / Math.max(1, rosterCount)) * 100 + "%",
+                          width:
+                            (roster.attending.length /
+                              Math.max(1, rosterCount)) *
+                              100 +
+                            "%",
                         }}
                         title={`Có mặt (${roster.attending.length})`}
                       />
                       <div
                         className="bg-rose-500 h-full transition-all"
                         style={{
-                          width: (roster.absent.length / Math.max(1, rosterCount)) * 100 + "%",
+                          width:
+                            (roster.absent.length / Math.max(1, rosterCount)) *
+                              100 +
+                            "%",
                         }}
                         title={`Vắng (${roster.absent.length})`}
                       />
@@ -757,7 +807,8 @@ export default function PlayerDashboard({
                         className="bg-slate-400 dark:bg-slate-600 h-full transition-all"
                         style={{
                           width:
-                            ((roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)) /
+                            ((roster.unvoted.length +
+                              (roster.maybe ? roster.maybe.length : 0)) /
                               Math.max(1, rosterCount)) *
                               100 +
                             "%",
@@ -774,7 +825,9 @@ export default function PlayerDashboard({
                         Vắng: {roster.absent.length}
                       </span>
                       <span>
-                        Chưa điểm danh: {roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)}
+                        Chưa điểm danh:{" "}
+                        {roster.unvoted.length +
+                          (roster.maybe ? roster.maybe.length : 0)}
                       </span>
                     </div>
                   </div>
@@ -785,7 +838,9 @@ export default function PlayerDashboard({
                   >
                     <Users2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>Xem điểm danh</span>
-                    <span className="text-slate-500 dark:text-slate-400 font-normal">({rosterCount} người)</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-normal">
+                      ({rosterCount} người)
+                    </span>
                   </Pressable>
                 </div>
               ) : (
@@ -1307,9 +1362,9 @@ export default function PlayerDashboard({
 
         {Boolean(
           user?.stats &&
-            (Number(user.stats.matches) > 0 ||
-              Number(user.stats.goals) > 0 ||
-              Number(user.stats.assists) > 0),
+          (Number(user.stats.matches) > 0 ||
+            Number(user.stats.goals) > 0 ||
+            Number(user.stats.assists) > 0),
         ) ? (
           <section className="secondary-summary p-4 rounded-[24px]">
             <div className="flex items-center justify-between mb-2.5">
@@ -1325,19 +1380,25 @@ export default function PlayerDashboard({
             </div>
             <dl className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
               <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <dt className="text-xs text-slate-500 dark:text-slate-400">Số trận</dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">
+                  Số trận
+                </dt>
                 <dd className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mt-0.5">
                   {user.stats.matches}
                 </dd>
               </div>
               <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <dt className="text-xs text-slate-500 dark:text-slate-400">Bàn thắng</dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">
+                  Bàn thắng
+                </dt>
                 <dd className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
                   {user.stats.goals}
                 </dd>
               </div>
               <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <dt className="text-xs text-slate-500 dark:text-slate-400">Kiến tạo</dt>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">
+                  Kiến tạo
+                </dt>
                 <dd className="text-lg sm:text-xl font-bold text-teal-600 dark:text-teal-400 mt-0.5">
                   {user.stats.assists}
                 </dd>
@@ -1352,7 +1413,8 @@ export default function PlayerDashboard({
               </h2>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Chưa có chỉ số thi đấu mùa này. Thành tích sẽ được ghi nhận sau các trận đấu.
+              Chưa có chỉ số thi đấu mùa này. Thành tích sẽ được ghi nhận sau
+              các trận đấu.
             </p>
           </section>
         )}
@@ -1423,7 +1485,10 @@ export default function PlayerDashboard({
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Chưa điểm danh ({roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)})
+                Chưa điểm danh (
+                {roster.unvoted.length +
+                  (roster.maybe ? roster.maybe.length : 0)}
+                )
               </Pressable>
             </div>
 
@@ -1435,6 +1500,10 @@ export default function PlayerDashboard({
                     key={p.id}
                     onClick={() => setQuickProfileMember(p)}
                     className="p-2.5 rounded-2xl bg-gray-50 hover:bg-emerald-50/40 border border-gray-100 hover:border-emerald-200 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+                    id={"attendance-member-" + p.id}
+                    data-highlighted={
+                      attendanceFocus?.memberId === String(p.id)
+                    }
                     title="Chạm để xem hồ sơ"
                   >
                     <div className="flex items-center gap-2.5">
@@ -1462,6 +1531,10 @@ export default function PlayerDashboard({
                     key={p.id}
                     onClick={() => setQuickProfileMember(p)}
                     className="p-2.5 rounded-2xl bg-rose-50/50 hover:bg-rose-100/60 border border-rose-100 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+                    id={"attendance-member-" + p.id}
+                    data-highlighted={
+                      attendanceFocus?.memberId === String(p.id)
+                    }
                     title="Chạm để xem hồ sơ"
                   >
                     <div className="flex items-center gap-2.5">
@@ -1483,7 +1556,7 @@ export default function PlayerDashboard({
 
               {/* TAB CHƯA ĐIỂM DANH */}
               {attendanceActiveTab === "unvoted" &&
-                (([...roster.unvoted, ...(roster.maybe || [])].length === 0) ? (
+                ([...roster.unvoted, ...(roster.maybe || [])].length === 0 ? (
                   <div className="text-center py-6 text-gray-400 text-xs">
                     Tất cả thành viên đã hoàn thành điểm danh.
                   </div>
@@ -1493,6 +1566,10 @@ export default function PlayerDashboard({
                       key={p.id}
                       onClick={() => setQuickProfileMember(p)}
                       className="p-2.5 rounded-2xl bg-gray-50 hover:bg-emerald-50/40 border border-gray-200 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
+                      id={"attendance-member-" + p.id}
+                      data-highlighted={
+                        attendanceFocus?.memberId === String(p.id)
+                      }
                       title="Chạm để xem hồ sơ"
                     >
                       <div className="flex items-center gap-2.5">
@@ -1510,7 +1587,10 @@ export default function PlayerDashboard({
                       </div>
 
                       {isLeader ? (
-                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div
+                          className="flex items-center gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Pressable
                             onClick={() => handleRemindUnvoted(p.name)}
                             className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
@@ -1936,7 +2016,9 @@ export default function PlayerDashboard({
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${action.iconBg}`}
                         >
-                          <action.Icon className={`w-4 h-4 ${action.iconColor}`} />
+                          <action.Icon
+                            className={`w-4 h-4 ${action.iconColor}`}
+                          />
                         </div>
                         <div className="min-w-0">
                           <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate">

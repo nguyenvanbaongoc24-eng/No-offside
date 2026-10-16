@@ -1,5 +1,10 @@
-import {useLayerBack} from '../hooks/useLayerBack';
-import Pressable from '../components/Pressable';
+import FundOperations from "../components/FundOperations";
+import { remainingCharge } from "../lib/fundCollections";
+import { notify } from "../lib/feedback";
+import ProModal from "../components/pro/ProModal";
+import { Bell, Calendar, Beer, Wallet, Shield } from "../components/icons";
+import { useLayerBack } from "../hooks/useLayerBack";
+import Pressable from "../components/Pressable";
 import { createWorkbook } from "../lib/exportWorkbook";
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -28,6 +33,11 @@ import { formatCurrency } from "../lib/formatCurrency";
 
 export default function FundManagement({
   onBack,
+  fund,
+  accountId,
+  teamMembers = [],
+  fundIntent,
+  onFundIntentUsed,
   viewState,
   onViewStateChange,
   createRequest,
@@ -42,22 +52,99 @@ export default function FundManagement({
   onReject,
   currentUserRole = "owner",
 }) {
-  const canManage = ["owner", "admin"].includes(currentUserRole);
+  const canManage =
+    fund && !fund.demo
+      ? fund.data.canManage
+      : ["owner", "admin"].includes(currentUserRole);
+  const canConfigureQr = ["owner", "admin"].includes(currentUserRole);
+  const [operationIntent, setOperationIntent] = useState(null);
+  useEffect(() => {
+    if (fundIntent)
+      setActiveTab(
+        { bill: "bills", reminder: "schedules", collection: "collections" }[
+          fundIntent.action
+        ] || "transactions",
+      );
+  }, [fundIntent?.id]);
+  const [txReason, setTxReason] = useState("");
+  const [historyId, setHistoryId] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyRows, setHistoryRows] = useState([]),
+    [historyError, setHistoryError] = useState("");
+  useEffect(() => {
+    if (!historyId || !fund?.loadHistory) return;
+    let live = true;
+    setHistoryRows([]);
+    setHistoryLoading(true);
+    setHistoryError("");
+    fund
+      .loadHistory(historyId)
+      .then((result) => {
+        if (live) {
+          setHistoryRows(result.history);
+          setHistoryLoading(false);
+        }
+      })
+      .catch((e) => {
+        if (live) {
+          setHistoryError(e.message);
+          setHistoryLoading(false);
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, [historyId]);
+  const [newCategory, setNewCategory] = useState("Khác"),
+    [newPlayer, setNewPlayer] = useState("");
+  const [ledgerFilter, setLedgerFilter] = useState(
+    viewState?.ledgerFilter || {
+      search: "",
+      type: "all",
+      category: "all",
+      member: "all",
+    },
+  );
   const moreRef = useRef(null);
-  const [periodFilter, setPeriodFilter] = useState(viewState?.periodFilter || {
-    mode: "all",
-    month: localTransactionTime(Date.now(), timeZone).slice(0, 7),
-    from: "",
-    to: "",
-  });
-  const [activeTab, setActiveTab] = useState(viewState?.activeTab || "transactions"); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
+  const [periodFilter, setPeriodFilter] = useState(
+    viewState?.periodFilter || {
+      mode: "all",
+      month: localTransactionTime(Date.now(), timeZone).slice(0, 7),
+      from: "",
+      to: "",
+    },
+  );
+  const [activeTab, setActiveTab] = useState(
+    viewState?.activeTab || "transactions",
+  ); // 'transactions' | 'approvals' | 'debtors' | 'qr-config'
   const [showAddTxModal, setShowAddTxModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
-  useEffect(()=>{if(createRequest && canManage){setShowAddTxModal(true);onCreateOpened?.();}},[createRequest,canManage]);
+  useEffect(() => {
+    if (createRequest && canManage) {
+      setShowAddTxModal(true);
+      onCreateOpened?.();
+    }
+  }, [createRequest, canManage]);
 
-  const fundTabBeforeQr=useRef(activeTab);
-  useEffect(()=>{onViewStateChange?.({periodFilter,activeTab:activeTab==='qr-config'?fundTabBeforeQr.current:activeTab});},[periodFilter,activeTab]);
-  useLayerBack(showAddTxModal || !!editingTransaction || activeTab==='qr-config',()=>{setShowAddTxModal(false);setEditingTransaction(null);setActiveTab(prev=>prev==='qr-config'?fundTabBeforeQr.current:prev);});
+  const fundTabBeforeQr = useRef(activeTab);
+  useEffect(() => {
+    onViewStateChange?.({
+      periodFilter,
+      ledgerFilter,
+      activeTab:
+        activeTab === "qr-config" ? fundTabBeforeQr.current : activeTab,
+    });
+  }, [periodFilter, activeTab, ledgerFilter]);
+  useLayerBack(
+    showAddTxModal || !!editingTransaction || activeTab === "qr-config",
+    () => {
+      setShowAddTxModal(false);
+      setEditingTransaction(null);
+      setActiveTab((prev) =>
+        prev === "qr-config" ? fundTabBeforeQr.current : prev,
+      );
+    },
+  );
 
   // QR config state
   const [qrBankName, setQrBankName] = useState(
@@ -101,6 +188,21 @@ export default function FundManagement({
     transactions,
     periodFilter,
     timeZone,
+  ).filter(
+    (t) =>
+      (ledgerFilter.type === "all" || t.type === ledgerFilter.type) &&
+      (ledgerFilter.category === "all" ||
+        t.category === ledgerFilter.category) &&
+      (ledgerFilter.member === "all" || t.playerId === ledgerFilter.member) &&
+      (
+        (t.title || "") +
+        " " +
+        (teamMembers.find((m) => m.id === t.playerId)?.name || "") +
+        " " +
+        (t.author || "")
+      )
+        .toLocaleLowerCase("vi")
+        .includes(ledgerFilter.search.toLocaleLowerCase("vi")),
   );
   const periodTotals = transactionTotals(visibleTransactions);
   const periodLabel =
@@ -128,7 +230,22 @@ export default function FundManagement({
     }));
 
   // Debtors list
-  const debtors = funds.debtors;
+  const debtors = funds.debtors.filter(
+    (d) => !fund?.data.charges.some((c) => d.id === "pro-" + c.id),
+  );
+  const personalBillIds = new Set(
+    (fund?.data.bills || [])
+      .filter((b) => b.details?.payerKind === "member")
+      .map((b) => b.id),
+  );
+  const personalOutstanding = (fund?.data.charges || [])
+    .filter((c) => personalBillIds.has(c.bill_id))
+    .reduce((sum, c) => sum + remainingCharge(c), 0);
+  const outstanding =
+    (fund?.data.charges || [])
+      .filter((c) => !personalBillIds.has(c.bill_id))
+      .reduce((sum, c) => sum + remainingCharge(c), 0) +
+    debtors.reduce((sum, d) => sum + Number(d.amount || 0), 0);
   const setDebtors = (value) =>
     onChangeFunds((prev) => ({
       ...prev,
@@ -196,14 +313,22 @@ export default function FundManagement({
     if (reason === null) return;
     try {
       if (!onReject) throw Error("Chưa kết nối thao tác từ chối.");
-      await onReject(id, reason);
+      const request = pendingApprovals.find((p) => p.id === id);
+      if (request?.chargeId && fund)
+        await fund.mutate("payment_reject", { requestId: id, reason });
+      else await onReject(id, reason);
+      notify("Đã từ chối yêu cầu đóng quỹ.");
     } catch (error) {
       setTxError(error.message);
     }
   };
   const handleApprove = async (id) => {
     try {
-      await onApprove(id);
+      const request = pendingApprovals.find((p) => p.id === id);
+      if (request?.chargeId && fund)
+        await fund.mutate("payment_approve", { requestId: id });
+      else await onApprove(id);
+      notify("Đã xác nhận khoản tiền thực nhận.");
     } catch (error) {
       setTxError(error.message || "Không duyệt được khoản đóng quỹ.");
     }
@@ -297,12 +422,25 @@ export default function FundManagement({
             createdAt: now,
             author: actor,
           };
-      await onChangeFunds((prev) => ({
-        ...prev,
-        transactions: original
-          ? prev.transactions.map((t) => (t.id === next.id ? next : t))
-          : [next, ...prev.transactions],
-      }));
+      if (fund && !fund.demo) {
+        await fund.mutate("transaction_save", {
+          id: original?.id,
+          title: next.title,
+          amount: next.amount,
+          type: next.type,
+          occurredAt: next.occurredAt || undefined,
+          category: editingTransaction?.category || newCategory,
+          playerId: editingTransaction?.playerId || newPlayer,
+          reason: txReason,
+        });
+        notify("Đã lưu giao dịch quỹ.");
+      } else
+        await onChangeFunds((prev) => ({
+          ...prev,
+          transactions: original
+            ? prev.transactions.map((t) => (t.id === next.id ? next : t))
+            : [next, ...prev.transactions],
+        }));
       setEditingTransaction(null);
       setShowAddTxModal(false);
       setNewTxTitle("");
@@ -326,12 +464,20 @@ export default function FundManagement({
         </p>
       )}
       <header className="compact-header fund-header">
-        {onBack && <Pressable type="button" aria-label="Quay lại" className="header-back" onClick={onBack}><ChevronLeft size={22}/></Pressable>}
+        {onBack && (
+          <Pressable
+            type="button"
+            aria-label="Quay lại"
+            className="header-back"
+            onClick={onBack}
+          >
+            <ChevronLeft size={22} />
+          </Pressable>
+        )}
         <h1>Quỹ đội</h1>
         <details className="action-menu" ref={moreRef}>
           <summary aria-label="Thêm tùy chọn quỹ">
             <MoreHorizontal size={20} />
-
           </summary>
           <div className="menu-popover">
             <Pressable
@@ -343,10 +489,10 @@ export default function FundManagement({
               <FileSpreadsheet size={18} />
               Xuất báo cáo
             </Pressable>
-            {canManage && (
+            {canConfigureQr && (
               <Pressable
                 onClick={() => {
-                  fundTabBeforeQr.current=activeTab;
+                  fundTabBeforeQr.current = activeTab;
                   setActiveTab("qr-config");
                   closeMore();
                 }}
@@ -359,27 +505,116 @@ export default function FundManagement({
         </details>
       </header>
       <section className="fund-summary">
-        <p className="text-sm text-slate-600">Số dư hiện tại</p>
+        <p className="text-sm text-slate-600">
+          Số dư hiện có · tiền đã thực nhận/trả
+        </p>
         <p className="fund-balance tabular-nums">
           {formatCurrency(currentBalance)}
         </p>
         <dl className="fund-totals">
           <div>
-            <dt>Tổng thu</dt>
-            <dd className="tabular-nums">{formatCurrency(totalIncome)}</dd>
+            <dt>Tổng thu trong kỳ</dt>
+            <dd className="tabular-nums">
+              {formatCurrency(periodTotals.income)}
+            </dd>
           </div>
           <div>
-            <dt>Tổng chi</dt>
-            <dd className="tabular-nums">{formatCurrency(totalExpense)}</dd>
+            <dt>Tổng chi trong kỳ</dt>
+            <dd className="tabular-nums">
+              {formatCurrency(periodTotals.expense)}
+            </dd>
           </div>
         </dl>
+        <p className="text-xs text-slate-600 mt-2">
+          {periodLabel} · theo bộ lọc giao dịch
+        </p>
       </section>
+      {fund && (
+        <div className="fund-quick-actions">
+          {canManage && (
+            <>
+              <Pressable
+                onClick={() => {
+                  setNewTxType("income");
+                  setTxReason("");
+                  setTxTime(localTransactionTime(Date.now(), timeZone));
+                  setShowAddTxModal(true);
+                }}
+              >
+                <Wallet size={20} />
+                Thu tiền
+              </Pressable>
+              <Pressable
+                onClick={() => {
+                  setNewTxType("expense");
+                  setTxReason("");
+                  setTxTime(localTransactionTime(Date.now(), timeZone));
+                  setShowAddTxModal(true);
+                }}
+              >
+                <Wallet size={20} />
+                Chi tiền
+              </Pressable>
+            </>
+          )}
+          <Pressable onClick={() => setActiveTab("collections")}>
+            <Calendar size={20} />
+            Đợt thu
+          </Pressable>
+          {canManage && (
+            <Pressable
+              onClick={() => {
+                setActiveTab("schedules");
+                setOperationIntent({
+                  id: crypto.randomUUID(),
+                  action: "reminder",
+                });
+              }}
+            >
+              <Bell size={20} />
+              Nhắc thu quỹ
+            </Pressable>
+          )}
+          <Pressable onClick={() => setActiveTab("bills")}>
+            <Beer size={20} />
+            Sinh tố lúa mạch
+          </Pressable>
+        </div>
+      )}
+      <div className="px-4 pb-4">
+        <p className="text-sm">
+          Quỹ còn phải thu · mọi kỳ:{" "}
+          <strong>{formatCurrency(outstanding)}</strong>
+        </p>
+        {personalOutstanding > 0 && (
+          <p className="text-sm mt-2">
+            Hoàn trực tiếp cho người ứng tiền:{" "}
+            <strong>{formatCurrency(personalOutstanding)}</strong>
+          </p>
+        )}
+        <p className="field-hint">
+          Khoản chưa đóng không nằm trong số dư hiện có.
+        </p>
+      </div>
       {activeTab !== "qr-config" && (
         <div className="fund-segments" aria-label="Mục quỹ">
           {[
             ["transactions", "Giao dịch", transactions.length],
+            ...(fund
+              ? [["collections", "Đợt thu", fund.data.collections.length]]
+              : []),
             ["approvals", "Chờ duyệt", pendingApprovals.length],
-            ["debtors", "Cần đóng", debtors.length],
+            [
+              "debtors",
+              "Còn phải thu",
+              debtors.length +
+                (fund?.data.charges.filter((c) => remainingCharge(c) > 0)
+                  .length || 0),
+            ],
+            ...(fund && canManage
+              ? [["schedules", "Lịch nhắc", fund.data.schedules.length]]
+              : []),
+            ...(fund?.data.owner ? [["permissions", "Phân quyền", 0]] : []),
           ].map(([id, label, count]) => (
             <Pressable
               key={id}
@@ -393,6 +628,28 @@ export default function FundManagement({
         </div>
       )}
       <div className="fund-content">
+        {fund && (
+          <FundOperations
+            fund={fund}
+            mode={
+              {
+                collections: "collections",
+                debtors: "charges",
+                schedules: "schedules",
+                bills: "bills",
+                permissions: "permissions",
+              }[activeTab] || "none"
+            }
+            intent={fundIntent || operationIntent}
+            onIntentUsed={() => {
+              setOperationIntent(null);
+              onFundIntentUsed?.();
+            }}
+            qr={treasurerQr}
+            accountId={accountId}
+            permissions={teamMembers}
+          />
+        )}
         {activeTab === "transactions" && (
           <section>
             <div className="section-toolbar">
@@ -413,6 +670,65 @@ export default function FundManagement({
             </div>
             <fieldset className="ledger-filters">
               <legend>Lọc sổ giao dịch</legend>
+              <label className="form-field">
+                Tìm nội dung / tên
+                <input
+                  type="search"
+                  value={ledgerFilter.search}
+                  onChange={(e) =>
+                    setLedgerFilter((f) => ({ ...f, search: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="form-field">
+                Loại
+                <select
+                  value={ledgerFilter.type}
+                  onChange={(e) =>
+                    setLedgerFilter((f) => ({ ...f, type: e.target.value }))
+                  }
+                >
+                  <option value="all">Tất cả thu/chi</option>
+                  <option value="income">Thu (+)</option>
+                  <option value="expense">Chi (−)</option>
+                </select>
+              </label>
+              <label className="form-field">
+                Danh mục
+                <select
+                  value={ledgerFilter.category}
+                  onChange={(e) =>
+                    setLedgerFilter((f) => ({ ...f, category: e.target.value }))
+                  }
+                >
+                  <option value="all">Tất cả danh mục</option>
+                  {[
+                    ...new Set(
+                      transactions.map((t) => t.category).filter(Boolean),
+                    ),
+                  ].map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="form-field">
+                Thành viên
+                <select
+                  value={ledgerFilter.member}
+                  onChange={(e) =>
+                    setLedgerFilter((f) => ({ ...f, member: e.target.value }))
+                  }
+                >
+                  <option value="all">Tất cả thành viên</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="form-field">
                 Kỳ xem
                 <select
@@ -507,8 +823,18 @@ export default function FundManagement({
                   <div className="transaction-description">
                     <p className="transaction-name">{t.title}</p>
                     <p className="transaction-meta">
-                      {transactionLabel(t, timeZone)} · {t.author}
+                      {transactionLabel(t, timeZone)} · {t.author} ·{" "}
+                      {teamMembers.find((m) => m.id === t.playerId)?.name}{" "}
+                      {t.status === "void" ? " · Đã hủy" : ""}
                     </p>
+                    {fund && !fund.demo && canManage && (
+                      <Pressable
+                        className="text-action"
+                        onClick={() => setHistoryId(t.id)}
+                      >
+                        Lịch sử thao tác
+                      </Pressable>
+                    )}
                   </div>
                   <div className="transaction-value">
                     <span
@@ -522,33 +848,46 @@ export default function FundManagement({
                     </span>
                     <strong className="tabular-nums">
                       {t.type === "income" ? "+" : "−"}
-                      {formatCurrency(t.amount)}
+                      {formatCurrency(
+                        t.status === "void" ? t.originalAmount : t.amount,
+                      )}
                     </strong>
+                    {t.billId && (
+                      <Pressable
+                        className="text-action"
+                        onClick={() => setActiveTab("bills")}
+                      >
+                        Xem buổi
+                      </Pressable>
+                    )}
                   </div>
-                  {canManage && (
-                    <details className="action-menu transaction-menu">
-                      <summary aria-label={"Thao tác giao dịch " + t.title}>
-                        <MoreHorizontal size={20} />
-                      </summary>
-                      <div className="menu-popover">
-                        <Pressable
-                          onClick={(e) => {
-                            setEditingTransaction({ ...t });
-                            setTxTime(
-                              t.occurredAt
-                                ? localTransactionTime(t.occurredAt, timeZone)
-                                : "",
-                            );
-                            setTxError("");
-                            e.currentTarget.closest("details").open = false;
-                          }}
-                        >
-                          <Edit3 size={18} />
-                          Sửa giao dịch
-                        </Pressable>
-                      </div>
-                    </details>
-                  )}
+                  {canManage &&
+                    t.status !== "void" &&
+                    !(t.billId && t.type === "expense") && (
+                      <details className="action-menu transaction-menu">
+                        <summary aria-label={"Thao tác giao dịch " + t.title}>
+                          <MoreHorizontal size={20} />
+                        </summary>
+                        <div className="menu-popover">
+                          <Pressable
+                            onClick={(e) => {
+                              setTxReason("");
+                              setEditingTransaction({ ...t });
+                              setTxTime(
+                                t.occurredAt
+                                  ? localTransactionTime(t.occurredAt, timeZone)
+                                  : "",
+                              );
+                              setTxError("");
+                              e.currentTarget.closest("details").open = false;
+                            }}
+                          >
+                            <Edit3 size={18} />
+                            Sửa giao dịch
+                          </Pressable>
+                        </div>
+                      </details>
+                    )}
                 </article>
               ))}
             </div>
@@ -581,6 +920,7 @@ export default function FundManagement({
                     <div className="grid gap-2 shrink-0">
                       <Pressable
                         className="primary-button shrink-0"
+                        disabled={fund?.busy}
                         onClick={() => handleApprove(p.id)}
                       >
                         Xác nhận
@@ -603,7 +943,7 @@ export default function FundManagement({
         )}
         {activeTab === "debtors" && (
           <section>
-            <h2>Khoản quỹ chưa được xác nhận</h2>
+            <h2>Nợ quỹ trước đây / chưa liên kết đợt</h2>
             <p className="text-sm text-slate-600 mt-2">
               Khoản đang chờ duyệt vẫn nằm trong danh sách cho đến khi được xác
               nhận.
@@ -803,6 +1143,71 @@ export default function FundManagement({
           </section>
         )}
       </div>
+      {fund && (
+        <ProModal
+          open={!!historyId}
+          title="Lịch sử giao dịch"
+          onClose={() => setHistoryId(null)}
+        >
+          {historyLoading && <p role="status">Đang tải lịch sử…</p>}
+          {historyError && (
+            <p role="alert" className="form-error">
+              {historyError}
+            </p>
+          )}
+          {historyRows
+            .filter(
+              (e) =>
+                e.request_key === String(historyId) ||
+                String(e.payload.id) === String(historyId),
+            )
+            .map((e) => (
+              <article className="fund-collection" key={e.id}>
+                <strong>
+                  {teamMembers.find((m) => m.id === e.actor)?.name ||
+                    "Người quản lý quỹ"}
+                </strong>
+                <p>
+                  {e.action === "transaction_void"
+                    ? "Hủy giao dịch"
+                    : e.action === "transaction_save"
+                      ? "Lưu giao dịch"
+                      : "Đối soát khoản đóng"}{" "}
+                  ·{" "}
+                  {transactionLabel(
+                    { occurredAt: e.created_at, timePrecision: "minute" },
+                    timeZone,
+                  )}
+                </p>
+                <p>{e.payload.reason}</p>
+                {e.before_value?.transaction && (
+                  <p>
+                    Trước:{" "}
+                    {formatCurrency(Number(e.before_value.transaction.amount))}
+                  </p>
+                )}
+                {e.after_value?.transaction && (
+                  <p>
+                    Sau:{" "}
+                    {formatCurrency(Number(e.after_value.transaction.amount))}
+                  </p>
+                )}
+              </article>
+            ))}
+          {!historyLoading &&
+            !historyError &&
+            !historyRows.some(
+              (e) =>
+                e.request_key === String(historyId) ||
+                String(e.payload.id) === String(historyId),
+            ) && (
+              <p className="field-hint">
+                Chưa có lịch sử theo cơ chế mới cho giao dịch cũ. Dữ liệu gốc
+                được giữ nguyên.
+              </p>
+            )}
+        </ProModal>
+      )}
       {(showAddTxModal || editingTransaction) && canManage && (
         <div role="dialog" aria-modal="true" className="match-form-overlay">
           <section className="match-form-sheet">
@@ -903,13 +1308,96 @@ export default function FundManagement({
                   trên thiết bị; giữ giá trị trước và sau.
                 </p>
               )}
+              <label className="form-field">
+                Danh mục
+                <select
+                  value={editingTransaction?.category || newCategory}
+                  onChange={(e) =>
+                    editingTransaction
+                      ? setEditingTransaction((t) => ({
+                          ...t,
+                          category: e.target.value,
+                        }))
+                      : setNewCategory(e.target.value)
+                  }
+                >
+                  {["Khác", "Thu quỹ", "Sân bóng", "Sinh tố lúa mạch"].map(
+                    (c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+              <label className="form-field">
+                Người liên quan
+                <select
+                  value={editingTransaction?.playerId || newPlayer}
+                  disabled={!!editingTransaction?.chargeId}
+                  onChange={(e) =>
+                    editingTransaction
+                      ? setEditingTransaction((t) => ({
+                          ...t,
+                          playerId: e.target.value,
+                        }))
+                      : setNewPlayer(e.target.value)
+                  }
+                >
+                  <option value="">Không chọn</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {editingTransaction && fund && !fund.demo && (
+                <label className="form-field">
+                  Lý do sửa/hủy
+                  <input
+                    required
+                    minLength={3}
+                    value={txReason}
+                    onChange={(e) => setTxReason(e.target.value)}
+                  />
+                </label>
+              )}
               {txError && (
                 <p role="alert" className="form-error">
                   {txError}
                 </p>
               )}
               <footer className="sheet-footer">
-                <Pressable className="primary-button w-full" disabled={txBusy}>
+                {editingTransaction && fund && !fund.demo && (
+                  <Pressable
+                    type="button"
+                    className="choice-button danger-action"
+                    disabled={txBusy || fund.busy}
+                    onClick={async () => {
+                      if (txReason.trim().length < 3) {
+                        setTxError("Nhập lý do hủy tối thiểu 3 ký tự.");
+                        return;
+                      }
+                      try {
+                        await fund.mutate("transaction_void", {
+                          id: editingTransaction.id,
+                          reason: txReason,
+                        });
+                        notify("Đã hủy giao dịch và cập nhật phần còn thiếu.");
+                        setEditingTransaction(null);
+                      } catch (e) {
+                        setTxError(e.message);
+                      }
+                    }}
+                  >
+                    Hủy giao dịch
+                  </Pressable>
+                )}
+                <Pressable
+                  className="primary-button w-full"
+                  disabled={txBusy || fund?.busy}
+                >
                   {txBusy ? "Đang lưu…" : "Lưu giao dịch"}
                 </Pressable>
               </footer>

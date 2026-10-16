@@ -1,0 +1,146 @@
+.fund-operations {
+  min-width: 0;
+  color: var(--text-primary);
+}
+.fund-operations h2 {
+  font-size: 18px;
+  font-weight: 650;
+}
+.fund-collection {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.fund-collection p,
+.fund-charge-row p {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.fund-collection small,
+.fund-charge-row small {
+  display: block;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  font-size: 13px;
+}
+.fund-collection-open {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+  text-align: left;
+  width: 100%;
+  min-width: 0;
+}
+.fund-collection-open > div {
+  min-width: 0;
+}
+.fund-inline-actions {
+  display: flex;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.fund-inline-actions button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--accent);
+}
+.fund-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.fund-quick-actions button {
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: normal;
+}
+.fund-quick-actions button:last-child {
+  grid-column: 1/-1;
+}
+.fund-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 12px 0;
+}
+.fund-status-filters button {
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.fund-status-filters [aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 650;
+}
+.fund-charge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.fund-charge-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fund-charge-row > div:first-child {
+  flex: 1 1 140px;
+}
+.fund-charge-row > div:last-child {
+  display: grid;
+  gap: 8px;
+}
+.fund-member-picker {
+  display: grid;
+  gap: 8px;
+}
+.fund-member-picker label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+  font-size: 15px;
+}
+.fund-member-picker input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.fund-segments {
+  flex-wrap: wrap;
+}
+.fund-operations .form-field {
+  min-width: 0;
+}
+.quick-sheet-action.fund-priority {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+}
+
+[data-highlighted="true"][id^="attendance-member-"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  background: var(--accent-soft) !important;
+  scroll-margin-block: 16px;
+}

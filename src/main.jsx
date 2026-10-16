@@ -7,6 +7,7 @@ import './styles/refinement.css'
 import './styles/soft-ui.css'
 import './styles/pro.css'
 import './styles/matchCard.css'
+import './styles/fundCollections.css'
 
 window.clearTimeout(window.noOffsideBootTimer)
 delete window.noOffsideBootTimer

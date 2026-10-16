@@ -771,10 +771,12 @@ export function useAuth() {
     window.addEventListener("online", refresh);
     document.addEventListener("visibilitychange", refresh);
     const timer = setInterval(refresh, 30000);
+    const changes = supabase?.channel?.('workspace-updates:' + accountId + ':' + teamId).on('postgres_changes', { event:'UPDATE', schema:'public', table:'no_team_updates', filter:'team_id=eq.' + teamId }, refresh).subscribe();
     return () => {
       live = false;
       controller.abort();
       clearInterval(timer);
+      if(changes)supabase.removeChannel(changes);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("online", refresh);
       document.removeEventListener("visibilitychange", refresh);

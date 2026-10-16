@@ -1,3 +1,4 @@
+import {serverRequest} from '../lib/serverRequest';
 import { withPendingWrite } from "../lib/pendingWrites";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -327,15 +328,12 @@ export function useGovernance(
       return { success: true };
     }
 
-    const { data, error } = await withPendingWrite(() =>
-      supabase.rpc("no_gov_mutate", {
-        p_team_id: teamId,
-        p_action: action,
-        p_payload: payload,
-        p_key: key,
-      }),
-    );
-    if (error) throw new Error(error.message);
+    const {data:session}=await supabase.auth.getSession();
+    const {response,data}=await withPendingWrite(()=>serverRequest('/api/sync',{
+      method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session?.session?.access_token},
+      body:JSON.stringify({teamId,action:'governance',governanceAction:action,payload,requestKey:key})
+    }));
+    if(!response.ok)throw Error(data.error || 'Không lưu được thao tác điểm danh.');
     await refresh();
     return data;
   };

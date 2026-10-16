@@ -446,6 +446,7 @@ export default function ProfileMenu(props) {
         <section className="profile-group">
           <h2>{t("Đội bóng")}</h2>
           {hasTeam && <Row icon={Wallet} onClick={() => onNavigate("fund")}>{t("Quỹ đội")}</Row>}
+          {hasTeam&&props.onFundReminder&&<Row icon={Bell} onClick={props.onFundReminder}>Nhắc thu quỹ</Row>}
           <Row icon={Users} onClick={() => navigateDetail("team")}>
             {t("Đội đang tham gia")}
           </Row>

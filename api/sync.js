@@ -34,6 +34,19 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     let body;try{body=typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};}catch{return res.status(400).json({error:'Dữ liệu không hợp lệ.'});}
     if(!body || typeof body!=='object' || Array.isArray(body))return res.status(400).json({error:'Dữ liệu không hợp lệ.'});
+    if (body.action === 'fund') {
+      if (typeof body.teamId !== 'string' || body.teamId.length > 100 || typeof body.fundAction !== 'string' || JSON.stringify(body).length > 40000) return res.status(400).json({error:'Dữ liệu quỹ không hợp lệ.'});
+      const result = await client.rpc('no_fund_action',{p_team:body.teamId,p_action:body.fundAction,p_payload:body.payload || {},p_key:body.fundAction==='state'?null:body.requestKey});
+      if(result.error)throw result.error;
+      if(!['state','history'].includes(body.fundAction))await dispatchAfterCommit();
+      return res.status(200).json(result.data);
+    }
+    if (body.action === 'governance') {
+      if(typeof body.teamId!=='string'||typeof body.governanceAction!=='string'||JSON.stringify(body).length>40000)return res.status(400).json({error:'Dữ liệu điểm danh không hợp lệ.'});
+      const result=await client.rpc('no_gov_mutate',{p_team_id:body.teamId,p_action:body.governanceAction,p_payload:body.payload||{},p_key:body.requestKey});
+      if(result.error)throw result.error;
+      await dispatchAfterCommit();return res.status(200).json(result.data);
+    }
     if(body.action==='pro'){const data=await proRequest(client,body);if(body.proAction!=='state')await dispatchAfterCommit();return res.status(200).json(data);}
     if (body.action === "save-profile") {
       const p = body.profile || {};

@@ -771,7 +771,7 @@ export function useAuth() {
     window.addEventListener("online", refresh);
     document.addEventListener("visibilitychange", refresh);
     const timer = setInterval(refresh, 30000);
-    const changes = supabase?.channel?.('workspace-updates:' + accountId + ':' + teamId).on('postgres_changes', { event:'UPDATE', schema:'public', table:'no_team_updates', filter:'team_id=eq.' + teamId }, refresh).subscribe();
+    const changes = supabase?.channel?.('workspace-updates:' + accountId + ':' + teamId).on('postgres_changes', { event:'*', schema:'public', table:'no_team_updates', filter:'team_id=eq.' + teamId }, refresh).subscribe(status => { if(status === 'SUBSCRIBED') refresh(); });
     return () => {
       live = false;
       controller.abort();

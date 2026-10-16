@@ -1,3 +1,4 @@
+import { watchTeamUpdates } from "../lib/teamUpdates";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { serverRequest } from "../lib/serverRequest";
@@ -9,6 +10,8 @@ const empty = {
   bills: [],
   members: [],
   history: [],
+  pendingRequests: [],
+  rejectedRequests: [],
   canManage: false,
   treasurer: false,
 };
@@ -62,7 +65,7 @@ export function useFundCollections({
     [teamId, token, demo, enabled],
   );
   const refresh = useCallback(async () => {
-    if (demo || !enabled || !token) return;
+    if (demo || !enabled || !token || lock.current === scope) return;
     const n = ++sequence.current;
     try {
       const data = await request("state");
@@ -81,32 +84,12 @@ export function useFundCollections({
       error: "",
       loading: !demo && enabled && !!token,
     });
-    retry.current = null;
     refresh();
     if (demo || !enabled || !token) return;
-    const onFocus = () => {
-      if (!document.hidden) refresh();
-    };
-    const timer = setInterval(onFocus, 15000);
-    window.addEventListener("focus", onFocus);
-    const channel = supabase
-      ?.channel?.("fund-updates:" + scope)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "no_team_updates",
-          filter: "team_id=eq." + teamId,
-        },
-        onFocus,
-      )
-      .subscribe();
+    const stop = watchTeamUpdates(supabase, "fund:" + scope, teamId, refresh);
     return () => {
       ++sequence.current;
-      clearInterval(timer);
-      window.removeEventListener("focus", onFocus);
-      if (channel) supabase.removeChannel(channel);
+      stop();
     };
   }, [scope, refresh, demo, enabled, token, teamId]);
   const mutate = async (action, payload = {}) => {

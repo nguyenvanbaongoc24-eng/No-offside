@@ -113,7 +113,11 @@ export default function FundOperations({
     setFailure("");
     try {
       await mutate(action, payload);
-      notify("Đã lưu thay đổi quỹ.");
+      notify(
+        action === "payment_request"
+          ? "Đã gửi yêu cầu · Chờ Thủ quỹ duyệt."
+          : "Đã lưu thay đổi quỹ.",
+      );
       if (close) setModal(null);
       return true;
     } catch (e) {
@@ -150,6 +154,24 @@ export default function FundOperations({
     : mode === "bills"
       ? data.charges.filter((c) => c.kind === "third")
       : data.charges;
+  const pendingFor = (id) =>
+    (data.pendingRequests || []).find((p) => p.chargeId === id);
+  const rejectedFor = (id) =>
+    (data.rejectedRequests || [])
+      .filter(
+        (p) =>
+          p.chargeId === id &&
+          Date.parse(p.reviewedAt || p.createdAt) >
+            Date.parse(
+              data.charges.find((c) => c.id === id)?.resolved_at ||
+                "1970-01-01",
+            ),
+      )
+      .sort(
+        (a, b) =>
+          Date.parse(b.reviewedAt || b.createdAt) -
+          Date.parse(a.reviewedAt || a.createdAt),
+      )[0];
   const shown = charges.filter(
     (c) =>
       filter === "all" ||
@@ -157,6 +179,7 @@ export default function FundOperations({
       (filter === "partial" &&
         Number(c.paid_amount) > 0 &&
         remainingCharge(c) > 0) ||
+      (filter === "pending" && !!pendingFor(c.id)) ||
       (filter === "unpaid" && remainingCharge(c) > 0 && !Number(c.paid_amount)),
   );
   const paymentCharge = data.charges.find((c) => c.id === draft.chargeId),
@@ -172,6 +195,7 @@ export default function FundOperations({
           ["paid", "Đã đủ"],
           ["partial", "Một phần"],
           ["unpaid", "Chưa đóng"],
+          ["pending", "Chờ duyệt"],
         ].map(([id, label]) => (
           <Pressable
             key={id}
@@ -188,14 +212,29 @@ export default function FundOperations({
             <div>
               <strong>{name(c.subject)}</strong>
               <p>{c.label}</p>
+              {pendingFor(c.id) && (
+                <p role="status">
+                  Chờ Thủ quỹ duyệt ·{" "}
+                  {formatCurrency(Number(pendingFor(c.id).amount))}
+                </p>
+              )}
+              {!pendingFor(c.id) &&
+                rejectedFor(c.id) &&
+                remainingCharge(c) > 0 && (
+                  <p className="form-error">
+                    Bị từ chối: {rejectedFor(c.id).reason}. Bạn có thể gửi lại.
+                  </p>
+                )}
               <small>
-                {c.status === "void"
-                  ? "Đã hủy nghĩa vụ"
-                  : remainingCharge(c) === 0
-                    ? "Đã đủ"
-                    : Number(c.paid_amount) > 0
-                      ? "Đã đóng một phần"
-                      : "Chưa đóng"}{" "}
+                {pendingFor(c.id)
+                  ? "Chờ duyệt"
+                  : c.status === "void"
+                    ? "Đã hủy nghĩa vụ"
+                    : remainingCharge(c) === 0
+                      ? "Đã đủ"
+                      : Number(c.paid_amount) > 0
+                        ? "Đã đóng một phần"
+                        : "Chưa đóng"}{" "}
                 · Đã đóng {formatCurrency(Number(c.paid_amount))}
               </small>
             </div>
@@ -205,10 +244,14 @@ export default function FundOperations({
                 (data.canManage || c.subject === accountId) && (
                   <Pressable
                     className="choice-button"
-                    disabled={busy}
+                    disabled={busy || !!pendingFor(c.id)}
                     onClick={() => payment(c)}
                   >
-                    {data.canManage ? "Ghi nhận" : "Chuyển khoản"}
+                    {pendingFor(c.id)
+                      ? "Chờ duyệt"
+                      : data.canManage
+                        ? "Ghi nhận"
+                        : "Đã chuyển tiền"}
                   </Pressable>
                 )}
             </div>
@@ -562,15 +605,30 @@ export default function FundOperations({
               run(data.canManage ? "payment" : "payment_request", {
                 chargeId: draft.chargeId,
                 amount: Number(draft.amount),
+                note: draft.note || "",
               });
             }}
           >
+            <p>
+              {paymentCharge?.label} · Còn thiếu:{" "}
+              {formatCurrency(remainingCharge(paymentCharge || { amount: 0 }))}
+            </p>
             <Money
               label="Số tiền thực nhận / chuyển khoản (đ)"
               required
               value={draft.amount}
               onChange={(value) => field("amount", value)}
             />
+            {!data.canManage && (
+              <label className="form-field">
+                Ghi chú (không bắt buộc)
+                <textarea
+                  maxLength={1000}
+                  value={draft.note || ""}
+                  onChange={(e) => field("note", e.target.value)}
+                />
+              </label>
+            )}
             <p className="field-hint">
               {data.canManage
                 ? "Chỉ xác nhận số tiền đã thực nhận. Khoản trả người ứng cá nhân không cộng vào số dư quỹ."
@@ -599,7 +657,7 @@ export default function FundOperations({
                 />
               </>
             )}
-            <Pressable className="primary-button" disabled={busy}>
+            <Pressable type="submit" className="primary-button" disabled={busy}>
               {busy
                 ? "Đang lưu…"
                 : data.canManage
@@ -764,7 +822,7 @@ export default function FundOperations({
             <p className="field-hint">
               Tạo nghĩa vụ đóng, không ghi tiền đã thu hoặc tăng số dư.
             </p>
-            <Pressable className="primary-button" disabled={busy}>
+            <Pressable type="submit" className="primary-button" disabled={busy}>
               {busy
                 ? "Đang lưu…"
                 : draft.immediate

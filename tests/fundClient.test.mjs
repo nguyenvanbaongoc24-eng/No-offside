@@ -43,6 +43,7 @@ test('a team switch cannot flash old fund rights; uncertain retries reuse the ke
  try{
   await act(async()=>{tree=renderer.create(React.createElement(Harness,{teamId:'a',accountId:'me',token:'test'}));});assert.equal(current.data.canManage,true);
   await act(async()=>{await assert.rejects(()=>current.mutate('payment',{chargeId:'x',amount:50}),/reply lost/);});
+  await act(async()=>tree.update(React.createElement(Harness,{teamId:'a',accountId:'me',token:'refreshed-token'})));
   let save;act(()=>{save=current.mutate('payment',{chargeId:'x',amount:50});});
   await assert.rejects(()=>current.mutate('payment',{chargeId:'x',amount:50}),/Đang xử lý/);assert.equal(keys.length,2);assert.equal(keys[0],keys[1]);
   act(()=>tree.update(React.createElement(Harness,{teamId:'b',accountId:'me',token:'test'})));assert.equal(current.data.canManage,false);assert.equal(current.loading,true);

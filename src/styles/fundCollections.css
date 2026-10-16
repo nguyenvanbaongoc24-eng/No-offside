@@ -904,3 +904,28 @@ html[data-theme="dark"] .fund-tx-avatar.expense,
   background: var(--accent-soft) !important;
   scroll-margin-block: 16px;
 }
+
+/* Amounts and labels must remain complete at narrow widths and large font sizes. */
+.fund-duo-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fund-duo-cell { align-items: flex-start; flex-wrap: wrap; min-height: 64px; }
+.fund-duo-text { flex: 1 1 100px; }
+.fund-duo-label, .fund-duo-value { display:block; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.5; }
+.fund-card-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.fund-stat-item { min-width:0; overflow-wrap:anywhere; }
+.fund-tx-amount-group { min-width:0; }
+.fund-approval-item { flex-wrap:wrap; }
+.fund-approval-item > div { min-width:0; overflow-wrap:anywhere; }
+.fund-search-bar input[type="search"] { font-size:16px !important; }
+@media(max-width:380px) {
+ .fund-duo-row { grid-template-columns:minmax(0,1fr); }
+ .fund-duo-cell:first-child { border-right:0; border-bottom:1px solid var(--border); }
+ .fund-tx-row { grid-template-columns:40px minmax(0,1fr) 32px; gap:8px; }
+ .fund-tx-amount-group { grid-column:2; text-align:left; }
+ .fund-tx-menu { grid-column:3; grid-row:1; }
+ .fund-tx-amount { white-space:normal; overflow-wrap:anywhere; }
+}
+html[data-font-size="large"] .fund-duo-row { grid-template-columns:minmax(0,1fr); }
+html[data-font-size="large"] .fund-duo-cell:first-child { border-right:0; border-bottom:1px solid var(--border); }
+.fund-ledger-header { flex-wrap:wrap; align-items:flex-start; }
+.fund-ledger-actions { flex-wrap:wrap; min-width:0; flex:1 1 240px; justify-content:flex-end; }
+.fund-filter-trigger, .fund-header-back { min-width:44px; min-height:44px; }

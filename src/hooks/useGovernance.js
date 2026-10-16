@@ -1,4 +1,5 @@
-import {serverRequest} from '../lib/serverRequest';
+import { watchTeamUpdates } from "../lib/teamUpdates";
+import { serverRequest } from "../lib/serverRequest";
 import { withPendingWrite } from "../lib/pendingWrites";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -80,6 +81,7 @@ export function useGovernance(
   members = [],
 ) {
   const scope = accountId + "::" + teamId;
+  const refreshSequence = useRef(0);
   const activeScope = useRef(scope);
   activeScope.current = scope;
   const roleRef = useRef(role);
@@ -111,6 +113,7 @@ export function useGovernance(
   }, [teamId, accountId, scope]);
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current;
     if (demo) {
       const local = readLocalGov(
         teamId,
@@ -144,7 +147,7 @@ export function useGovernance(
     } catch {
       error = true;
     }
-    if (activeScope.current === scope) {
+    if (activeScope.current === scope && sequence === refreshSequence.current) {
       if (error) {
         setState({
           scope,
@@ -166,78 +169,17 @@ export function useGovernance(
   }, [scope, teamId, demo]);
 
   useEffect(() => {
-    let live = true;
     setState({ scope, snapshot: null, loading: true, error: "" });
-    if (demo) {
-      const local = readLocalGov(
-        teamId,
-        accountId,
-        roleRef.current,
-        membersRef.current,
-      );
-      setState({
-        scope,
-        snapshot: local,
-        loading: false,
-        receivedAt: Date.now(),
-        error: "",
-      });
-      return;
-    }
-    if (!supabase) {
-      setState({
-        scope,
-        snapshot: null,
-        loading: false,
-        error: "Chua ket noi server quan tri.",
-      });
-      return;
-    }
-    supabase
-      .rpc("no_gov_snapshot", { p_team_id: teamId })
-      .then(({ data, error }) => {
-        if (!live) return;
-        if (error) {
-          setState({
-            scope,
-            snapshot: null,
-            receivedAt: Date.now(),
-            loading: false,
-            error:
-              "Không tải được dữ liệu quản trị từ server. Vui lòng thử lại.",
-          });
-        } else {
-          setState({
-            scope,
-            snapshot: data,
-            receivedAt: Date.now(),
-            loading: false,
-            error: "",
-          });
-        }
-      })
-      .catch(() => {
-        if (!live) return;
-        setState({
-          scope,
-          snapshot: null,
-          receivedAt: Date.now(),
-          loading: false,
-          error: "Không kết nối được server quản trị. Vui lòng thử lại.",
-        });
-      });
+    refresh();
+    const stop =
+      !demo && supabase
+        ? watchTeamUpdates(supabase, "governance:" + scope, teamId, refresh)
+        : null;
     return () => {
-      live = false;
+      ++refreshSequence.current;
+      stop?.();
     };
-  }, [scope, teamId, demo]);
-
-  useEffect(() => {
-    if (demo || !supabase) return;
-    const timer = setInterval(() => {
-      if (!document.hidden) refresh();
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [demo, refresh]);
+  }, [scope, teamId, demo, refresh]);
 
   const mutate = async (action, payload, key = crypto.randomUUID()) => {
     if (state.scope !== scope || !state.snapshot)
@@ -328,13 +270,26 @@ export function useGovernance(
       return { success: true };
     }
 
-    const {data:session}=await supabase.auth.getSession();
-    const {response,data}=await withPendingWrite(()=>serverRequest('/api/sync',{
-      method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session?.session?.access_token},
-      body:JSON.stringify({teamId,action:'governance',governanceAction:action,payload,requestKey:key})
-    }));
-    if(!response.ok)throw Error(data.error || 'Không lưu được thao tác điểm danh.');
-    await refresh();
+    const { data: session } = await supabase.auth.getSession();
+    const { response, data } = await withPendingWrite(() =>
+      serverRequest("/api/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session?.session?.access_token,
+        },
+        body: JSON.stringify({
+          teamId,
+          action: "governance",
+          governanceAction: action,
+          payload,
+          requestKey: key,
+        }),
+      }),
+    );
+    if (!response.ok)
+      throw Error(data.error || "Không lưu được thao tác điểm danh.");
+    if (activeScope.current === scope) await refresh();
     return data;
   };
 

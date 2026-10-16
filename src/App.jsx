@@ -689,6 +689,7 @@ function Application({ onRetryStartup }) {
                     user={shared.user}
                     treasurerQr={auth.teamSettings.treasurerQr}
                     onMarkPaid={auth.markFundPaid}
+                    showLegacy={auth.demoSession || shared.user.fundDebt > 0 || shared.user.fundPaymentPending || shared.user.isFundPaid}
                   />
                   <div className="p-4">
                     <FundOperations

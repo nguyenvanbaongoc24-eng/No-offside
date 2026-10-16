@@ -3,12 +3,14 @@ import {
   getAuthUser,
   apiError,
   bearerToken,
+  setCorsHeaders,
 } from "./_storageHelper.js";
 import { snapshot } from "./_workspace.js";
 export default async function handler(req, res) {
   let stage = "authenticate";
+  setCorsHeaders(res);
   res.setHeader("Cache-Control", "private, no-store");
-  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method === "OPTIONS") return res.status(200).end();
   if (!bearerToken(req))
     return res
       .status(401)

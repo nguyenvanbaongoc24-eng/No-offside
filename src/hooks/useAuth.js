@@ -532,12 +532,21 @@ export function useAuth() {
 
   const postServer = async (url, body) =>
     withPendingWrite(async () => {
-      if (!authSession?.access_token) throw Error("Vui lòng đăng nhập lại.");
+      let token = authSession?.access_token;
+      if (supabase?.auth?.getSession) {
+        try {
+          const { data: sData } = await supabase.auth.getSession();
+          if (sData?.session?.access_token) {
+            token = sData.session.access_token;
+          }
+        } catch {}
+      }
+      if (!token) throw Error("Vui lòng đăng nhập lại.");
       const { response, data: result } = await serverRequest(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authSession.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       });

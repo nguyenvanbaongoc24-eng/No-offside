@@ -176,8 +176,12 @@ export default function ProfileDetails({
       );
       setIsSaved(true);
     } catch (err) {
-      const message=err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại.";
-      setProfileError(message);notify(message,'error');
+      let message = err.message || "Không cập nhật được hồ sơ. Vui lòng thử lại.";
+      if (/load failed|failed to fetch/i.test(message)) {
+        message = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng rồi thử lại.";
+      }
+      setProfileError(message);
+      notify(message, "error");
     } finally {
       setSavingProfile(false);
     }

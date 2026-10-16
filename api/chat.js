@@ -6,6 +6,7 @@ import {
   bearerToken,
   getAdminClient,
   readJson,
+  setCorsHeaders,
 } from "./_storageHelper.js";
 export const presentMessage = (m) => ({
   id: m.id,
@@ -20,8 +21,9 @@ export const presentMessage = (m) => ({
   status: "sent",
 });
 export default async function handler(req, res) {
+  setCorsHeaders(res);
   res.setHeader("Cache-Control", "private, no-store");
-  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method === "OPTIONS") return res.status(200).end();
   if (!bearerToken(req))
     return res
       .status(401)

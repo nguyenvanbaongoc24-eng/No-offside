@@ -1,6 +1,8 @@
-import {getUserClient,getAuthUser,bearerToken,apiError} from './_storageHelper.js';
+import {getUserClient,getAuthUser,bearerToken,apiError,setCorsHeaders} from './_storageHelper.js';
 export default async function handler(req,res) {
+  setCorsHeaders(res);
   res.setHeader('Cache-Control','private, no-store');
+  if(req.method==='OPTIONS')return res.status(200).end();
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'});
   if(!bearerToken(req))return res.status(401).json({error:'Vui lòng đăng nhập lại.'});
   try {

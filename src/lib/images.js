@@ -140,17 +140,32 @@ export async function uploadAvatarImage(file, accessToken) {
       return dataUrl;
     }
 
-    const res = await fetch("/api/avatar", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        imageBase64: dataUrl,
-        mimeType: mimeType || "image/webp",
-      }),
-    });
+    let res;
+    try {
+      res = await fetch("/api/avatar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          imageBase64: dataUrl,
+          mimeType: mimeType || "image/webp",
+        }),
+      });
+    } catch (networkErr) {
+      if (
+        networkErr?.name === "TypeError" &&
+        (networkErr?.message?.toLowerCase().includes("load failed") ||
+          networkErr?.message?.toLowerCase().includes("failed to fetch") ||
+          networkErr?.message?.toLowerCase().includes("network error"))
+      ) {
+        throw new Error(
+          "Không thể kết nối đến máy chủ để tải ảnh đại diện. Vui lòng kiểm tra mạng rồi thử lại.",
+        );
+      }
+      throw networkErr;
+    }
 
     if (!res.ok) {
       let errorMsg = "Lỗi tải ảnh đại diện lên máy chủ.";

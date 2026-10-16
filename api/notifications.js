@@ -1,8 +1,9 @@
-import {getUserClient,getAuthUser,bearerToken,apiError} from './_storageHelper.js';
+import {getUserClient,getAuthUser,bearerToken,apiError,setCorsHeaders} from './_storageHelper.js';
 import {pushConfigured,validSubscription,isWorker,dispatchPush,dispatchAfterCommit} from './_push.js';
 export default async function handler(req,res){
+ setCorsHeaders(res);
  res.setHeader('Cache-Control','private, no-store');
- if(req.method==='OPTIONS')return res.status(204).end();
+ if(req.method==='OPTIONS')return res.status(200).end();
  try{
   const params=new URL(req.url,'https://no-offside.vercel.app').searchParams;
   if(params.get('worker')==='1'){

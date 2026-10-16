@@ -15,6 +15,14 @@ export async function serverRequest(url, options = {}) {
   } catch (error) {
     if (controller.signal.aborted && !options.signal?.aborted)
       throw Error("Kết nối quá lâu. Kiểm tra mạng rồi thử lại.");
+    if (
+      error?.name === "TypeError" &&
+      (error?.message?.toLowerCase().includes("load failed") ||
+        error?.message?.toLowerCase().includes("failed to fetch") ||
+        error?.message?.toLowerCase().includes("network error"))
+    ) {
+      throw Error("Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng rồi thử lại.");
+    }
     throw error;
   } finally {
     clearTimeout(timer);

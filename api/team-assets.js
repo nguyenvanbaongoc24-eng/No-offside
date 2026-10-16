@@ -5,11 +5,13 @@ import {
   getAuthUser,
   bearerToken,
   apiError,
+  setCorsHeaders,
 } from "./_storageHelper.js";
 import { validateImage } from "./_imageValidation.js";
 export default async function handler(req, res) {
+  setCorsHeaders(res);
   res.setHeader("Cache-Control", "private, no-store");
-  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
   if (!bearerToken(req))

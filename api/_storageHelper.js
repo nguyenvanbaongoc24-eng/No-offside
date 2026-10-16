@@ -2,6 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 const BUCKET_NAME = "no_offside_data";
 let cachedAdmin, testClient;
 
+export function setCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, PATCH");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-Requested-With, Accept, Cache-Control",
+  );
+}
+
 export function setTestAdminClient(client) {
   if (
     !process.env.NODE_TEST_CONTEXT ||

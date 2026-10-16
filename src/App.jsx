@@ -1,3 +1,6 @@
+import {usePro} from './hooks/usePro';
+import ProDashboard from './components/pro/ProDashboard';
+import {weeklyAwards} from './lib/pro';
 import {useAppNavigation} from './hooks/useAppNavigation';
 import FeedbackToast from './components/FeedbackToast';
 import {withFeedback} from './lib/feedback';
@@ -51,6 +54,8 @@ import { useGovernance } from "./hooks/useGovernance";
 import GovernanceNotice from "./components/GovernanceNotice";
 import VersionNotice from "./components/VersionNotice";
 
+const ProHub=React.lazy(()=>import('./pages/ProHub'));
+
 export default function App() {
   const [startupAttempt, setStartupAttempt] = useState(0);
   return (
@@ -66,6 +71,12 @@ export default function App() {
 }
 function Application({ onRetryStartup }) {
   const auth = useAuth();
+  const [proSection,setProSection]=useState('board');
+  const pro=usePro({teamId:auth.teamSettings.id,accountId:auth.accountId,token:auth.authSession?.access_token,demo:auth.demoSession,enabled:!auth.authLoading&&auth.isLoggedIn&&auth.hasTeam&&!auth.teamRestriction,matchVersion:auth.matches.map(m=>m.id+':'+m.status).join('|')});
+  const proWinners=weeklyAwards(pro.state.awards);
+  const displayMembers=auth.teamSettings.members.map(m=>({...m,motm:!!proWinners[m.id]}));
+  const displayTeam={...auth.teamSettings,members:displayMembers};
+
   const chatUnread = useChatUnread(auth.accountId, auth.demoSession ? null : auth.authSession?.access_token, !auth.authLoading);
   const memberships = (auth.dbMemberships || []).map(m => ({...m, chatUnread: chatUnread.countFor(m.teamId || m.team_id)}));
   const [chatKeyboardOpen, setChatKeyboardOpen] = useState(false);
@@ -179,9 +190,11 @@ function Application({ onRetryStartup }) {
       scrollPositions.current.set(scrollRoute.current, window.scrollY);
     navigation.navigate(target,options);
   };
+  const openPro=section=>{setProSection(section);navigate("pro");};
   const runQuickAction=(action)=>{
     setQuickOpen(false);
     if(!leader || !auth.hasTeam || auth.teamRestriction)return;
+    if(['board','stars','finance','media'].includes(action)){openPro(action);return;}
     if(action==='match'){
       setQuickMatchError('');setQuickMatch({opponent:'',datetime:'',timeoutDatetime:'',venue:auth.teamSettings.venue||'',penaltyEnabled:true,penaltyFine:"50000"});
     }else if(action==='transaction' || action==='formation'){
@@ -301,8 +314,8 @@ function Application({ onRetryStartup }) {
     user: {
       ...auth.user,
       nextMatchAttendance: auth.attendance[auth.user.id] || null,
-      isFundPaid: paid,
-      fundDebt: paid ? 0 : debt,
+      isFundPaid: paid && debt === 0,
+      fundDebt: debt,
       fundRejection: (auth.funds.rejectedPayments || [])
         .filter((p) => p.playerId === auth.user.id && p.month === currentMonth)
         .at(-1),
@@ -422,7 +435,7 @@ function Application({ onRetryStartup }) {
               />
             ) : activeTab === "team-settings" ? (
               <TeamSettings
-                teamSettings={auth.teamSettings}
+                teamSettings={displayTeam}
                 onUpdateTeamSettings={withFeedback(auth.updateTeamSettings)}
                 onBack={() => navigate("profile")}
                 currentUserRole={auth.currentUserRole}
@@ -438,9 +451,11 @@ function Application({ onRetryStartup }) {
                 teamId={auth.teamSettings.id}
                 accountId={auth.accountId}
                 currentUserRole={auth.currentUserRole}
-                members={auth.teamSettings.members}
+                members={displayMembers}
                 onBack={() => navigate("dashboard")}
               />
+            ) : activeTab === "pro" ? (
+              <React.Suspense fallback={<div className="pro-loading" role="status">Đang mở No Offside Pro…</div>}><ProHub key={auth.accountId+'::'+auth.teamSettings.id} pro={pro} team={auth.teamSettings} user={auth.user} role={auth.currentUserRole} matches={auth.matches} initialSection={proSection} onBack={()=>navigation.back('profile')} onNavigate={navigate} onWorkspaceRefresh={auth.refreshWorkspace}/></React.Suspense>
             ) : activeTab === "fund" ? (
               !leader ? (
                 <PersonalFund
@@ -473,7 +488,7 @@ function Application({ onRetryStartup }) {
                   auth.demoSession ? null : auth.authSession?.access_token
                 }
                 user={auth.user}
-                members={auth.teamSettings.members}
+                members={displayMembers}
                 language={preferences.value.language || "vi"}
                 timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
                 teamName={auth.teamSettings.teamName}
@@ -488,10 +503,12 @@ function Application({ onRetryStartup }) {
             ) : activeTab === "profile" ? (
               <React.Fragment key={auth.accountId + auth.teamSettings.id}>
                 <Profile
+                  onOpenPro={openPro}
+                  motm={proWinners[auth.user.id]}
                   {...shared}
                   authSession={auth.demoSession ? null : auth.authSession}
                   onOpenNotifications={() => setShowNotices(true)}
-                  teamSettings={auth.teamSettings}
+                  teamSettings={displayTeam}
                   hasTeam={auth.hasTeam}
                   preferences={preferences}
                   onCreateInvite={auth.createInvite}
@@ -541,9 +558,9 @@ function Application({ onRetryStartup }) {
                 switchingTeam={auth.switchingTeam}
                 unreadCount={auth.notices.filter((n) => n.unread).length}
                 onOpenNotifications={() => setShowNotices(true)}
-                teamSettings={auth.teamSettings}
+                teamSettings={displayTeam}
                 leader={leader}
-                members={auth.teamSettings.members}
+                members={displayMembers}
                 onAddMember={auth.addMember}
                 onRemoveMember={auth.removeMember}
                 onLinkMember={auth.demoSession ? undefined : auth.linkMember}
@@ -557,11 +574,12 @@ function Application({ onRetryStartup }) {
               />
             ) : (
               <PlayerDashboard
+                onOpenPoster={()=>openPro('media')}
                 {...shared}
                 {...fundProps}
-                members={auth.teamSettings.members}
+                members={displayMembers}
                 teamId={auth.teamSettings.id}
-                teamSettings={auth.teamSettings}
+                teamSettings={displayTeam}
                 balance={auth.balance}
                 activeMatch={auth.activeMatch}
                 matches={auth.matches}
@@ -591,6 +609,7 @@ function Application({ onRetryStartup }) {
                 onRevokeInvite={auth.revokeInvite}
               />
             )}
+            {activeTab==='dashboard'&&auth.hasTeam&&<ProDashboard pro={pro} members={displayMembers} matches={auth.matches} user={auth.user} leader={leader} onOpen={openPro} onLineup={()=>navigate('lineup')}/>}
           </main>
           {activeTab === "dashboard" && auth.archivedMatches.length > 0 && (
             <details className="mx-4 my-5 settings-card">

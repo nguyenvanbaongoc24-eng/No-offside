@@ -374,7 +374,7 @@ export default function ProfileMenu(props) {
         <section className="profile-hero" aria-label="Hồ sơ">
           <Pressable type="button" className="profile-avatar-edit" aria-label="Thay ảnh đại diện" onClick={()=>{setAvatarLaunch(true);navigateDetail('profile');}}><Avatar src={user.avatar} name={user.name}/><Camera size={16} aria-hidden="true"/></Pressable>
           <div>
-            <h1>{user.name || t("Hồ sơ của bạn")}</h1>
+            <h1>{user.name || t("Hồ sơ của bạn")}{props.motm&&<Trophy size={18} aria-label="MOTM trong tuần"/>}</h1>
             <p>
               {user.number ? "#" + user.number : t("Chưa có số áo")}
               {user.role ? " · " + user.role : ""}
@@ -429,6 +429,7 @@ export default function ProfileMenu(props) {
           </div>
         </section>
       )}
+      {hasTeam&&props.onOpenPro&&<section className="profile-group"><h2>No Offside Pro</h2><Row icon={Trophy} onClick={()=>props.onOpenPro('stars')}>Tạo thẻ cầu thủ & MOTM</Row><Row icon={BookOpen} onClick={()=>props.onOpenPro('board')}>Sàn cáp kèo</Row><Row icon={Wallet} onClick={()=>props.onOpenPro('finance')}>Hiệp 3 & phạt tự động</Row><Row icon={Settings} onClick={()=>props.onOpenPro('media')}>Poster & khoảnh khắc</Row></section>}
       <section className="profile-group">
         <h2>{t("Hồ sơ")}</h2>
         <Row icon={User} onClick={() => navigateDetail("profile")}>

@@ -5,6 +5,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { imageDataUrl } from "../lib/images";
 export default function TeamSettings({
   teamSettings,
+  onOpenPro,
   onUpdateTeamSettings,
   onBack,
   currentUserRole,
@@ -51,6 +52,7 @@ export default function TeamSettings({
         </Pressable>
         <h1 className="text-2xl font-bold mt-4">Cài đặt đội bóng</h1>
       </header>
+      {onOpenPro&&<Pressable className="choice-button m-4" onClick={onOpenPro}>Luật phạt tự động & Hiệp 3</Pressable>}
       <form onSubmit={save} className="p-4 space-y-4">
         <section className="settings-card">
           <h2>Thông tin đội</h2>

@@ -1,7 +1,7 @@
 import React,{useEffect,useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {AnimatePresence,motion,useReducedMotion} from 'framer-motion';
-import {CalendarPlus,Wallet,Network,UserPlus,Settings2,X} from 'lucide-react';
+import {CalendarPlus,Wallet,Network,UserPlus,Settings2,X,Swords,Trophy,Clapperboard} from 'lucide-react';
 import Pressable from './Pressable';
 
 export const quickActionItems=[
@@ -9,6 +9,10 @@ export const quickActionItems=[
   {id:'transaction',label:'Tạo khoản thu/chi',Icon:Wallet},
   {id:'formation',label:'Tạo chiến thuật mới',Icon:Network},
   {id:'invite',label:'Mời thành viên',Icon:UserPlus},
+  {id:'board',label:'Cáp kèo giao hữu',Icon:Swords},
+  {id:'stars',label:'Ngôi sao & MOTM',Icon:Trophy},
+  {id:'finance',label:'Hiệp 3 & phạt tự động',Icon:Wallet},
+  {id:'media',label:'Poster & khoảnh khắc',Icon:Clapperboard},
   {id:'settings',label:'Cài đặt đội bóng',Icon:Settings2},
 ];
 export default function QuickActions({open,onClose,onAction,role}){

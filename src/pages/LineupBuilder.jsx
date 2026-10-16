@@ -1,3 +1,4 @@
+import Chalkboard from '../components/pro/Chalkboard';
 import Pressable from '../components/Pressable';
 import React, { useState, useRef, useEffect } from "react";
 import { readStored, writeStored } from "../lib/storage";
@@ -540,6 +541,7 @@ export default function LineupBuilder({
         </Pressable>
       </div>
 
+      <div className="pro-template-bar"><label className="form-field">Mẫu chiến thuật<select aria-label="Chọn mẫu đội hình" value={selectedFormationId} onChange={e=>setSelectedFormationId(e.target.value)}>{formationsList.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></label>{canEdit&&<Pressable className="choice-button" disabled={formationsList.length>=30} onClick={()=>{const id=crypto.randomUUID();setFormationsList(prev=>[...prev,{...structuredClone(currentFormation),id,name:currentFormation.name+' · Mẫu '+(prev.length+1)}]);setSelectedFormationId(id);}}>Lưu thành mẫu</Pressable>}</div>
       {/* 2. Tactical Football Pitch (Sân bóng tone xanh lục bảo sẫm với Free Drag & Drop) */}
       <div className="px-4 mt-2">
         <div
@@ -682,6 +684,7 @@ export default function LineupBuilder({
             </div>
           ))}
 
+          <Chalkboard key={currentFormation.id} strokes={currentFormation.drawing || []} editable={canEdit} onChange={drawing=>setFormationsList(prev=>prev.map(f=>f.id===currentFormation.id?{...f,drawing}:f))}/>
           {/* Hint Overlay */}
           <div className="pitch-interaction-hint">
             Kéo thả vị trí tùy ý • Chạm để đổi người

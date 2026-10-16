@@ -53,6 +53,7 @@ import AddMemberModal from "../components/AddMemberModal";
 
 export default function PlayerDashboard({
   user,
+  onOpenPoster,
   governance,
   currentUserRole = "player",
   onToggleRole,
@@ -605,6 +606,7 @@ export default function PlayerDashboard({
             )}
           </section>
         </SwipeMatchCard>
+        {onOpenPoster&&<div className="mx-4 mt-3"><Pressable className="choice-button" onClick={onOpenPoster}>Xuất poster & khoảnh khắc trận</Pressable></div>}
         {!isLeader && <section aria-label="Thao tác nhanh" className="quick-actions-panel">
           <p className="text-xs text-slate-600 mb-3">
             Trận đang chọn: {activeMatch.title}

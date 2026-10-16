@@ -17,6 +17,7 @@ import {
   Send,
   MessageSquare,
   PartyPopper,
+  Trophy,
   ArrowDown,
   AlertCircle,
   RefreshCw,
@@ -702,7 +703,7 @@ function ScopedChat({
                 >
                   {!own && group.showSender && (
                     <p className="chat-sender">
-                      {m.sender || sender?.name || "Thành viên"}
+                      {m.sender || sender?.name || "Thành viên"}{sender?.motm&&<Trophy size={14} aria-label="MOTM trong tuần"/>}
                     </p>
                   )}
                   <p className="chat-message-text">{messageParts(m.text,members).map((part,index)=>part.mention?<mark className="chat-mention" key={index}>{part.text}</mark>:part.text)}</p>

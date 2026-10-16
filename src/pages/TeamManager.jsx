@@ -13,6 +13,7 @@ import {
   Trash2,
   X,
   Crown,
+  Trophy,
   Shield,
   Cake,
   AlertTriangle,
@@ -399,7 +400,7 @@ export default function TeamManager({
                           )}
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                            {member.name}
+                            {member.name}{member.motm&&<Trophy size={14} aria-label="MOTM trong tuần"/>}
                           </p>
 
                           {/* Role Badge */}

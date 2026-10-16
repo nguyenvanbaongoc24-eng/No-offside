@@ -2164,6 +2164,7 @@ export function useAuth() {
     resetFund,
     updateMatchStats,
     updateProfile,
+    refreshWorkspace:fetchWorkspace,
     teamSettings: {
       ...teamSettings,
       members: teamSettings.members.filter(

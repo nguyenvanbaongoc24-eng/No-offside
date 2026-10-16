@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
-const allowed=new Set(['dashboard','lineup','fund','chat','profile','team-settings','create-team','invite-landing','onboarding','personal-fund','governance','appearance','login']);
+const allowed=new Set(['dashboard','lineup','fund','chat','profile','team-settings','create-team','invite-landing','onboarding','personal-fund','governance','appearance','login','pro']);
 export function routeState(state){return allowed.has(state?.noOffsideTab)?state.noOffsideTab:'dashboard';}
-export function initialRoute(path,state){return ({'/fund':'fund','/governance':'governance','/profile':'profile'})[path] || routeState(state);}
+export function initialRoute(path,state){return ({'/fund':'fund','/governance':'governance','/profile':'profile','/pro':'pro'})[path] || routeState(state);}
 export function internalParent(state){return state?.noOffsideApp==='v2' && allowed.has(state.noOffsideParent?.tab)?state.noOffsideParent:null;}
 export function useAppNavigation(){
  const [tab,setTab]=useState(()=>window.location.pathname.startsWith('/invite/')?'invite-landing':initialRoute(window.location.pathname,window.history.state));
@@ -14,7 +14,7 @@ export function useAppNavigation(){
   if(!allowed.has(target) || (target===current.current && !replace))return;
   backPending.current=false;const previous=window.history.state;
   const parent=!root && !replace?{tab:current.current,detail:previous?.noOffsideDetail || null}:null;
-  window.history[replace?'replaceState':'pushState']({noOffsideTab:target,noOffsideApp:'v2',noOffsideParent:parent},'',target==='invite-landing'?undefined:({fund:'/fund',governance:'/governance',profile:'/profile'}[target] || '/'));
+  window.history[replace?'replaceState':'pushState']({noOffsideTab:target,noOffsideApp:'v2',noOffsideParent:parent},'',target==='invite-landing'?undefined:({fund:'/fund',governance:'/governance',profile:'/profile',pro:'/pro'}[target] || '/'));
   setDirection(root?'tab':'forward');setTab(target);
  };
  const back=(fallback='profile')=>{

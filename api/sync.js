@@ -1,3 +1,4 @@
+import {proRequest} from './_pro.js';
 import {dispatchAfterCommit} from './_push.js';
 import {
   getUserClient,
@@ -29,8 +30,9 @@ export default async function handler(req, res) {
     }
     if (req.method !== "POST")
       return res.status(405).json({ error: "Method not allowed" });
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+    let body;try{body=typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};}catch{return res.status(400).json({error:'Dữ liệu không hợp lệ.'});}
+    if(!body || typeof body!=='object' || Array.isArray(body))return res.status(400).json({error:'Dữ liệu không hợp lệ.'});
+    if(body.action==='pro'){const data=await proRequest(client,body);if(body.proAction!=='state')await dispatchAfterCommit();return res.status(200).json(data);}
     if (body.action === "save-profile") {
       const p = body.profile || {};
       const { data, error } = await client.rpc("no_app_save_profile", {

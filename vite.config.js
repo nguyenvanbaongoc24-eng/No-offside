@@ -43,7 +43,7 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       workbox: {
-        globIgnores: ['**/version.json', '**/api/**'],
+        globIgnores: ['**/version.json', '**/api/**', '**/ml-runtime/**'],
         navigateFallbackDenylist: [/^\/api\//, /^\/version\.json/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,

@@ -32,6 +32,6 @@ test('welcome closes after five seconds and respects only the checked session op
 });
 test('quick actions use existing destinations and preserve owner-only team settings',()=>{
  let tree;const called=[];act(()=>tree=renderer.create(React.createElement(Quick,{open:true,role:'admin',onClose(){},onAction:id=>called.push(id)})));
- const items=tree.root.findAll(node=>node.type==='button' && node.props.className==='quick-sheet-action');assert.equal(items.length,5);assert.equal(items[4].props.disabled,true);act(()=>items[0].props.onClick());assert.deepEqual(called,['match']);
- act(()=>tree.update(React.createElement(Quick,{open:true,role:'owner',onClose(){},onAction:id=>called.push(id)})));assert.equal(tree.root.findAll(node=>node.type==='button' && node.props.className==='quick-sheet-action')[4].props.disabled,false);act(()=>tree.unmount());
+ const items=tree.root.findAll(node=>node.type==='button' && node.props.className==='quick-sheet-action');assert.equal(items.length,9);assert.equal(items[8].props.disabled,true);act(()=>items[0].props.onClick());assert.deepEqual(called,['match']);
+ act(()=>tree.update(React.createElement(Quick,{open:true,role:'owner',onClose(){},onAction:id=>called.push(id)})));assert.equal(tree.root.findAll(node=>node.type==='button' && node.props.className==='quick-sheet-action')[8].props.disabled,false);act(()=>tree.unmount());
 });

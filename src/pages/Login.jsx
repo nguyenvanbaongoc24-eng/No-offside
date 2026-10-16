@@ -1,5 +1,5 @@
 import Pressable from '../components/Pressable';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ShieldCheck,
   Sun,
@@ -18,6 +18,7 @@ import {
   EyeOff,
   Trash2,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { readStored, writeStored } from "../lib/storage";
@@ -99,6 +100,34 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
     setLanguage(next);
     writeStored("no_offside_auth_language", next);
   };
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const themeRef = useRef(null);
+  const langRef = useRef(null);
+
+  useEffect(() => {
+    if (!themeMenuOpen && !langMenuOpen) return;
+    const handleOutsideClick = (e) => {
+      if (themeRef.current && !themeRef.current.contains(e.target)) {
+        setThemeMenuOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(e.target)) {
+        setLangMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setThemeMenuOpen(false);
+        setLangMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handleOutsideClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [themeMenuOpen, langMenuOpen]);
   const [pendingJoin] = useState(() => getPendingJoin());
   const [mode, setMode] = useState(() => initialMode || (getPendingJoin() ? "signup" : "signin")); // 'signin' | 'signup' | 'forgot' | 'reset_password' | 'google_username'
   const [username, setUsername] = useState("");
@@ -740,34 +769,156 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
       <div className="auth-shell mx-auto w-full relative z-10">
         <header className="auth-header">
           <div className="auth-identity">
-            <img src="/pwa-512x512.png" width="48" height="48" alt="" />
+            <img src="/pwa-512x512.png" width="38" height="38" alt="" />
             <h1>No Offside</h1>
           </div>
-          <div className="auth-preferences">
-          <div className="auth-theme-tools">
-          <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Color theme" : "Giao diện"}>
-            <Pressable type="button" aria-label="Giao diện sáng" title="Giao diện sáng" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={18} strokeWidth={1.75} aria-hidden="true" /></Pressable>
-            <Pressable type="button" aria-label="Giao diện tối" title="Giao diện tối" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={18} strokeWidth={1.75} aria-hidden="true" /></Pressable>
-          </div>
-          <details className="auth-theme-menu">
-            <summary aria-label={language === "en" ? "Theme options" : "Tùy chọn giao diện"} title={language === "en" ? "Theme options" : "Tùy chọn giao diện"}><Ellipsis size={18} strokeWidth={1.75} aria-hidden="true" /></summary>
-            <div className="auth-theme-popover">
-              <Pressable type="button" aria-pressed={theme === "system"} onClick={(event) => {
-                onThemeChange?.("system");
-                event.currentTarget.closest("details").open = false;
-              }}><Monitor size={18} strokeWidth={1.75} aria-hidden="true" />{language === "en" ? "System" : "Hệ thống"}</Pressable>
+
+          <div className="auth-header-controls">
+            {/* Theme Control */}
+            <div className="relative" ref={themeRef}>
+              <Pressable
+                type="button"
+                id="theme-select-btn"
+                aria-label={t("Chọn giao diện")}
+                title={t("Chọn giao diện")}
+                aria-expanded={themeMenuOpen}
+                aria-haspopup="listbox"
+                onClick={() => {
+                  setThemeMenuOpen((prev) => !prev);
+                  setLangMenuOpen(false);
+                }}
+                className="auth-control-btn auth-theme-btn"
+              >
+                {theme === "light" ? (
+                  <Sun size={19} strokeWidth={2} className="text-amber-500" aria-hidden="true" />
+                ) : theme === "dark" ? (
+                  <Moon size={19} strokeWidth={2} className="text-emerald-400" aria-hidden="true" />
+                ) : (
+                  <Monitor size={19} strokeWidth={2} className="text-slate-600 dark:text-slate-300" aria-hidden="true" />
+                )}
+              </Pressable>
+
+              {themeMenuOpen && (
+                <div
+                  role="listbox"
+                  aria-label={t("Chọn giao diện")}
+                  className="auth-popover-menu min-w-[152px]"
+                >
+                  <Pressable
+                    type="button"
+                    role="option"
+                    aria-selected={theme === "light"}
+                    onClick={() => {
+                      onThemeChange?.("light");
+                      setThemeMenuOpen(false);
+                    }}
+                    className="auth-popover-item"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Sun size={16} strokeWidth={2} className="text-amber-500 shrink-0" aria-hidden="true" />
+                      <span>{t("Sáng")}</span>
+                    </div>
+                    {theme === "light" && <Check size={16} strokeWidth={2.4} className="text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />}
+                  </Pressable>
+
+                  <Pressable
+                    type="button"
+                    role="option"
+                    aria-selected={theme === "dark"}
+                    onClick={() => {
+                      onThemeChange?.("dark");
+                      setThemeMenuOpen(false);
+                    }}
+                    className="auth-popover-item"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Moon size={16} strokeWidth={2} className="text-emerald-400 shrink-0" aria-hidden="true" />
+                      <span>{t("Tối")}</span>
+                    </div>
+                    {theme === "dark" && <Check size={16} strokeWidth={2.4} className="text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />}
+                  </Pressable>
+
+                  <Pressable
+                    type="button"
+                    role="option"
+                    aria-selected={theme === "system"}
+                    onClick={() => {
+                      onThemeChange?.("system");
+                      setThemeMenuOpen(false);
+                    }}
+                    className="auth-popover-item"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Monitor size={16} strokeWidth={2} className="text-slate-500 dark:text-slate-400 shrink-0" aria-hidden="true" />
+                      <span>{t("Theo thiết bị")}</span>
+                    </div>
+                    {theme === "system" && <Check size={16} strokeWidth={2.4} className="text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />}
+                  </Pressable>
+                </div>
+              )}
             </div>
-          </details>
+
+            {/* Language Control */}
+            <div className="relative" ref={langRef}>
+              <Pressable
+                type="button"
+                id="language-select-btn"
+                aria-label={t("Chọn ngôn ngữ")}
+                title={t("Chọn ngôn ngữ")}
+                aria-expanded={langMenuOpen}
+                aria-haspopup="listbox"
+                onClick={() => {
+                  setLangMenuOpen((prev) => !prev);
+                  setThemeMenuOpen(false);
+                }}
+                className="auth-control-btn auth-lang-btn"
+              >
+                <span>{language.toUpperCase()}</span>
+                <ChevronDown size={14} strokeWidth={2.4} className={`transition-transform duration-200 ${langMenuOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+              </Pressable>
+
+              {langMenuOpen && (
+                <div
+                  role="listbox"
+                  aria-label={t("Chọn ngôn ngữ")}
+                  className="auth-popover-menu min-w-[136px]"
+                >
+                  <Pressable
+                    type="button"
+                    role="option"
+                    aria-selected={language === "vi"}
+                    onClick={() => {
+                      changeLanguage("vi");
+                      setLangMenuOpen(false);
+                    }}
+                    className="auth-popover-item"
+                  >
+                    <span>Tiếng Việt</span>
+                    {language === "vi" && <Check size={16} strokeWidth={2.4} className="text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />}
+                  </Pressable>
+
+                  <Pressable
+                    type="button"
+                    role="option"
+                    aria-selected={language === "en"}
+                    onClick={() => {
+                      changeLanguage("en");
+                      setLangMenuOpen(false);
+                    }}
+                    className="auth-popover-item"
+                  >
+                    <span>English</span>
+                    {language === "en" && <Check size={16} strokeWidth={2.4} className="text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />}
+                  </Pressable>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Language" : "Ngôn ngữ"}>
-            <Pressable type="button" lang="vi" aria-label="Tiếng Việt" title="Tiếng Việt" aria-pressed={language === "vi"} onClick={() => changeLanguage("vi")}>VI</Pressable>
-            <Pressable type="button" lang="en" aria-label="English" title="English" aria-pressed={language === "en"} onClick={() => changeLanguage("en")}>EN</Pressable>
-          </div>
-        </div>
         </header>
-        <div className="auth-brand text-center mb-6">
-          <p className="text-xs text-slate-400 mt-1">
-            {t("Nền tảng quản lý đội bóng phong trào số 1")}
+
+        <div className="auth-brand text-center mb-3">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {t("Quản lý đội bóng, hẹn nhau ra sân.")}
           </p>
         </div>
 

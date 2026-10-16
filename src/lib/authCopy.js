@@ -65,8 +65,15 @@ const english = {
   "Vui lòng nhập địa chỉ Gmail đã đăng ký.": "Please enter your registered Gmail address.",
   "Nếu email tồn tại trong hệ thống, liên kết đặt lại mật khẩu đã được gửi đến hộp thư của bạn.": "If this email is registered, a password reset link has been sent to your inbox.",
   "Mật khẩu mới phải gồm đúng 6 chữ số (0–9).": "Your new password must contain exactly 6 digits (0–9).",
-  "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.": "Password reset successfully. Please sign in with your new password.",
-  "Dịch vụ xác thực Supabase chưa được cấu hình.": "Supabase authentication has not been configured."
+  "Dịch vụ xác thực Supabase chưa được cấu hình.": "Supabase authentication has not been configured.",
+  "Quản lý đội bóng, hẹn nhau ra sân.": "Manage your squad, meet on the pitch.",
+  "Chọn giao diện": "Choose theme",
+  "Sáng": "Light",
+  "Tối": "Dark",
+  "Theo thiết bị": "System",
+  "Chọn ngôn ngữ": "Choose language",
+  "Tiếng Việt": "Vietnamese",
+  "English": "English"
 };
 
 // Translate presentation copy without changing authentication behavior.

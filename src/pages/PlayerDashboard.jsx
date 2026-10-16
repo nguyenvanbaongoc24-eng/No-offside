@@ -10,7 +10,9 @@ import LateArrivalPanel from "../components/LateArrivalPanel";
 import { matchTimeLabel } from '../lib/matchTime';
 import SwipeMatchCard from "../components/SwipeMatchCard";
 import QrPreview from "../components/QrPreview";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { readStored, writeStored } from "../lib/storage";
+import { supabase } from "../lib/supabase";
 import MatchList from "../components/MatchList";
 import MatchFormSheet from "../components/MatchFormSheet";
 import { motion } from "framer-motion";
@@ -26,6 +28,12 @@ import {
   QrCode,
   Bell,
   ChevronRight,
+  ChevronDown,
+  ArrowDown,
+  Sliders,
+  Beer,
+  Swords,
+  Clapperboard,
   Copy,
   CreditCard,
   Wallet,
@@ -81,15 +89,25 @@ function MatchDeadlineCard({
 
   if (!hasDeadline) {
     return (
-      <div className="match-deadline-box mt-3.5 p-3 rounded-xl bg-black/25 dark:bg-black/35 border border-white/20 flex flex-wrap items-center justify-between gap-2.5 text-white">
-        <div className="flex items-center gap-2 text-xs">
-          <Clock className="w-4 h-4 text-emerald-300 shrink-0" />
-          <span className="text-white/80 font-medium">Hạn điểm danh:</span>
-          <span className="font-semibold text-white">Chưa đặt hạn điểm danh</span>
+      <div className="match-deadline-box mt-3.5 p-4 rounded-xl bg-black/25 dark:bg-black/35 border border-white/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-white">
+        <div className="min-w-0 flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-emerald-300 shrink-0" />
+            <span className="text-xs font-semibold text-emerald-200/90 tracking-wider uppercase">
+              Hạn điểm danh
+            </span>
+          </div>
+          <div className="pl-7">
+            <span className="text-xs font-medium text-white/80">
+              Chưa đặt hạn điểm danh
+            </span>
+          </div>
         </div>
-        <span className="text-[11px] font-semibold text-white/85 bg-black/20 border border-white/15 px-2.5 py-1 rounded-lg whitespace-nowrap">
-          {penaltyEnabled ? `Phạt ${penaltyAmount}` : "Không áp dụng phạt"}
-        </span>
+        <div className="pl-7 sm:pl-0 sm:shrink-0 flex items-center">
+          <span className="text-[11px] font-semibold text-white/85 bg-black/20 border border-white/15 px-2.5 py-1 rounded-lg whitespace-nowrap">
+            {penaltyEnabled ? `Phạt ${penaltyAmount}` : "Không áp dụng phạt"}
+          </span>
+        </div>
       </div>
     );
   }
@@ -121,18 +139,23 @@ function MatchDeadlineCard({
   }
 
   return (
-    <div className="match-deadline-box mt-3.5 p-3 rounded-xl bg-black/25 dark:bg-black/35 border border-white/20 flex items-start justify-between gap-3 text-white">
-      <div className="flex items-start gap-2.5 min-w-0">
-        <Clock className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" />
-        <div className="min-w-0">
-          <span className="block text-[11px] font-medium text-emerald-200/90 tracking-wide uppercase">
+    <div className="match-deadline-box mt-3.5 p-4 rounded-xl bg-black/25 dark:bg-black/35 border border-white/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-white">
+      <div className="min-w-0 flex flex-col gap-1">
+        {/* Hàng 1: icon đồng hồ (20px) + "Hạn điểm danh" (gap 8px) */}
+        <div className="flex items-center gap-2">
+          <Clock className="w-5 h-5 text-emerald-300 shrink-0" />
+          <span className="text-xs font-semibold text-emerald-200/90 tracking-wider uppercase">
             Hạn điểm danh
           </span>
-          <span className="block text-sm font-bold text-white tracking-tight mt-0.5">
+        </div>
+
+        {/* Hàng 2: ngày giờ & Hàng 3: countdown - cùng trục chữ với tiêu đề */}
+        <div className="pl-7 flex flex-col gap-0.5">
+          <span className="text-sm font-bold text-white tracking-tight">
             {formattedDate}
           </span>
           <span
-            className={`block text-xs font-semibold mt-0.5 ${
+            className={`text-xs font-semibold ${
               isClosed ? "text-rose-300" : "text-amber-300"
             }`}
           >
@@ -141,11 +164,12 @@ function MatchDeadlineCard({
         </div>
       </div>
 
-      <div className="shrink-0 self-center">
+      {/* Chính sách phạt: hàng phụ phía dưới trên mobile, bên phải khi màn đủ rộng */}
+      <div className="pl-7 sm:pl-0 sm:shrink-0 flex items-center">
         <span
           className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg border whitespace-nowrap ${
             penaltyEnabled
-              ? "text-amber-200 bg-amber-950/50 border-amber-400/30"
+              ? "text-amber-200 bg-amber-950/60 border-amber-400/30"
               : "text-white/85 bg-black/20 border-white/15"
           }`}
         >
@@ -403,128 +427,258 @@ export default function PlayerDashboard({
   const isAdmin = currentUserRole === "admin";
   const isLeader = isOwner || isAdmin;
 
-  const quickActionsList = [
-    {
-      id: "attendance",
-      label: "Điểm danh",
-      Icon: UserCheck,
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80",
-      iconColor: "text-emerald-600 dark:text-emerald-400",
-      onClick: () => {
-        if (isLeader) {
-          setShowAttendanceModal(true);
-        } else {
-          const el = document.getElementById("match-attendance");
-          if (el) {
-            el.scrollIntoView({ block: "center", behavior: "smooth" });
-          } else {
-            setShowAttendanceModal(true);
-          }
-        }
-      },
-    },
-    {
-      id: "lineup",
-      label: "Chiến Thuật",
-      Icon: Network,
-      iconBg: "bg-teal-50 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-800/80",
-      iconColor: "text-teal-600 dark:text-teal-400",
-      onClick: () => onNavigate && onNavigate("lineup"),
-    },
-    {
-      id: "fund",
-      label: isLeader ? "Sổ quỹ" : "Đóng quỹ",
-      Icon: Wallet,
-      iconBg: "bg-amber-50 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800/80",
-      iconColor: "text-amber-600 dark:text-amber-400",
-      onClick: () => {
-        if (!isLeader && user.fundDebt > 0 && bankInfo.accountNumber && !user.isFundPaid) {
-          setShowQrModal(true);
-        } else {
-          onNavigate && onNavigate("fund");
-        }
-      },
-    },
-    {
-      id: "chat",
-      label: "Phòng chat",
-      Icon: MessageSquare,
-      iconBg: "bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/80",
-      iconColor: "text-blue-600 dark:text-blue-400",
-      onClick: () => onNavigate && onNavigate("chat"),
-    },
-    {
-      id: "members",
-      label: "Thành viên",
-      Icon: Users2,
-      iconBg: "bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80",
-      iconColor: "text-indigo-600 dark:text-indigo-400",
-      onClick: () => setShowTeamManagerModal(true),
-    },
-    ...(onOpenPro
-      ? [
-          {
-            id: "friendly",
-            label: "Tìm Đối",
-            Icon: Flame,
-            iconBg: "bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-800/80",
-            iconColor: "text-rose-600 dark:text-rose-400",
-            onClick: () => onOpenPro("board"),
-          },
-          {
-            id: "stars",
-            label: "Ngôi sao MOTM",
-            Icon: Trophy,
-            iconBg: "bg-yellow-50 dark:bg-yellow-950/60 border border-yellow-200/80 dark:border-yellow-800/80",
-            iconColor: "text-yellow-600 dark:text-yellow-400",
-            onClick: () => onOpenPro("stars"),
-          },
-        ]
-      : []),
-    {
-      id: "governance",
-      label: "Nội quy & phạt",
-      Icon: Shield,
-      iconBg: "bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80",
-      iconColor: "text-purple-600 dark:text-purple-400",
-      onClick: () => onNavigate && onNavigate("governance"),
-    },
-    {
-      id: "invite",
-      label: "Mời vào đội",
-      Icon: QrCode,
-      iconBg: "bg-pink-50 dark:bg-pink-950/60 border border-pink-200/80 dark:border-pink-800/80",
-      iconColor: "text-pink-600 dark:text-pink-400",
-      onClick: openInvite,
-    },
-    ...(onOpenPoster || onOpenPro
-      ? [
-          {
-            id: "poster",
-            label: "Poster trận",
-            Icon: Sparkles,
-            iconBg: "bg-orange-50 dark:bg-orange-950/60 border border-orange-200/80 dark:border-orange-800/80",
-            iconColor: "text-orange-600 dark:text-orange-400",
-            onClick: () => {
-              if (onOpenPoster) onOpenPoster();
-              else if (onOpenPro) onOpenPro("media");
+  const DEFAULT_ACTION_IDS = ["attendance", "lineup", "fund", "chat"];
+  const [showCustomizeShortcuts, setShowCustomizeShortcuts] = useState(false);
+  const [expandAllShortcuts, setExpandAllShortcuts] = useState(false);
+
+  const quickActionsStorageKey = `no_offside_quick_actions_${user?.id || "anon"}_${teamSettings?.id || "default"}`;
+
+  const [selectedActionIds, setSelectedActionIds] = useState(() => {
+    const local = readStored(quickActionsStorageKey, null);
+    if (Array.isArray(local) && local.length > 0) return local;
+    const remote = user?.user_metadata?.quick_actions?.[teamSettings?.id];
+    if (Array.isArray(remote) && remote.length > 0) return remote;
+    return DEFAULT_ACTION_IDS;
+  });
+
+  const handleUpdateActionIds = (newIds) => {
+    setSelectedActionIds(newIds);
+    writeStored(quickActionsStorageKey, newIds);
+    if (supabase && user && !demoSession) {
+      try {
+        const meta = user.user_metadata || {};
+        const currentActionsMap = meta.quick_actions || {};
+        supabase.auth
+          .updateUser({
+            data: {
+              quick_actions: {
+                ...currentActionsMap,
+                [teamSettings?.id]: newIds,
+              },
             },
-          },
-        ]
-      : []),
-    ...(isLeader
-      ? [
-          {
-            id: "create-match",
-            label: "Tạo trận",
-            Icon: PlusCircle,
-            iconBg: "bg-emerald-600 text-white shadow-emerald-600/25 border border-emerald-500",
-            iconColor: "text-white",
-            onClick: () => openMatchEditor(false),
-          },
-        ]
-      : []),
-  ];
+          })
+          .catch((err) => console.warn("Sync quick actions error:", err));
+      } catch (err) {
+        console.warn("Supabase user update error:", err);
+      }
+    }
+  };
+
+  const handleResetDefaultShortcuts = () => {
+    handleUpdateActionIds(DEFAULT_ACTION_IDS);
+  };
+
+  const handleMoveUp = (index) => {
+    if (index <= 0) return;
+    const next = [...selectedActionIds];
+    const temp = next[index];
+    next[index] = next[index - 1];
+    next[index - 1] = temp;
+    handleUpdateActionIds(next);
+  };
+
+  const handleMoveDown = (index) => {
+    if (index >= selectedActionIds.length - 1) return;
+    const next = [...selectedActionIds];
+    const temp = next[index];
+    next[index] = next[index + 1];
+    next[index + 1] = temp;
+    handleUpdateActionIds(next);
+  };
+
+  const handleRemoveShortcut = (id) => {
+    handleUpdateActionIds(selectedActionIds.filter((item) => item !== id));
+  };
+
+  const handleAddShortcut = (id) => {
+    if (!selectedActionIds.includes(id)) {
+      handleUpdateActionIds([...selectedActionIds, id]);
+    }
+  };
+
+  // Danh mục tất cả tiện ích thực sự hoạt động trong hệ thống
+  const allCatalogActions = useMemo(() => {
+    return [
+      {
+        id: "attendance",
+        label: "Điểm danh",
+        description: "Điểm danh và xem danh sách có mặt",
+        Icon: UserCheck,
+        iconBg:
+          "bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80",
+        iconColor: "text-emerald-600 dark:text-emerald-400",
+        onClick: () => {
+          if (isLeader) {
+            setShowAttendanceModal(true);
+          } else {
+            const el = document.getElementById("match-attendance");
+            if (el) {
+              el.scrollIntoView({ block: "center", behavior: "smooth" });
+            } else {
+              setShowAttendanceModal(true);
+            }
+          }
+        },
+      },
+      {
+        id: "lineup",
+        label: "Sa bàn Pro",
+        description: "Sơ đồ chiến thuật và đội hình",
+        Icon: Network,
+        iconBg:
+          "bg-teal-50 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-800/80",
+        iconColor: "text-teal-600 dark:text-teal-400",
+        onClick: () => onNavigate && onNavigate("lineup"),
+      },
+      {
+        id: "fund",
+        label: isLeader ? "Sổ quỹ" : "Đóng quỹ",
+        description: "Quản lý thu chi và đóng quỹ đội",
+        Icon: Wallet,
+        iconBg:
+          "bg-amber-50 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800/80",
+        iconColor: "text-amber-600 dark:text-amber-400",
+        onClick: () => {
+          if (
+            !isLeader &&
+            user.fundDebt > 0 &&
+            bankInfo.accountNumber &&
+            !user.isFundPaid
+          ) {
+            setShowQrModal(true);
+          } else {
+            onNavigate && onNavigate("fund");
+          }
+        },
+      },
+      {
+        id: "chat",
+        label: "Phòng chat",
+        description: "Trao đổi tin nhắn nội bộ đội",
+        Icon: MessageSquare,
+        iconBg:
+          "bg-blue-50 dark:bg-blue-950/60 border border-blue-200/80 dark:border-blue-800/80",
+        iconColor: "text-blue-600 dark:text-blue-400",
+        onClick: () => onNavigate && onNavigate("chat"),
+      },
+      ...(onOpenPro
+        ? [
+            {
+              id: "friendly",
+              label: "Cáp kèo",
+              description: "Sàn giao lưu cáp kèo đối thủ",
+              Icon: Swords,
+              iconBg:
+                "bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-800/80",
+              iconColor: "text-rose-600 dark:text-rose-400",
+              onClick: () => onOpenPro("board"),
+            },
+            {
+              id: "hiep3",
+              label: "Hiệp 3",
+              description: "Chia bill và chi tiêu sau trận",
+              Icon: Beer,
+              iconBg:
+                "bg-violet-50 dark:bg-violet-950/60 border border-violet-200/80 dark:border-violet-800/80",
+              iconColor: "text-violet-600 dark:text-violet-400",
+              onClick: () => onOpenPro("finance"),
+            },
+            {
+              id: "stars",
+              label: "Ngôi sao MOTM",
+              description: "Bình chọn cầu thủ xuất sắc nhất",
+              Icon: Trophy,
+              iconBg:
+                "bg-yellow-50 dark:bg-yellow-950/60 border border-yellow-200/80 dark:border-yellow-800/80",
+              iconColor: "text-yellow-600 dark:text-yellow-400",
+              onClick: () => onOpenPro("stars"),
+            },
+          ]
+        : []),
+      {
+        id: "members",
+        label: "Thành viên",
+        description: "Danh sách cầu thủ trong đội",
+        Icon: Users2,
+        iconBg:
+          "bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80",
+        iconColor: "text-indigo-600 dark:text-indigo-400",
+        onClick: () => setShowTeamManagerModal(true),
+      },
+      {
+        id: "governance",
+        label: "Nội quy & phạt",
+        description: "Quy chế & xử lý kỷ luật đội",
+        Icon: Shield,
+        iconBg:
+          "bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80",
+        iconColor: "text-purple-600 dark:text-purple-400",
+        onClick: () => onNavigate && onNavigate("governance"),
+      },
+      {
+        id: "invite",
+        label: "Mời vào đội",
+        description: "Tạo link & mã QR mời thành viên",
+        Icon: QrCode,
+        iconBg:
+          "bg-pink-50 dark:bg-pink-950/60 border border-pink-200/80 dark:border-pink-800/80",
+        iconColor: "text-pink-600 dark:text-pink-400",
+        onClick: openInvite,
+      },
+      ...(onOpenPoster || onOpenPro
+        ? [
+            {
+              id: "poster",
+              label: "Poster trận",
+              description: "Tạo poster trận đấu và chia sẻ",
+              Icon: Clapperboard,
+              iconBg:
+                "bg-orange-50 dark:bg-orange-950/60 border border-orange-200/80 dark:border-orange-800/80",
+              iconColor: "text-orange-600 dark:text-orange-400",
+              onClick: () => {
+                if (onOpenPoster) onOpenPoster();
+                else if (onOpenPro) onOpenPro("media");
+              },
+            },
+          ]
+        : []),
+      ...(isLeader
+        ? [
+            {
+              id: "create-match",
+              label: "Tạo trận",
+              description: "Lên lịch trận đấu mới cho đội",
+              Icon: PlusCircle,
+              iconBg:
+                "bg-emerald-600 text-white shadow-emerald-600/25 border border-emerald-500",
+              iconColor: "text-white",
+              onClick: () => openMatchEditor(false),
+            },
+          ]
+        : []),
+    ];
+  }, [
+    isLeader,
+    onNavigate,
+    onOpenPro,
+    onOpenPoster,
+    user.fundDebt,
+    bankInfo.accountNumber,
+    user.isFundPaid,
+  ]);
+
+  // Lọc chỉ giữ lại những shortcut mà user có quyền thực tế
+  const validActiveActions = useMemo(() => {
+    const catalogMap = new Map(allCatalogActions.map((a) => [a.id, a]));
+    const actions = selectedActionIds
+      .map((id) => catalogMap.get(id))
+      .filter(Boolean);
+    return actions.length > 0 ? actions : allCatalogActions.slice(0, 4);
+  }, [selectedActionIds, allCatalogActions]);
+
+  const displayedActions = expandAllShortcuts
+    ? validActiveActions
+    : validActiveActions.slice(0, 4);
 
   return (
     <div className="dashboard-page relative bg-slate-50 text-gray-900 font-sans antialiased">
@@ -867,13 +1021,20 @@ export default function PlayerDashboard({
                 Thao tác nhanh
               </h2>
             </div>
-            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-              Lối tắt tiện ích
-            </span>
+            <button
+              id="btn-customize-quick-actions"
+              type="button"
+              onClick={() => setShowCustomizeShortcuts(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 px-2.5 py-1 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200/50 dark:border-emerald-800/50 transition-colors cursor-pointer outline-none"
+              aria-label="Tùy chỉnh thao tác nhanh"
+            >
+              <Sliders size={14} className="w-3.5 h-3.5" />
+              <span>Tùy chỉnh</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-4 gap-y-3.5 gap-x-2 sm:gap-x-3">
-            {quickActionsList.map((item) => (
+            {displayedActions.map((item) => (
               <Pressable
                 key={item.id}
                 type="button"
@@ -891,6 +1052,27 @@ export default function PlayerDashboard({
               </Pressable>
             ))}
           </div>
+
+          {validActiveActions.length > 4 && (
+            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 text-center">
+              <Pressable
+                type="button"
+                onClick={() => setExpandAllShortcuts((prev) => !prev)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 py-1 px-3 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <span>
+                  {expandAllShortcuts
+                    ? "Thu gọn"
+                    : `Xem tất cả (${validActiveActions.length})`}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${
+                    expandAllShortcuts ? "rotate-180" : ""
+                  }`}
+                />
+              </Pressable>
+            </div>
+          )}
         </section>
         {/* CARD 2: TÀI CHÍNH & QUỸ ĐỘI PREVIEW */}
         <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
@@ -1302,26 +1484,57 @@ export default function PlayerDashboard({
           </motion.section>
         )}
 
-        <details className="secondary-summary">
-          <summary>
-            <span>Thống kê cá nhân</span>
-            <span className="text-xs text-slate-500">Xem thêm</span>
-          </summary>
-          <dl className="grid grid-cols-3 gap-3 pt-4">
-            <div>
-              <dt>Số trận</dt>
-              <dd>{user.stats.matches}</dd>
+        {Boolean(
+          user?.stats &&
+            (Number(user.stats.matches) > 0 ||
+              Number(user.stats.goals) > 0 ||
+              Number(user.stats.assists) > 0),
+        ) ? (
+          <section className="secondary-summary p-4 rounded-[24px]">
+            <div className="flex items-center justify-between mb-2.5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Thống kê cá nhân
+              </h2>
+              <Pressable
+                onClick={() => onNavigate && onNavigate("profile")}
+                className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+              >
+                Xem chi tiết
+              </Pressable>
             </div>
-            <div>
-              <dt>Bàn thắng</dt>
-              <dd>{user.stats.goals}</dd>
+            <dl className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+              <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Số trận</dt>
+                <dd className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                  {user.stats.matches}
+                </dd>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Bàn thắng</dt>
+                <dd className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  {user.stats.goals}
+                </dd>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <dt className="text-xs text-slate-500 dark:text-slate-400">Kiến tạo</dt>
+                <dd className="text-lg sm:text-xl font-bold text-teal-600 dark:text-teal-400 mt-0.5">
+                  {user.stats.assists}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        ) : (
+          <section className="secondary-summary p-4 rounded-[24px]">
+            <div className="flex items-center justify-between mb-1.5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Thống kê cá nhân
+              </h2>
             </div>
-            <div>
-              <dt>Kiến tạo</dt>
-              <dd>{user.stats.assists}</dd>
-            </div>
-          </dl>
-        </details>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Chưa có chỉ số thi đấu mùa này. Thành tích sẽ được ghi nhận sau các trận đấu.
+            </p>
+          </section>
+        )}
       </div>
 
       {/* =========================================================
@@ -1845,6 +2058,182 @@ export default function PlayerDashboard({
         currentUserRole={currentUserRole}
         teamName={teamSettings?.teamName || user?.teamName || "No Offside FC"}
       />
+
+      {/* MODAL TÙY CHỈNH THAO TÁC NHANH */}
+      {showCustomizeShortcuts && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tùy chỉnh thao tác nhanh"
+          className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-[32px] sm:rounded-[32px] p-5 max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-bottom duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
+                  Tùy chỉnh thao tác nhanh
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Thêm, ẩn và sắp xếp các lối tắt trên Dashboard
+                </p>
+              </div>
+              <button
+                id="btn-close-customize-modal"
+                type="button"
+                aria-label="Đóng tùy chỉnh"
+                onClick={() => setShowCustomizeShortcuts(false)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 active:scale-95 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+              {/* Lối tắt đang hiển thị */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Đang hiển thị ({validActiveActions.length})
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    Mặc định hiển thị tối đa 4 ô
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {validActiveActions.map((action, idx) => (
+                    <div
+                      key={action.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 gap-2"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-5 text-center text-xs font-bold text-slate-400 shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${action.iconBg}`}
+                        >
+                          <action.Icon className={`w-4 h-4 ${action.iconColor}`} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {action.label}
+                          </span>
+                          <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            {action.description}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveUp(idx)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                          title="Chuyển lên"
+                          aria-label="Chuyển lên"
+                        >
+                          <ArrowDown className="w-4 h-4 rotate-180" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === validActiveActions.length - 1}
+                          onClick={() => handleMoveDown(idx)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                          title="Chuyển xuống"
+                          aria-label="Chuyển xuống"
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveShortcut(action.id)}
+                          className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors ml-0.5 cursor-pointer"
+                          title="Ẩn khỏi Dashboard"
+                          aria-label="Ẩn khỏi Dashboard"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tiện ích khả dụng để thêm */}
+              {allCatalogActions.filter(
+                (a) => !selectedActionIds.includes(a.id),
+              ).length > 0 && (
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
+                    Tiện ích khác có thể thêm
+                  </span>
+                  <div className="space-y-1.5">
+                    {allCatalogActions
+                      .filter((a) => !selectedActionIds.includes(a.id))
+                      .map((action) => (
+                        <div
+                          key={action.id}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 gap-2"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${action.iconBg}`}
+                            >
+                              <action.Icon
+                                className={`w-4 h-4 ${action.iconColor}`}
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="block text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                                {action.label}
+                              </span>
+                              <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                {action.description}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAddShortcut(action.id)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Thêm</span>
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+              <button
+                id="btn-reset-default-shortcuts"
+                type="button"
+                onClick={handleResetDefaultShortcuts}
+                className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 underline cursor-pointer"
+              >
+                Khôi phục mặc định
+              </button>
+              <button
+                id="btn-done-customize-shortcuts"
+                type="button"
+                onClick={() => setShowCustomizeShortcuts(false)}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
+              >
+                Hoàn tất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

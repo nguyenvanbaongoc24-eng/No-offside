@@ -231,9 +231,9 @@ html[data-theme="dark"] .match-card-header {
   color: #ffffff !important;
 }
 
-/* Nội dung cuối trang cuộn trên navigation */
+/* Nội dung cuối thẻ dashboard trước BXH ProDashboard */
 .dashboard-card-flow {
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: 0;
 }
 
 

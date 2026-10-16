@@ -364,8 +364,14 @@ export default function Governance({ governance, onBack }) {
                               rejected: "Từ chối",
                             }[decision?.data.status || e.data.status]
                           }
+                          {decision?.data?.self_approved && (
+                            <span className="ml-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                              (Chủ FC tự duyệt)
+                            </span>
+                          )}
                         </p>
-                        {e.subject !== snapshot.me.user_id &&
+                        {(e.subject !== snapshot.me.user_id ||
+                          snapshot.me.role === "owner") &&
                           !decision &&
                           e.data.status === "pending" && (
                             <Pressable
@@ -376,13 +382,20 @@ export default function Governance({ governance, onBack }) {
                                   {
                                     requestId: e.id,
                                     status: "approved",
-                                    reason: "",
+                                    reason:
+                                      e.subject === snapshot.me.user_id
+                                        ? "Chủ FC tự duyệt"
+                                        : "",
                                   },
-                                  "Duyệt xin muộn",
+                                  e.subject === snapshot.me.user_id
+                                    ? "Tự duyệt xin muộn"
+                                    : "Duyệt xin muộn",
                                 )
                               }
                             >
-                              Duyệt yêu cầu
+                              {e.subject === snapshot.me.user_id
+                                ? "Tự duyệt yêu cầu"
+                                : "Duyệt yêu cầu"}
                             </Pressable>
                           )}
                       </article>

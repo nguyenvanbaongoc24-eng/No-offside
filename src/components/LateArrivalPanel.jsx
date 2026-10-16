@@ -108,6 +108,33 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
     }
   };
 
+  const isOwner = snapshot?.me?.role === "owner";
+
+  const handleOwnerSelfApprove = async () => {
+    if (busy || !request) return;
+    const ok = window.confirm(
+      "Xác nhận tự duyệt yêu cầu đến muộn của bạn với tư cách Chủ FC?"
+    );
+    if (!ok) return;
+    setBusy(true);
+    setError("");
+    try {
+      await governance.mutate(
+        "review_late",
+        {
+          requestId: request.id,
+          status: "approved",
+          reason: "Chủ FC tự duyệt yêu cầu",
+        },
+        crypto.randomUUID()
+      );
+    } catch (err) {
+      setError("Không duyệt được: " + err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="late-arrival-section border-t border-slate-200 dark:border-slate-800 mt-4 pt-4">
       {/* Header khu vực Đến muộn */}
@@ -188,10 +215,29 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
               {request.data.reason}
             </p>
           )}
-          {decision?.data.reason && (
+          {decision?.data && (
             <p className="text-slate-500 dark:text-slate-400 text-[11px] italic">
-              Phản hồi: {decision.data.reason}
+              {decision.data.reason && <span>Phản hồi: {decision.data.reason} </span>}
+              {decision.data.self_approved && (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold not-italic">
+                  (Chủ FC tự duyệt)
+                </span>
+              )}
             </p>
+          )}
+          {isOwner && status === "pending" && !decision && (
+            <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Quyền Chủ FC:
+              </span>
+              <Pressable
+                className="choice-button px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer"
+                disabled={busy}
+                onClick={handleOwnerSelfApprove}
+              >
+                {busy ? "Đang xử lý…" : "Duyệt yêu cầu"}
+              </Pressable>
+            </div>
           )}
         </div>
       )}

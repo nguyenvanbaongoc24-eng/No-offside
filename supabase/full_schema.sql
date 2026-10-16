@@ -93,12 +93,12 @@ begin
    v_data := jsonb_build_object('eta',v_actual,'reason',trim(p_payload->>'reason'),'status',case when v_match.approval_required then 'pending' else 'approved' end);
  when 'review_late' then
    select * into v_request from public.no_gov_events where team_id=p_team_id and id=(p_payload->>'requestId')::uuid and action='late_request';
-   if not found or v_request.subject=v_actor then raise exception 'Cannot approve own request' using errcode='42501'; end if;
+   if not found or (v_request.subject=v_actor and v_me.role<>'owner') then raise exception 'Cannot approve own request' using errcode='42501'; end if;
    if v_request.id<>(select id from public.no_gov_events where team_id=p_team_id and subject=v_request.subject and match_id=v_request.match_id and action='late_request' order by created_at desc,seq desc limit 1) then raise exception 'Request replaced'; end if;
    if p_payload->>'status' not in ('approved','rejected') or length(trim(coalesce(p_payload->>'reason','')))<3 then raise exception 'Decision and reason required'; end if;
    if exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_request.subject and match_id=v_request.match_id and action='violation') then raise exception 'Record finalized'; end if;
    v_subject:=v_request.subject; v_match_id:=v_request.match_id;
-   v_data:=jsonb_build_object('requestId',v_request.id,'status',p_payload->>'status','reason',p_payload->>'reason','eta',v_request.data->'eta');
+   v_data:=jsonb_build_object('requestId',v_request.id,'status',p_payload->>'status','reason',p_payload->>'reason','eta',v_request.data->'eta','self_approved',(v_request.subject=v_actor));
  when 'arrival' then
    if v_subject=v_actor then raise exception 'Another leader must confirm your arrival' using errcode='42501'; end if;
    if exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_subject and match_id=v_match_id and action='arrival') then raise exception 'Arrival already recorded; append adjustment'; end if;

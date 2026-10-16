@@ -570,11 +570,21 @@
   display: grid;
   place-items: center;
 }
+.pro-dashboard {
+  margin: 16px 16px calc(88px + env(safe-area-inset-bottom, 0px)) 16px;
+}
+.pro-empty-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
 .pro-podium {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  min-height: 160px;
 }
 .pro-podium > div {
   display: flex;

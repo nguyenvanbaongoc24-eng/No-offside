@@ -50,15 +50,38 @@ export default function ProDashboard({
     setVote(null);
     setError("");
   };
+
+  const hasRankingData = ranking.some((m) => m.stats.matches > 0);
+
   return (
     <section className="pro-panel pro-dashboard">
       <div className="pro-toolbar">
-        <h2>{leader ? "BXH nội bộ" : "No Offside Pro"}</h2>
-        <Pressable className="text-action" onClick={() => onOpen("stars")}>
-          Xem thêm
-        </Pressable>
+        <h2>BXH nội bộ</h2>
+        {hasRankingData && (
+          <Pressable className="text-action" onClick={() => onOpen("stars")}>
+            Xem tất cả
+          </Pressable>
+        )}
       </div>
-      {leader && (
+
+      {pro.loading ? (
+        <div className="py-4 text-center text-xs text-slate-500">
+          Đang tải bảng xếp hạng…
+        </div>
+      ) : pro.error ? (
+        <div className="py-4 text-center text-xs text-rose-500">
+          {pro.error}
+        </div>
+      ) : !hasRankingData ? (
+        <div className="pro-empty-card py-4 px-2 text-center space-y-1">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+            Chưa có dữ liệu xếp hạng.
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Bảng xếp hạng sẽ xuất hiện khi có thành tích trận đấu.
+          </p>
+        </div>
+      ) : (
         <div className="pro-podium">
           {ranking
             .filter((m) => m.stats.matches > 0)
@@ -71,33 +94,8 @@ export default function ProDashboard({
                 <span>{m.stats.goals} bàn</span>
               </div>
             ))}
-          {!ranking.some((m) => m.stats.matches > 0) && (
-            <p className="pro-empty">
-              {pro.loading
-                ? "Đang tải BXH…"
-                : pro.error
-                  ? "Chưa tải được BXH."
-                  : "Chưa có thống kê trận để xếp hạng."}
-            </p>
-          )}
         </div>
       )}
-      <div className="pro-shortcuts">
-        {[
-          ["board", "Tìm Đối", Swords],
-          ["finance", "Sinh Tố Lúa Mạch", Beer],
-          ["media", "Poster", Clapperboard],
-        ].map(([id, label, Icon]) => (
-          <Pressable key={id} onClick={() => onOpen(id)}>
-            <Icon size={19} />
-            {label}
-          </Pressable>
-        ))}
-        <Pressable onClick={onLineup}>
-          <Network size={19} />
-          Chiến Thuật Pro
-        </Pressable>
-      </div>
       <ProModal
         open={!!vote}
         title="Ai là MOTM của trận?"

@@ -175,18 +175,35 @@ test("members cannot edit rules, approve lateness, finalize violations or unlock
   ])
     await assert.rejects(rpc(team, action, data), /Leader required/);
 });
-test("even owner cannot approve own lateness or sanction self; admin cannot sanction owner", async () => {
+test("owner can self-approve own lateness with audit trail; admin cannot approve own request; admin cannot sanction owner", async () => {
   const team = await fixture();
-  await as(owner);
-  const late = await rpc(team, "late_request", request);
+  // Admin tries to self-approve own late request -> rejects
+  await as(admin);
+  const adminLate = await rpc(team, "late_request", request);
   await assert.rejects(
     rpc(team, "review_late", {
-      requestId: late.id,
+      requestId: adminLate.id,
       status: "approved",
-      reason: "Self approval",
+      reason: "Admin self approval",
     }),
     /own request/,
   );
+  // Owner can self-approve own late request
+  await as(owner);
+  const ownerLate = await rpc(team, "late_request", request);
+  const review = await rpc(team, "review_late", {
+    requestId: ownerLate.id,
+    status: "approved",
+    reason: "Chủ đội tự duyệt",
+  });
+  assert.equal(review.data.status, "approved");
+  assert.equal(review.data.self_approved, true);
+  const snapAfter = await snapshot(team);
+  const reviewEvt = snapAfter.events.find((e) => e.id === review.id);
+  assert.ok(reviewEvt, "Review event must be recorded in team events");
+  assert.equal(reviewEvt.subject, owner);
+  assert.equal(reviewEvt.actor, owner);
+  assert.equal(reviewEvt.data.self_approved, true);
   await assert.rejects(
     rpc(team, "sanction", {
       subject: owner,

@@ -150,3 +150,128 @@ html[data-theme] .profile-detail-content form>button[type=submit]{border-radius:
 .late-arrival-sheet input[type="time"]::-webkit-datetime-edit{display:flex;align-items:center;padding:0}
 .late-arrival-sheet input[aria-invalid="true"]{border-color:var(--danger,#dc2626)}
 html[data-theme="dark"] .late-arrival-sheet input[type="time"]{background:#0f172a;border-color:#475569;color:#f1f5f9}
+
+/* STADIUM PITCH HERO CARD & DASHBOARD PITCH AESTHETICS */
+.pitch-hero-card,
+html[data-theme] .pitch-hero-card,
+.large-match-content > section.pitch-hero-card {
+  position: relative !important;
+  background: 
+    radial-gradient(circle at 85% 15%, rgba(52, 211, 153, 0.28) 0%, transparent 55%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0px, rgba(255, 255, 255, 0.035) 28px, transparent 28px, transparent 56px),
+    linear-gradient(145deg, #064e3b 0%, #065f46 40%, #047857 72%, #022c22 100%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+  border-radius: 28px !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 36px -10px rgba(6, 78, 59, 0.45), 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+}
+
+.pitch-hero-card::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 170px;
+  height: 170px;
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.pitch-hero-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.3), transparent);
+  pointer-events: none;
+}
+
+/* ATTENDANCE VOTING CONTROL */
+.pitch-attendance-control {
+  background: rgba(0, 0, 0, 0.28) !important;
+  border: 1px solid rgba(52, 211, 153, 0.25) !important;
+  border-radius: 22px !important;
+  padding: 14px !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.pitch-vote-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 50px !important;
+  min-height: 50px !important;
+  border-radius: 16px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+}
+
+.pitch-vote-btn.pitch-vote-attending {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+}
+
+.pitch-vote-btn.pitch-vote-attending:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.25) !important;
+  border-color: rgba(52, 211, 153, 0.5) !important;
+}
+
+.pitch-vote-btn.pitch-vote-attending[aria-pressed="true"],
+.pitch-vote-btn.pitch-vote-attending.is-selected {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #34d399 !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+.pitch-vote-btn.pitch-vote-absent {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+}
+
+.pitch-vote-btn.pitch-vote-absent:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.22) !important;
+  border-color: rgba(251, 113, 133, 0.5) !important;
+}
+
+.pitch-vote-btn.pitch-vote-absent[aria-pressed="true"],
+.pitch-vote-btn.pitch-vote-absent.is-selected {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #fb7185 !important;
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+.pitch-vote-btn:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(0.2) !important;
+}
+
+/* SCOREBOARD COUNTDOWN BANNER */
+.pitch-scoreboard-banner {
+  background: rgba(0, 0, 0, 0.32) !important;
+  border: 1px solid rgba(52, 211, 153, 0.25) !important;
+  border-radius: 18px !important;
+  color: #ffffff !important;
+}
+
+/* ROSTER SUMMARY & PROGRESS IN PITCH CARD */
+.pitch-roster-summary {
+  background: rgba(0, 0, 0, 0.22) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 18px !important;
+}

@@ -574,6 +574,7 @@ function Application({ onRetryStartup }) {
               />
             ) : (
               <PlayerDashboard
+                onOpenPro={openPro}
                 onOpenPoster={()=>openPro('media')}
                 {...shared}
                 {...fundProps}

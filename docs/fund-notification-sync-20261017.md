@@ -30,11 +30,19 @@ Giữ scheduler cũ và khóa/unique theo kỳ. Test chạy bù 4 tháng từ ng
 - npm test: 230/230 đạt. Test PostgreSQL PGlite kiểm tra pending/reject/resubmit/duyệt lặp, đúng số dư, cài đặt qua hai user, RLS signal tự thân, unread bền vững, attendance + late độc lập và phát signal, chạy bù scheduler, đối soát phạt qua luồng cũ rồi hủy.
 - npm run build: đạt, sinh PWA. Còn cảnh báo bundle chính >500 kB; không thêm dependency.
 - Hai tab cục bộ, hai account scope riêng, UI thật → API sync thật → RPC/RLS PostgreSQL dùng một lần: tạo đợt 12.500.000đ cho thành viên, báo 50.000đ vẫn giữ số dư 0; từ chối có lý do → thành viên thấy và gửi lại; chủ đội duyệt → số dư 50.000đ và còn thiếu 12.450.000đ. Không reload hai tab để nhận thay đổi. Ranh giới Auth của fixture được mock; đây không phải hai phiên Supabase Auth production.
-- Fixture dùng polling dự phòng, nên kết quả trên không được dùng để kết luận WebSocket Supabase thực tế đã đi hết đường truyền. Test helper riêng xác minh nhận INSERT, SUBSCRIBED, online/foreground và cleanup; DB production xác nhận trigger/publication/RLS. Chờ kết quả hai phiên đăng nhập thật FC 37 để chốt kiểm chứng realtime đầu-cuối.
-- Đã đo Light/Dark, chữ lớn tại 320/360/390/430 và desktop 1200px: scrollWidth không vượt viewport; tiền dài còn đầy đủ. Preview là DB dùng một lần. Không ghi giao dịch kiểm thử vào production.
+- Fixture dùng polling dự phòng, nên kết quả cục bộ không được dùng để kết luận WebSocket Supabase thực tế đã đi hết đường truyền. Test helper riêng xác minh nhận INSERT, SUBSCRIBED, online/foreground và cleanup; DB production xác nhận trigger/publication/RLS.
+- Đã đăng nhập thật hai tài khoản được chỉ định của FC 37 trên hai origin độc lập, cùng bản 5747e0e (production và URL deployment). Tạo lịch có nhãn `[Kiểm thử đồng bộ 17/10]`, địa điểm ghi rõ không thi đấu, mức phạt bằng 0. Thành viên điểm danh Có mặt; chủ đội thấy 1/2 sau khoảng 4 giây, không reload. Yêu cầu đến muộn 19:45 được lưu; chủ đội nhận thông báo đúng tên, số áo, trận, giờ và lý do, mở đúng danh sách điểm danh. Lịch kiểm thử và yêu cầu vẫn được giữ để đối chiếu, không xóa lịch sử.
+- Quỹ production: tạo đợt kiểm thử 1.000đ chỉ cho thành viên test, tiêu đề/ghi chú ghi rõ không thu tiền thật. Thành viên báo 500đ: có xác nhận, loading, toast, trạng thái Chờ Thủ quỹ duyệt và khóa gửi lại. Chủ đội thấy đúng người/đợt/ghi chú sau khoảng 6 giây; số dư vẫn 0đ. Từ chối kèm lý do được chuyển về thành viên và nút gửi lại hoạt động. Sau kiểm thử đã hủy toàn bộ phần chưa thu: Còn phải thu 0đ, số dư 0đ, không có giao dịch thu/chi; lịch sử đợt/yêu cầu còn nguyên. Không bấm duyệt nhận tiền thật; bước duyệt và trả thiếu được kiểm chứng bằng DB dùng một lần ở trên.
+- Cài đặt production: bật tạm Quỹ và đối soát trên phiên thành viên, đăng xuất chủ đội và đăng nhập cùng thành viên ở origin production độc lập; DB trả đúng lựa chọn đã bật. Khôi phục lựa chọn về tắt sau kiểm thử. Không xin thêm quyền push trình duyệt hoặc thay đổi subscription iPhone.
+- Kết quả trên xác minh dữ liệu thật đi qua hai phiên Auth → API → database → giao diện nhận, không reload. Khoảng đo không cô lập timer dự phòng, nên chưa khẳng định riêng transport WebSocket; chưa kiểm chứng mất mạng/reconnect thật.
+- Đã đo Light/Dark, chữ lớn tại 320/360/390/430 và desktop 1200px: scrollWidth không vượt viewport; tiền dài còn đầy đủ. Preview Light/Dark là DB dùng một lần; ảnh phiên thật ghi riêng bên dưới.
 - Chưa kiểm chứng Safari iOS/Android, bàn phím vật lý, mất mạng/reconnect thực tế hoặc push mới trên thiết bị thật trong đợt này. Lỗi API thử nghiệm được kiểm tra không phát trạng thái thành công.
 
 ## Preview
 
 ![Light](images/fund-oct17-light.png)
 ![Dark](images/fund-oct17-dark.png)
+
+Phiên thành viên production nhận lý do từ chối (dữ liệu kiểm thử có nhãn rõ):
+
+![Phiên thật](images/fund-oct17-real-member.png)

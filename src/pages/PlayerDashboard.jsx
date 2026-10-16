@@ -297,6 +297,98 @@ export default function PlayerDashboard({
   const isAdmin = currentUserRole === "admin";
   const isLeader = isOwner || isAdmin;
 
+  const quickActionsList = [
+    {
+      id: "attendance",
+      label: "Điểm danh",
+      Icon: UserCheck,
+      iconBg: "bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
+      onClick: () => {
+        if (isLeader) {
+          setShowAttendanceModal(true);
+        } else {
+          const el = document.getElementById("match-attendance");
+          if (el) {
+            el.scrollIntoView({ block: "center", behavior: "smooth" });
+          } else {
+            setShowAttendanceModal(true);
+          }
+        }
+      },
+    },
+    {
+      id: "lineup",
+      label: "Chiến thuật",
+      Icon: Network,
+      iconBg: "bg-teal-50 dark:bg-teal-950/60 border border-teal-200/80 dark:border-teal-800/80",
+      iconColor: "text-teal-600 dark:text-teal-400",
+      onClick: () => onNavigate && onNavigate("lineup"),
+    },
+    {
+      id: "fund",
+      label: isLeader ? "Sổ quỹ" : "Đóng quỹ",
+      Icon: Wallet,
+      iconBg: "bg-amber-50 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800/80",
+      iconColor: "text-amber-600 dark:text-amber-400",
+      onClick: () => {
+        if (!isLeader && user.fundDebt > 0 && bankInfo.accountNumber && !user.isFundPaid) {
+          setShowQrModal(true);
+        } else {
+          onNavigate && onNavigate("fund");
+        }
+      },
+    },
+    {
+      id: "members",
+      label: "Thành viên",
+      Icon: Users2,
+      iconBg: "bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80",
+      iconColor: "text-indigo-600 dark:text-indigo-400",
+      onClick: () => setShowTeamManagerModal(true),
+    },
+    {
+      id: "governance",
+      label: "Nội quy & phạt",
+      Icon: Shield,
+      iconBg: "bg-purple-50 dark:bg-purple-950/60 border border-purple-200/80 dark:border-purple-800/80",
+      iconColor: "text-purple-600 dark:text-purple-400",
+      onClick: () => onNavigate && onNavigate("governance"),
+    },
+    {
+      id: "invite",
+      label: "Mời vào đội",
+      Icon: QrCode,
+      iconBg: "bg-rose-50 dark:bg-rose-950/60 border border-rose-200/80 dark:border-rose-800/80",
+      iconColor: "text-rose-600 dark:text-rose-400",
+      onClick: openInvite,
+    },
+    ...(onOpenPoster
+      ? [
+          {
+            id: "poster",
+            label: "Poster trận",
+            Icon: Sparkles,
+            iconBg: "bg-orange-50 dark:bg-orange-950/60 border border-orange-200/80 dark:border-orange-800/80",
+            iconColor: "text-orange-600 dark:text-orange-400",
+            onClick: onOpenPoster,
+          },
+        ]
+      : []),
+    ...(isLeader
+      ? [
+          {
+            id: "create-match",
+            label: "Tạo trận",
+            Icon: PlusCircle,
+            iconBg: "bg-emerald-600 text-white shadow-emerald-600/25",
+            iconColor: "text-white",
+            onClick: () => openMatchEditor(false),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="dashboard-page relative bg-slate-50 text-gray-900 font-sans antialiased">
       {/* =========================================================
@@ -325,14 +417,6 @@ export default function PlayerDashboard({
         </Pressable>
       )}
 
-      <div className="px-4 pt-3">
-        <Pressable
-          className="choice-button text-sm"
-          onClick={() => onNavigate("governance")}
-        >
-          Nội quy & vi phạm
-        </Pressable>
-      </div>
       <MatchList
         matches={matches}
         timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}
@@ -495,16 +579,6 @@ export default function PlayerDashboard({
                       title={`Có mặt (${roster.attending.length})`}
                     ></div>
                     <div
-                      className="bg-amber-400 h-full transition-all"
-                      style={{
-                        width:
-                          (roster.maybe.length / Math.max(1, rosterCount)) *
-                            100 +
-                          "%",
-                      }}
-                      title={`Chưa chắc (${roster.maybe.length})`}
-                    ></div>
-                    <div
                       className="bg-rose-400 h-full transition-all"
                       style={{
                         width:
@@ -518,47 +592,41 @@ export default function PlayerDashboard({
                       className="bg-gray-400 h-full transition-all"
                       style={{
                         width:
-                          (roster.unvoted.length / Math.max(1, rosterCount)) *
+                          ((roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)) /
+                            Math.max(1, rosterCount)) *
                             100 +
                           "%",
                       }}
-                      title={`Chưa điểm danh (${roster.unvoted.length})`}
+                      title={`Chưa điểm danh (${roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)})`}
                     ></div>
                   </div>
 
                   <div className="flex justify-between text-xs font-bold text-gray-600">
                     <span className="text-emerald-700">
-                      {" "}
                       Có mặt: {roster.attending.length}
                     </span>
-                    <span className="text-amber-600">
-                      {" "}
-                      Chưa chắc: {roster.maybe.length}
-                    </span>
                     <span className="text-rose-600">
-                      {" "}
                       Vắng: {roster.absent.length}
                     </span>
                     <span className="text-gray-500">
-                      {" "}
-                      Chưa: {roster.unvoted.length}
+                      Chưa điểm danh: {roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)}
                     </span>
                   </div>
                 </div>
 
-                {/* Nút mở Modal 4 Tab Điểm Danh */}
+                {/* Nút mở Modal Danh Sách Điểm Danh */}
                 <Pressable
                   onClick={() => setShowAttendanceModal(true)}
                   className="w-full py-2.5 rounded-full bg-gray-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all duration-200 cursor-pointer"
                 >
                   <Users2 className="w-3.5 h-3.5 text-emerald-400" />
                   <span>
-                    Xem danh sách 4 nhóm điểm danh ({rosterCount} người)
+                    Xem danh sách điểm danh ({rosterCount} người)
                   </span>
                 </Pressable>
               </div>
             ) : (
-              /* PLAYER VIEW: 3 Nút Vote & Thông tin chốt */
+              /* PLAYER VIEW: 2 Nút Vote & Thông tin chốt */
               <div
                 id="match-attendance"
                 className="mt-3.5 pt-3 border-t border-gray-100"
@@ -585,7 +653,7 @@ export default function PlayerDashboard({
                     </span>
                   </div>
                   <span className="text-xs font-bold text-emerald-600 flex items-center gap-0.5">
-                    Xem 4 tab <ChevronRight className="w-3.5 h-3.5" />
+                    Xem danh sách <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 </Pressable>
               </div>
@@ -599,42 +667,45 @@ export default function PlayerDashboard({
             )}
           </section>
         </SwipeMatchCard>
-        {onOpenPoster&&<div className="mx-4 mt-3"><Pressable className="choice-button" onClick={onOpenPoster}>Xuất poster & khoảnh khắc trận</Pressable></div>}
-        {!isLeader && <section aria-label="Thao tác nhanh" className="quick-actions-panel">
-          <p className="text-xs text-slate-600 mb-3">
-            Trận đang chọn: {activeMatch.title}
-          </p>
-          <div className="quick-actions">
-            <Pressable
-              onClick={() =>
-                isLeader
-                  ? setShowAttendanceModal(true)
-                  : document
-                      .getElementById("match-attendance")
-                      ?.scrollIntoView({ block: "center", behavior: "smooth" })
-              }
-            >
-              <UserCheck size={20} />
-              <span>Điểm danh</span>
-            </Pressable>
-            <Pressable onClick={() => onNavigate("lineup")}>
-              <Network size={20} />
-              <span>Chiến thuật</span>
-            </Pressable>
-            {user.fundDebt > 0 && bankInfo.qrUrl && !user.isFundPaid && (
-              <Pressable onClick={() => setShowQrModal(true)}>
-                <Wallet size={20} />
-                <span>Đóng quỹ</span>
-              </Pressable>
-            )}
-            {isLeader && (
-              <Pressable onClick={() => openMatchEditor(false)}>
-                <PlusCircle size={20} />
-                <span>Tạo trận</span>
-              </Pressable>
-            )}
+        {/* =========================================================
+            THAO TÁC NHANH TRỰC QUAN TRÊN DASHBOARD
+            ========================================================= */}
+        <section
+          aria-label="Thao tác nhanh"
+          className="quick-actions-panel dashboard-quick-actions-card bg-white dark:bg-slate-900/90 rounded-[26px] p-4 sm:p-5 border border-slate-100 dark:border-slate-800 shadow-soft transition-all"
+        >
+          <div className="flex items-center justify-between mb-3.5 px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Thao tác nhanh
+              </h2>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+              Lối tắt tiện ích
+            </span>
           </div>
-        </section>}
+
+          <div className="grid grid-cols-4 gap-y-3.5 gap-x-2 sm:gap-x-3">
+            {quickActionsList.map((item) => (
+              <Pressable
+                key={item.id}
+                type="button"
+                onClick={item.onClick}
+                className="flex flex-col items-center justify-start text-center group cursor-pointer p-1 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 active:scale-95 transition-all outline-none"
+              >
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-xs shrink-0 ${item.iconBg}`}
+                >
+                  <item.Icon className={`w-5 h-5 ${item.iconColor}`} />
+                </div>
+                <span className="mt-1.5 w-full text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 leading-tight text-center break-words px-0.5">
+                  {item.label}
+                </span>
+              </Pressable>
+            ))}
+          </div>
+        </section>
         {/* CARD 2: TÀI CHÍNH & QUỸ ĐỘI PREVIEW */}
         <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
           <div className="flex items-center justify-between mb-2.5 px-1">
@@ -1114,17 +1185,6 @@ export default function PlayerDashboard({
               </Pressable>
 
               <Pressable
-                onClick={() => setAttendanceActiveTab("maybe")}
-                className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
-                  attendanceActiveTab === "maybe"
-                    ? "bg-amber-500 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Chưa chắc ({roster.maybe.length})
-              </Pressable>
-
-              <Pressable
                 onClick={() => setAttendanceActiveTab("absent")}
                 className={`py-2 px-1 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer ${
                   attendanceActiveTab === "absent"
@@ -1143,7 +1203,7 @@ export default function PlayerDashboard({
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Chưa điểm danh ({roster.unvoted.length})
+                Chưa điểm danh ({roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)})
               </Pressable>
             </div>
 
@@ -1176,33 +1236,6 @@ export default function PlayerDashboard({
                   </div>
                 ))}
 
-              {attendanceActiveTab === "maybe" &&
-                roster.maybe.map((p) => (
-                  <div
-                    key={p.id}
-                    onClick={() => setQuickProfileMember(p)}
-                    className="p-2.5 rounded-2xl bg-amber-50/50 hover:bg-amber-100/60 border border-amber-100 flex items-center justify-between cursor-pointer active:scale-[0.99] transition-all"
-                    title="Chạm để xem hồ sơ"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">
-                        #{p.number}
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-gray-900">
-                          {p.name}
-                        </p>
-                        <p className="text-xs text-amber-700 italic">
-                          {p.note}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                      50 / 50
-                    </span>
-                  </div>
-                ))}
-
               {attendanceActiveTab === "absent" &&
                 roster.absent.map((p) => (
                   <div
@@ -1228,14 +1261,14 @@ export default function PlayerDashboard({
                   </div>
                 ))}
 
-              {/* TAB CHƯA ĐIỂM DANH (MỚI) */}
+              {/* TAB CHƯA ĐIỂM DANH */}
               {attendanceActiveTab === "unvoted" &&
-                (roster.unvoted.length === 0 ? (
+                (([...roster.unvoted, ...(roster.maybe || [])].length === 0) ? (
                   <div className="text-center py-6 text-gray-400 text-xs">
                     Tất cả thành viên đã hoàn thành điểm danh.
                   </div>
                 ) : (
-                  roster.unvoted.map((p) => (
+                  [...roster.unvoted, ...(roster.maybe || [])].map((p) => (
                     <div
                       key={p.id}
                       onClick={() => setQuickProfileMember(p)}

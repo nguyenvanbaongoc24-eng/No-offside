@@ -46,7 +46,7 @@ const noop = () => {};
 test("expired countdown closes explicitly; completed attendance remains read-only", () => {
   assert.match(render("Countdown", {deadline:"2020-01-01T00:00:00Z", sentence:true}), /Đã chốt điểm danh/);
   const html = render("MyAttendance", {status:"attending", deadline:"2099-01-01T00:00:00Z", completed:true, onChange:noop});
-  assert.equal((html.match(/disabled=""/g)||[]).length, 3);
+  assert.equal((html.match(/disabled=""/g)||[]).length, 2);
   assert.equal((html.match(/aria-pressed="true"/g)||[]).length, 1);
 });
 

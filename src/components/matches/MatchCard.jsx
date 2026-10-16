@@ -112,8 +112,8 @@ export default function MatchCard({ attendance, onAttendanceChange }) {
           )}
         </div>
 
-        {/* 3 Main Action Buttons as required in MASTER PROJECT */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* 2 Main Action Buttons: Có mặt & Báo vắng */}
+        <div className="grid grid-cols-2 gap-2">
           <Button
             size="md"
             active={attendance === 'attending'}
@@ -127,21 +127,6 @@ export default function MatchCard({ attendance, onAttendanceChange }) {
           >
             <span className="text-lg">⚽</span>
             <span className="text-xs font-bold mt-1">Có mặt</span>
-          </Button>
-
-          <Button
-            size="md"
-            active={attendance === 'maybe'}
-            variant="secondary"
-            onClick={() => handleSelect('maybe', 'Đã ghi nhận 50/50. Cố gắng sắp xếp nhé!')}
-            className={`flex-col py-3 px-1 transition-all ${
-              attendance === 'maybe'
-                ? 'bg-amber-500 text-slate-950 font-bold ring-2 ring-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.5)]'
-                : 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
-            }`}
-          >
-            <span className="text-lg">🤔</span>
-            <span className="text-xs font-bold mt-1">50 / 50</span>
           </Button>
 
           <Button

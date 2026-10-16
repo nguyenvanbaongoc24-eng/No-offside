@@ -174,18 +174,26 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
               <p className="field-hint">Giờ bắt đầu: {format(match.kickoff)}. Ngày đến sân là ngày diễn ra trận.</p>
               <div className="form-field">
                 <label htmlFor={prefix + "-eta"}>Giờ dự kiến đến</label>
-                <input
-                  id={prefix + "-eta"}
-                  type="time"
-                  name="eta"
-                  step="60"
-                  value={eta}
-                  required
-                  aria-invalid={Boolean(etaError)}
-                  aria-describedby={etaError ? prefix + '-eta-error' : undefined}
-                  onInput={(e) => updateEta(e.currentTarget.value)}
-                  onChange={(e) => updateEta(e.currentTarget.value)}
-                />
+                <div className="relative flex items-center w-full">
+                  <input
+                    id={prefix + "-eta"}
+                    type="time"
+                    name="eta"
+                    step="60"
+                    value={eta}
+                    required
+                    aria-invalid={Boolean(etaError)}
+                    aria-describedby={etaError ? prefix + '-eta-error' : undefined}
+                    onInput={(e) => updateEta(e.currentTarget.value)}
+                    onChange={(e) => updateEta(e.currentTarget.value)}
+                    className="w-full"
+                  />
+                  {!eta && (
+                    <span className="pointer-events-none absolute left-4 text-slate-400 text-sm flex items-center gap-1.5 select-none">
+                      <Clock size={16} /> Chọn giờ đến (VD: 19:45)
+                    </span>
+                  )}
+                </div>
                 {etaError && <p id={prefix + '-eta-error'} className="form-error" role="alert">{etaError}</p>}
               </div>
               <div className="form-field">
@@ -196,6 +204,7 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
                   required
                   minLength={3}
                   maxLength={2000}
+                  placeholder="Nhập lý do đến muộn (VD: Kẹt xe, bận việc đột xuất…)"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />

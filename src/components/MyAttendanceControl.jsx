@@ -31,10 +31,9 @@ export default function MyAttendanceControl({
       <p className="text-xs font-semibold mb-2">
         Điểm danh của bạn{closed ? " · Đã chốt" : ""}
       </p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2.5">
         {[
           ["attending", "Có mặt"],
-          ["maybe", "Chưa chắc"],
           ["absent", "Báo vắng"],
         ].map(([value, label]) => (
           <Pressable

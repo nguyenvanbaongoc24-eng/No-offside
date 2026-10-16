@@ -1,4 +1,5 @@
 import { beginPendingWrite } from "./pendingWrites.js";
+import { supabase } from "./supabase.js";
 export async function imageDataUrl(file) {
   if (!file || !["image/jpeg", "image/png", "image/webp"].includes(file.type))
     throw new Error("Chọn ảnh JPG, PNG hoặc WebP.");
@@ -27,97 +28,93 @@ export async function compressAndResizeAvatar(
   if (
     typeof window !== "undefined" &&
     typeof document !== "undefined" &&
-    typeof Image !== "undefined" &&
-    typeof URL !== "undefined" &&
-    URL.createObjectURL
+    typeof Image !== "undefined"
   ) {
     return new Promise((resolve) => {
       const img = new Image();
       let url = "";
       try {
-        url = URL.createObjectURL(file);
-      } catch {
-        imageDataUrl(file)
-          .then((dataUrl) => resolve({ dataUrl, mimeType: file.type }))
-          .catch(() => resolve({ dataUrl: "", mimeType: file.type }));
-        return;
-      }
+        if (typeof URL !== "undefined" && URL.createObjectURL) {
+          url = URL.createObjectURL(file);
+        }
+      } catch {}
+
+      const cleanup = () => {
+        if (url) {
+          try {
+            URL.revokeObjectURL(url);
+          } catch {}
+        }
+      };
 
       img.onload = () => {
+        cleanup();
         try {
-          URL.revokeObjectURL(url);
-        } catch {}
+          let width = img.naturalWidth || img.width || maxDim;
+          let height = img.naturalHeight || img.height || maxDim;
 
-        let width = img.width || maxDim;
-        let height = img.height || maxDim;
-
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
           }
-        }
 
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          imageDataUrl(file).then((dataUrl) =>
-            resolve({ dataUrl, mimeType: file.type }),
-          );
-          return;
-        }
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, width);
+          canvas.height = Math.max(1, height);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            imageDataUrl(file)
+              .then((dataUrl) => resolve({ dataUrl, mimeType: file.type }))
+              .catch(() => resolve({ dataUrl: "", mimeType: file.type }));
+            return;
+          }
 
-        ctx.drawImage(img, 0, 0, width, height);
-        const mime = "image/webp";
+          // Fill white background for clean rendering across all formats
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        if (canvas.toBlob) {
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                imageDataUrl(file).then((dataUrl) =>
-                  resolve({ dataUrl, mimeType: file.type }),
-                );
-                return;
-              }
-              const reader = new FileReader();
-              reader.onload = () =>
-                resolve({ dataUrl: reader.result, mimeType: mime });
-              reader.onerror = () =>
-                imageDataUrl(file).then((dataUrl) =>
-                  resolve({ dataUrl, mimeType: file.type }),
-                );
-              reader.readAsDataURL(blob);
-            },
-            mime,
-            quality,
-          );
-        } else {
+          // Use image/jpeg for avatars: universal compatibility on all iOS/Safari/Android, tiny size (~30KB)
+          let dataUrl = "";
           try {
-            const dataUrl = canvas.toDataURL(mime, quality);
-            resolve({ dataUrl, mimeType: mime });
+            dataUrl = canvas.toDataURL("image/jpeg", quality);
           } catch {
-            imageDataUrl(file).then((dataUrl) =>
-              resolve({ dataUrl, mimeType: file.type }),
-            );
+            dataUrl = canvas.toDataURL();
           }
+
+          const mimeMatch = dataUrl.match(/^data:([^;]+);/);
+          const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+          resolve({ dataUrl, mimeType });
+        } catch {
+          imageDataUrl(file)
+            .then((dataUrl) => resolve({ dataUrl, mimeType: file.type }))
+            .catch(() => resolve({ dataUrl: "", mimeType: file.type }));
         }
       };
 
       img.onerror = () => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch {}
-        imageDataUrl(file).then((dataUrl) =>
-          resolve({ dataUrl, mimeType: file.type }),
-        );
+        cleanup();
+        imageDataUrl(file)
+          .then((dataUrl) => resolve({ dataUrl, mimeType: file.type }))
+          .catch(() => resolve({ dataUrl: "", mimeType: file.type }));
       };
 
-      img.src = url;
+      if (url) {
+        img.src = url;
+      } else {
+        imageDataUrl(file)
+          .then((dataUrl) => {
+            img.src = dataUrl;
+          })
+          .catch(() => {
+            resolve({ dataUrl: "", mimeType: file.type });
+          });
+      }
     });
   }
 
@@ -130,56 +127,70 @@ export async function uploadAvatarImage(file, accessToken) {
   try {
     const { dataUrl, mimeType } = await compressAndResizeAvatar(file);
 
+    // Refresh or obtain token if available
+    let token = accessToken;
+    if (supabase?.auth?.getSession) {
+      try {
+        const { data: sData } = await supabase.auth.getSession();
+        if (sData?.session?.access_token) {
+          token = sData.session.access_token;
+        }
+      } catch {}
+    }
+
     // If demo or no access token, return dataUrl directly
     if (
-      !accessToken ||
-      accessToken === "demo" ||
-      accessToken.startsWith("demo") ||
+      !token ||
+      token === "demo" ||
+      token.startsWith("demo") ||
       typeof fetch === "undefined"
     ) {
       return dataUrl;
     }
 
-    let res;
     try {
-      res = await fetch("/api/avatar", {
+      const res = await fetch("/api/avatar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
         },
         body: JSON.stringify({
           imageBase64: dataUrl,
-          mimeType: mimeType || "image/webp",
+          mimeType: mimeType || "image/jpeg",
         }),
       });
-    } catch (networkErr) {
-      if (
-        networkErr?.name === "TypeError" &&
-        (networkErr?.message?.toLowerCase().includes("load failed") ||
-          networkErr?.message?.toLowerCase().includes("failed to fetch") ||
-          networkErr?.message?.toLowerCase().includes("network error"))
-      ) {
-        throw new Error(
-          "Không thể kết nối đến máy chủ để tải ảnh đại diện. Vui lòng kiểm tra mạng rồi thử lại.",
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && data?.avatarUrl) {
+          return data.avatarUrl;
+        }
+      } else {
+        let errorMsg = "";
+        try {
+          const body = await res.json();
+          if (body?.error) errorMsg = body.error;
+        } catch {}
+        console.warn(
+          "Avatar upload responded with error status:",
+          res.status,
+          errorMsg,
         );
+        // Fall back to dataUrl so profile save never breaks
+        return dataUrl;
       }
-      throw networkErr;
+    } catch (networkErr) {
+      console.warn(
+        "Avatar server upload failed (network/CORS/timeout), falling back to dataUrl:",
+        networkErr,
+      );
+      // Graceful fallback to dataUrl so user profile update is not blocked
+      return dataUrl;
     }
 
-    if (!res.ok) {
-      let errorMsg = "Lỗi tải ảnh đại diện lên máy chủ.";
-      try {
-        const body = await res.json();
-        if (body.error) errorMsg = body.error;
-      } catch {}
-      throw new Error(errorMsg);
-    }
-
-    const data = await res.json();
-    if (!data.success || !data.avatarUrl)
-      throw Error("Server chưa xác nhận ảnh đại diện.");
-    return data.avatarUrl;
+    return dataUrl;
   } finally {
     finishWrite();
   }

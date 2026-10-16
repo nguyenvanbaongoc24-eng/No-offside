@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { validateImage } from "./_imageValidation.js";
+import { validateImage, detectMime } from "./_imageValidation.js";
 import {
   getAdminClient,
   getUserClient,
   getAuthUser,
   bearerToken,
+  setCorsHeaders,
 } from "./_storageHelper.js";
 
 const BUCKET_NAME = "avatars";
@@ -12,9 +13,8 @@ const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  setCorsHeaders(res);
+  res.setHeader("Cache-Control", "private, no-store");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     return res
       .status(401)
       .json({ error: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn." });
-  res.setHeader("Cache-Control", "private, no-store");
+
   try {
     const supabaseAdmin = getAdminClient();
     const user = await getAuthUser(req, supabaseAdmin);
@@ -48,21 +48,12 @@ export default async function handler(req, res) {
       }
     }
 
-    const { imageBase64, mimeType = "image/webp" } = body || {};
+    const { imageBase64, mimeType = "image/jpeg" } = body || {};
 
     if (!imageBase64) {
       return res
         .status(400)
         .json({ error: "Thiếu dữ liệu ảnh (imageBase64)." });
-    }
-
-    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Định dạng ảnh không được hỗ trợ. Chỉ chấp nhận PNG, JPG, WebP.",
-        });
     }
 
     // Strip data URI prefix if present
@@ -76,7 +67,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Dung lượng ảnh vượt quá 2 MB." });
     }
 
-    if (!validateImage(buffer, mimeType))
+    // Auto-detect format from magic bytes if possible, falling back to declared/normalized mime
+    const detected = detectMime(buffer);
+    const normalizedInput = mimeType === "image/jpg" ? "image/jpeg" : mimeType;
+    const finalMime = detected || normalizedInput;
+
+    if (!ALLOWED_MIME_TYPES.includes(finalMime)) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "Định dạng ảnh không được hỗ trợ. Chỉ chấp nhận PNG, JPG, WebP.",
+        });
+    }
+
+    if (!validateImage(buffer, finalMime))
       return res
         .status(400)
         .json({
@@ -84,9 +89,9 @@ export default async function handler(req, res) {
             "Nội dung ảnh không đúng định dạng hoặc ảnh vượt giới hạn kích thước.",
         });
     const ext =
-      mimeType === "image/png"
+      finalMime === "image/png"
         ? "png"
-        : mimeType === "image/jpeg"
+        : finalMime === "image/jpeg"
           ? "jpg"
           : "webp";
     const fileName = `avatar_${randomUUID()}.${ext}`;
@@ -96,7 +101,7 @@ export default async function handler(req, res) {
     const { error: uploadErr } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
       .upload(filePath, buffer, {
-        contentType: mimeType,
+        contentType: finalMime,
         upsert: false,
         cacheControl: "3600",
       });
@@ -133,6 +138,16 @@ export default async function handler(req, res) {
           error:
             "Ảnh đã tải lên nhưng chưa lưu được vào hồ sơ. Vui lòng thử lại.",
         });
+
+    // Also sync avatar_url into Supabase auth user_metadata if available
+    try {
+      if (supabaseAdmin?.auth?.admin?.updateUserById) {
+        await supabaseAdmin.auth.admin.updateUserById(user.id, {
+          user_metadata: { avatar_url: publicUrl },
+        });
+      }
+    } catch {}
+
     // Historical objects are retained; no production deletion during upload.
     return res.status(200).json({
       success: true,

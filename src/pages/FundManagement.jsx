@@ -340,7 +340,7 @@ export default function FundManagement({
           (periodFilter.to || "đến nay");
 
   const pendingApprovals =
-    fund?.data.pendingRequests || funds?.pendingApprovals || [];
+    (!fund?.demo && fund?.data.pendingRequests) || funds?.pendingApprovals || [];
 
   // Debtors & Outstanding calculation
   const debtors = (funds?.debtors || []).filter(

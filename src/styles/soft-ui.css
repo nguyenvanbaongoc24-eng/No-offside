@@ -51,10 +51,8 @@ html[data-theme] .split-navigation.nav-hidden{transform:translateY(calc(100% + 3
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important}.split-navigation,.quick-sheet,.welcome-card{transition:none!important}}
 
 .large-match-swipe,.large-match-gesture{border-radius:32px}.large-match-gesture{overflow:hidden}.large-match-delete{border-radius:0 32px 32px 0}
-.match-deadline{background:var(--accent-soft);border:0}.match-deadline p,.match-deadline .match-countdown{color:var(--text-primary)}
-
+.match-card-menu{display:none!important}
 html[data-theme] .dashboard-page,html[data-theme] .app-shell,html[data-theme] .app-frame{background:var(--background)}
-html[data-theme] .match-deadline{background:var(--accent-soft)!important;border:0}html[data-theme] .match-deadline p,html[data-theme] .match-deadline .match-countdown{color:var(--text-primary)!important}
 
 .dashboard-page>.birthday-banner{margin:16px}.empty-team>.birthday-banner{margin-bottom:16px}
 
@@ -144,10 +142,100 @@ html[data-theme] .profile-detail-content form>button[type=submit]{border-radius:
 
 /* Native time wheel and an independently scrollable sheet, including keyboard resize. */
 .late-arrival-overlay{backdrop-filter:blur(4px)}
-.late-arrival-sheet{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scroll-padding-block:20px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
-.late-arrival-sheet input[type="time"]{display:block;appearance:auto;min-width:0;width:100%;max-width:100%;box-sizing:border-box;min-height:52px;font-family:inherit;font-size:16px;border-radius:16px;background:var(--surface-secondary);color:var(--text-primary);padding:12px 16px}
-.late-arrival-sheet input[type="time"]::-webkit-date-and-time-value{text-align:left}
+.late-arrival-sheet{min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;scroll-padding-block:20px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+.late-arrival-sheet input[type="time"]{display:block;-webkit-appearance:none;appearance:none;min-width:0;width:100%;max-width:100%;box-sizing:border-box;height:52px;min-height:52px;font-family:inherit;font-size:16px !important;border-radius:16px;border:1px solid var(--border,#cbd5e1);background:var(--surface-secondary,#f8fafc);color:var(--text-primary,#0f172a);padding:0 16px;margin:0}
+.late-arrival-sheet input[type="time"]::-webkit-date-and-time-value{text-align:left;min-height:1.5em;display:flex;align-items:center}
+.late-arrival-sheet input[type="time"]::-webkit-datetime-edit{display:flex;align-items:center;padding:0}
 .late-arrival-sheet input[aria-invalid="true"]{border-color:var(--danger,#dc2626)}
+html[data-theme="dark"] .late-arrival-sheet input[type="time"]{background:#0f172a;border-color:#475569;color:#f1f5f9}
+
+/* =========================================================
+   CLEAN MATCH CARD & LIGHT/DARK TOKENS (REDESIGN)
+   ========================================================= */
+:root {
+  --color-page: #F5F7F6;
+  --color-card-surface: #FFFFFF;
+  --color-text-primary: #14201A;
+  --color-text-secondary: #526159;
+  --color-card-border: #DCE5DF;
+  --color-brand-accent: #17843B;
+  --color-brand-accent-soft: rgba(23, 132, 59, 0.1);
+  --radius-card: 20px;
+  --radius-control: 12px;
+}
+
+html[data-theme="dark"], :root[data-theme="dark"] {
+  --color-page: #0B1210;
+  --color-card-surface: #141E1A;
+  --color-text-primary: #F2F6F3;
+  --color-text-secondary: #B3BFB7;
+  --color-card-border: #2B3931;
+  --color-brand-accent: #63CD79;
+  --color-brand-accent-soft: rgba(99, 205, 121, 0.12);
+}
+
+/* Thẻ trận đấu: Bo góc 20px, bề mặt ổn định, viền chuẩn */
+.match-card-container,
+html[data-theme] .match-card-container,
+.large-match-content > section.match-card-container {
+  border-radius: var(--radius-card) !important;
+  border: 1px solid var(--color-card-border) !important;
+  background: var(--color-card-surface) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 0.04) !important;
+  overflow: hidden !important;
+}
+
+/* Phần A: Header thông tin trận chỉ dùng gradient xanh nhẹ nhận diện */
+.match-card-header {
+  position: relative;
+  background: linear-gradient(135deg, #0d5c2e 0%, #17843b 100%) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+
+html[data-theme="dark"] .match-card-header {
+  background: linear-gradient(135deg, #0e3720 0%, #154c2b 100%) !important;
+}
+
+/* Bỏ hoàn toàn các vòng tròn trang trí và sọc sân bóng phía sau */
+.match-card-container::before,
+.match-card-container::after,
+.pitch-hero-card::before,
+.pitch-hero-card::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Nút điểm danh trong phần B */
+.attendance-vote-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: var(--radius-control) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  transition: all 0.18s ease !important;
+  box-sizing: border-box !important;
+}
+
+/* Phân cách khu vực C */
+.late-arrival-section {
+  border-color: var(--color-card-border) !important;
+}
+
+/* Bảo đảm tương phản cho text trên phần header xanh */
+.match-card-header h2 {
+  color: #ffffff !important;
+}
+
+/* Nội dung cuối trang cuộn trên navigation */
+.dashboard-card-flow {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
 
 /* Rounded symbols keep the same 24 px footprint in both navigation states. */
 .material-symbol{display:inline-block;vertical-align:middle;flex-shrink:0}
@@ -156,7 +244,7 @@ html[data-theme] .split-navigation .nav-item.is-active{flex:1 1 0;min-width:0}
 html[data-theme] .split-navigation .nav-item .nav-label{white-space:normal;line-height:1.2;text-align:left}
 html[data-theme] .split-navigation .nav-item svg,html[data-theme] .split-navigation .nav-item.is-active svg{width:24px;height:24px}
 @media(max-width:359px){html[data-theme] .split-navigation.has-fab .nav-item.is-active{font-size:11px;padding:4px;gap:4px;min-width:0}html[data-theme] .split-navigation.has-fab .nav-item.is-active .nav-icon-wrap{width:24px}}
-.quick-sheet-action{align-items:center;text-align:center;min-height:144px}
+.quick-sheet-action{align-items:center;text-align:center;min-height:128px}
 .quick-sheet-action strong{font-size:13px;line-height:1.4;max-width:100%;min-height:36px;display:flex;align-items:center;justify-content:center}
 .quick-sheet-action:last-child strong{min-height:0}
 .menu-long-action{white-space:normal;max-width:calc(100% - 32px);text-align:center;line-height:1.4}

@@ -2,7 +2,7 @@ import {beginPendingWrite} from '../lib/pendingWrites';
 import Pressable from './Pressable';
 import {notify} from '../lib/feedback';
 import React,{useEffect,useState,useRef} from 'react';
-import {Bell,BellOff} from 'lucide-react';
+import {Bell,BellOff} from "./icons";
 import {serverRequest} from '../lib/serverRequest';
 import {platformPushState,notificationRequest,deviceBody,vapidBytes,disconnectPushDevice,workerContext} from '../lib/pushDevice';
 async function pushRegistration(){

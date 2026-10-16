@@ -43,7 +43,7 @@ import {
   CheckCircle2,
   Info,
   Plus,
-} from "lucide-react";
+} from "../components/icons";
 import { formatCurrency, formatCompactCurrency } from "../lib/formatCurrency";
 import TeamManager from "./TeamManager";
 import MemberQuickProfileModal from "../components/MemberQuickProfileModal";

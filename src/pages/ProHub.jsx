@@ -1,3 +1,5 @@
+import {Beer} from '../components/icons';
+import {thirdChargeLabel} from '../lib/menuLabels';
 import { imageDataUrl } from "../lib/images";
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
@@ -12,7 +14,7 @@ import {
   Check,
   Medal,
   Trash2,
-} from "lucide-react";
+} from "../components/icons";
 import Pressable from "../components/Pressable";
 import Avatar from "../components/Avatar";
 import ProModal from "../components/pro/ProModal";
@@ -29,9 +31,9 @@ import {
 import { formatCurrency } from "../lib/formatCurrency";
 import { notify } from "../lib/feedback";
 const sections = [
-  ["board", "Cáp kèo", Swords],
+  ["board", "Tìm Đối", Swords],
   ["stars", "Ngôi sao", Trophy],
-  ["finance", "Hiệp 3", Wallet],
+  ["finance", "Sinh Tố Lúa Mạch", Beer],
   ["media", "Media", Clapperboard],
 ];
 export default function ProHub({
@@ -130,7 +132,7 @@ export default function ProHub({
         </Pressable>
         <h1>No Offside Pro</h1>
         <Pressable
-          aria-label="Mở Sa bàn Pro"
+          aria-label="Mở Chiến Thuật Pro"
           onClick={() => onNavigate("lineup")}
         >
           <Network size={22} />
@@ -144,14 +146,14 @@ export default function ProHub({
             aria-pressed={section === id}
             onClick={() => setSection(id)}
           >
-            <Icon size={19} />
+            <Icon size={20} filled={section === id} />
             <span>{label}</span>
           </Pressable>
         ))}
       </div>
       {demo && (
         <p className="field-hint pro-inset">
-          Bản trải nghiệm: xuất ảnh và sa bàn dùng được. Ghi dữ liệu Pro cần
+          Bản trải nghiệm: xuất ảnh và Chiến Thuật dùng được. Ghi dữ liệu Pro cần
           đăng nhập tài khoản thật.
         </p>
       )}
@@ -177,7 +179,7 @@ export default function ProHub({
           {section === "board" && (
             <>
               <div className="pro-toolbar">
-                <h2>Sàn cáp kèo</h2>
+                <h2>Tìm Đối</h2>
                 {leader && (
                   <Pressable
                     className="primary-button"
@@ -466,7 +468,7 @@ export default function ProHub({
           {section === "finance" && (
             <>
               <section className="pro-panel pro-finance-summary">
-                <p>Hiệp 3 · {leader ? "Tổng còn cần đóng" : "Khoản của bạn"}</p>
+                <p>Sinh Tố Lúa Mạch · {leader ? "Tổng còn cần đóng" : "Khoản của bạn"}</p>
                 <strong>
                   {formatCurrency(
                     ownCharges
@@ -476,18 +478,18 @@ export default function ProHub({
                 </strong>
                 {leader && (
                   <Pressable
-                    className="primary-button"
+                    className="primary-button pro-bill-action"
                     disabled={busy || demo}
                     onClick={() =>
                       open("bill", {
-                        title: "Hiệp 3",
+                        title: "Sinh Tố Lúa Mạch",
                         total: "",
                         participants: [],
                       })
                     }
                   >
                     <Plus size={18} />
-                    Chia bill Hiệp 3
+                    Chia bill Sinh Tố Lúa Mạch
                   </Pressable>
                 )}
                 <p className="field-hint">
@@ -536,9 +538,9 @@ export default function ProHub({
                         {members.find((m) => m.id === c.subject)?.name ||
                           "Thành viên"}
                       </strong>
-                      <p>{c.label}</p>
+                      <p>{thirdChargeLabel(c.label,c.kind)}</p>
                       <small>
-                        {c.kind === "fine" ? "Phạt · Quỹ đội" : "Hiệp 3"} ·{" "}
+                        {c.kind === "fine" ? "Phạt · Quỹ đội" : "Sinh Tố Lúa Mạch"} ·{" "}
                         {
                           {
                             owed: "Cần đóng",
@@ -575,7 +577,7 @@ export default function ProHub({
                 ))}
                 {!state.charges.length && (
                   <p className="pro-empty">
-                    Chưa phát sinh khoản Hiệp 3 hoặc phạt tự động.
+                    Chưa phát sinh khoản Sinh Tố Lúa Mạch hoặc phạt tự động.
                   </p>
                 )}
               </section>
@@ -767,7 +769,7 @@ export default function ProHub({
             offer: "Đăng kèo giao hữu",
             challenge: "Gửi lời thách đấu",
             accept: "Nhận kèo giao hữu",
-            bill: "Chia bill Hiệp 3",
+            bill: "Chia bill Sinh Tố Lúa Mạch",
             charge: "Đối soát khoản cần đóng",
             card: "Thẻ cầu thủ",
             vote: "Bầu chọn MOTM",

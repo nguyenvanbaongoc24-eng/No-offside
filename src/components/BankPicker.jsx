@@ -1,7 +1,7 @@
 import {useLayerBack} from '../hooks/useLayerBack';
 import Pressable from './Pressable';
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, X, Search } from "lucide-react";
+import { Check, ChevronDown, X, Search } from "./icons";
 import { loadBanks, searchBanks } from "../lib/banks";
 export default function BankPicker({
   value,

@@ -24,7 +24,7 @@ import {
   RefreshCw,
   Smile,
   X,
-} from "lucide-react";
+} from "../components/icons";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { uid } from "../lib/teamModel";
 import { chatScope, dayLabel, messageGroup } from "../lib/chatPresentation";
@@ -792,7 +792,7 @@ function ScopedChat({
             disabled={!input.trim()}
             className="primary-button chat-send"
           >
-            <Send size={20} strokeWidth={1.75} aria-hidden="true" />
+            <Send size={20}  aria-hidden="true" />
           </Pressable>
         </form>
       </div>

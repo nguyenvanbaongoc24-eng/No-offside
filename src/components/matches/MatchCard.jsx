@@ -1,5 +1,6 @@
+import {Soccer} from '../icons';
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Users, CheckCircle, HelpCircle, XCircle, Navigation, Flame } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, CheckCircle, HelpCircle, XCircle, Navigation, Flame } from "../icons";
 import GlassCard from '../ui/GlassCard';
 import Button from '../ui/Button';
 
@@ -125,7 +126,7 @@ export default function MatchCard({ attendance, onAttendanceChange }) {
                 : 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
             }`}
           >
-            <span className="text-lg">⚽</span>
+            <span className="text-lg"><Soccer size={20} /></span>
             <span className="text-xs font-bold mt-1">Có mặt</span>
           </Button>
 
@@ -140,7 +141,7 @@ export default function MatchCard({ attendance, onAttendanceChange }) {
                 : 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
             }`}
           >
-            <span className="text-lg">🤔</span>
+            <span className="text-lg"><HelpCircle size={20} /></span>
             <span className="text-xs font-bold mt-1">50 / 50</span>
           </Button>
 
@@ -155,7 +156,7 @@ export default function MatchCard({ attendance, onAttendanceChange }) {
                 : 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
             }`}
           >
-            <span className="text-lg">❌</span>
+            <span className="text-lg"><XCircle size={20} /></span>
             <span className="text-xs font-bold mt-1">Báo vắng</span>
           </Button>
         </div>

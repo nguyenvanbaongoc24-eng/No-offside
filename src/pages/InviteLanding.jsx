@@ -10,7 +10,7 @@ import {
   Loader2,
   LogIn,
   UserPlus,
-} from "lucide-react";
+} from "../components/icons";
 import { supabase } from "../lib/supabase";
 import { savePendingJoin } from "../lib/pendingJoin";
 

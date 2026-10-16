@@ -1,6 +1,7 @@
+import {Zap} from './icons';
 import Pressable from './Pressable';
 import React, { useState } from 'react';
-import { Bell, X, CheckCircle, Calendar, DollarSign, Shield, ChevronRight } from 'lucide-react';
+import { Bell, X, CheckCircle, Calendar, DollarSign, Shield, ChevronRight } from "./icons";
 
 export default function NotificationToast({ isOpen, onClose, onOpenHistory }) {
   if (!isOpen) return null;
@@ -21,7 +22,7 @@ export default function NotificationToast({ isOpen, onClose, onOpenHistory }) {
             <span className="text-[10px] text-gray-400">Vừa xong</span>
           </div>
           <p className="text-xs text-gray-700 font-medium mt-0.5 line-clamp-2">
-            ⚡ <strong>Đội trưởng Hải:</strong> "Thứ 6 tuần này nhớ mang áo đấu xanh neon và có mặt lúc 18h15 khởi động nhé cả đội!"
+            <Zap size={20} /> <strong>Đội trưởng Hải:</strong> "Thứ 6 tuần này nhớ mang áo đấu xanh neon và có mặt lúc 18h15 khởi động nhé cả đội!"
           </p>
           <span className="text-[11px] text-emerald-600 font-bold mt-1 inline-flex items-center gap-0.5">
             Xem tất cả thông báo <ChevronRight className="w-3 h-3" />

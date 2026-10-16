@@ -1,7 +1,8 @@
+import {Soccer,Target,Shield,Hand} from '../components/icons';
 import Pressable from '../components/Pressable';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User, Trophy, Hash, ArrowRight, Calendar, Cake, Sparkles } from 'lucide-react';
+import { User, Trophy, Hash, ArrowRight, Calendar, Cake, Sparkles } from "../components/icons";
 
 export default function Onboarding({ defaultData = {}, onComplete }) {
   const [fullName, setFullName] = useState(defaultData.name || 'Tuấn Hưng');
@@ -10,10 +11,10 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
   const [jerseyNumber, setJerseyNumber] = useState(defaultData.number || 9);
 
   const positions = [
-    { id: 'st', label: 'Tiền đạo (ST)', icon: '⚽', desc: 'Săn bàn' },
-    { id: 'mf', label: 'Tiền vệ (MF)', icon: '🎯', desc: 'Kiến thiết' },
-    { id: 'df', label: 'Hậu vệ (DF)', icon: '🛡️', desc: 'Phòng ngự' },
-    { id: 'gk', label: 'Thủ môn (GK)', icon: '🧤', desc: 'Người gác đền' },
+    { id: 'st', label: 'Tiền đạo (ST)', icon: Soccer, desc: 'Săn bàn' },
+    { id: 'mf', label: 'Tiền vệ (MF)', icon: Target, desc: 'Kiến thiết' },
+    { id: 'df', label: 'Hậu vệ (DF)', icon: Shield, desc: 'Phòng ngự' },
+    { id: 'gk', label: 'Thủ môn (GK)', icon: Hand, desc: 'Người gác đền' },
   ];
 
   const popularNumbers = [7, 9, 10, 11, 14, 19, 22];
@@ -101,7 +102,7 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
               />
             </div>
             <p className="text-[10px] text-gray-400 font-medium mt-1 pl-1">
-              Giúp đội bóng không bỏ lỡ sinh nhật của bạn 🎂
+              Giúp đội bóng không bỏ lỡ sinh nhật của bạn <Cake size={20} />
             </p>
           </div>
 
@@ -126,7 +127,7 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
                         : 'bg-gray-50 text-gray-700 border-gray-200/80 hover:bg-gray-100'
                     }`}
                   >
-                    <span className="text-base">{pos.icon}</span>
+                    <span className="text-base"><pos.icon size={20} filled={isSelected} /></span>
                     <div className="min-w-0">
                       <p className={`text-xs font-black truncate ${isSelected ? 'text-white' : 'text-gray-900'}`}>
                         {pos.label}
@@ -187,7 +188,7 @@ export default function Onboarding({ defaultData = {}, onComplete }) {
               </div>
               <div>
                 <p className="text-xs font-black text-gray-900">{fullName || 'Cầu thủ mới'}</p>
-                <p className="text-[10px] text-gray-500 font-medium">{position} • 🎂 {birthday ? new Date(birthday).toLocaleDateString('vi-VN') : 'Chưa nhập'}</p>
+                <p className="text-[10px] text-gray-500 font-medium">{position} • <Cake size={20} /> {birthday ? new Date(birthday).toLocaleDateString('vi-VN') : 'Chưa nhập'}</p>
               </div>
             </div>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">

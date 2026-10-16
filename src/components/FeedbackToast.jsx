@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {AnimatePresence, motion, useReducedMotion} from 'framer-motion';
-import {CheckCircle2, CircleAlert, X} from 'lucide-react';
+import {CheckCircle2, CircleAlert, X} from "./icons";
 import Pressable from './Pressable';
 export default function FeedbackToast() {
   const [toast, setToast] = useState(null);

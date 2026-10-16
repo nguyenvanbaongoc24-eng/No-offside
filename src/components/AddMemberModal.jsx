@@ -1,6 +1,6 @@
 import Pressable from './Pressable';
 import React, { useState } from "react";
-import { X, UserPlus, AlertCircle, Loader2, Check } from "lucide-react";
+import { X, UserPlus, AlertCircle, Loader2, Check } from "./icons";
 
 export default function AddMemberModal({
   isOpen,

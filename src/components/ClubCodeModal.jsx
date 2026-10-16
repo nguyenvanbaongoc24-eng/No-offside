@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-} from "lucide-react";
+} from "./icons";
 import { supabase } from "../lib/supabase";
 import { savePendingJoin } from "../lib/pendingJoin";
 

@@ -8,14 +8,14 @@ const built=await build({entryPoints:['src/components/FloatingBottomNavigation.j
 const module={exports:{}};
 new Function('require','module','exports',built.outputFiles[0].text)(createRequire(import.meta.url),module,module.exports);
 const Navigation=module.exports.default;
-const tabs=['Trang chủ','Sa bàn','Chat','Tài khoản'].map((label,id)=>({id:String(id),label,Icon:()=>React.createElement('svg')}));
+const tabs=['Trang chủ','Chiến Thuật','Chat','Tài khoản'].map((label,id)=>({id:String(id),label,Icon:()=>React.createElement('svg')}));
 test('capsule exposes four named destinations, preserves routing and selected tab',()=>{
  const visited=[];
  const tree=renderer.create(React.createElement(Navigation,{tabs,activeTab:'1',onNavigate:id=>visited.push(id)}));
  const buttons=tree.root.findAllByType('button');
  assert.deepEqual(buttons.map(b=>b.props['aria-label']),tabs.map(t=>t.label));
  assert.equal(buttons.filter(b=>b.props['aria-current']==='page').length,1);
- assert.equal(buttons[1].findByProps({className:'nav-label'}).children[0],'Sa bàn');
+ assert.equal(buttons[1].findByProps({className:'nav-label'}).children[0],'Chiến Thuật');
  buttons.forEach(b=>b.props.onClick()); assert.deepEqual(visited,['0','1','2','3']);
  tree.unmount();
 });

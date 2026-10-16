@@ -1,6 +1,6 @@
 import Pressable from './Pressable';
 import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "./icons";
 export default function SplashScreen({ error = "", onRetry, onExit }) {
   const [leaving, setLeaving] = useState(false),
     [exitError, setExitError] = useState("");

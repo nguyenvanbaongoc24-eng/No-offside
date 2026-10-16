@@ -11,9 +11,9 @@ import {
   Users,
   Check,
   Trophy
-} from 'lucide-react';
+} from "../components/icons";
 
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from "../components/icons";
 
 export default function CreateTeam({ onTeamCreated, onBack }) {
   const [teamName, setTeamName] = useState('');
@@ -89,7 +89,7 @@ export default function CreateTeam({ onTeamCreated, onBack }) {
         <div className="relative z-10">
           <h1 className="text-2xl font-bold text-white tracking-tight">Tạo đội bóng của bạn</h1>
           <p className="text-xs text-gray-400 mt-1">
-            Khởi tạo FC và trở thành Đội trưởng để quản lý quỹ, điểm danh và xếp sa bàn chiến thuật.
+            Khởi tạo FC và trở thành Đội trưởng để quản lý quỹ, điểm danh và xếp Chiến Thuật.
           </p>
         </div>
       </section>

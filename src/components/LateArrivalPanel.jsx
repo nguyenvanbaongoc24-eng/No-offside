@@ -3,7 +3,7 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from 'react-dom';
 import { useLayerBack } from '../hooks/useLayerBack';
 import { lateArrivalInstant, matchTimeLabel } from '../lib/matchTime';
-import { Clock, X } from "lucide-react";
+import { Clock, X } from "./icons";
 import { canRequestLate, lateCutoff, latestEvent } from "../lib/governance";
 export default function LateArrivalPanel({ governance, matchId, userId }) {
   const [now, setNow] = useState(Date.now()),

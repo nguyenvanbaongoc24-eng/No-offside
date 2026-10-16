@@ -1,3 +1,4 @@
+import {Soccer,PartyPopper} from './icons';
 import {birthdayPresentation} from '../lib/calendarDate';
 import Pressable from './Pressable';
 import React, { useState } from "react";
@@ -17,7 +18,7 @@ import {
   Activity,
   Calendar,
   Share2,
-} from "lucide-react";
+} from "./icons";
 
 export default function MemberQuickProfileModal({
   isOpen = false,
@@ -61,13 +62,13 @@ export default function MemberQuickProfileModal({
   // Sao chép thông tin thẻ cầu thủ
   const handleCopyProfile = () => {
     const text = [
-      `⚽ HỒ SƠ CẦU THỦ - ${teamName}`,
-      `👤 Họ tên: ${member.name}`,
-      `🎽 Số áo: #${member.number}`,
-      `🏃‍♂️ Vị trí: ${member.role || "Cầu thủ"}`,
-      `👑 Vai trò: ${isOwner ? "Chủ đội" : isAdmin ? (member.customTitle || "Quản trị viên") : "Cầu thủ"}`,
-      birthdayInfo ? `🎂 Sinh nhật: ${birthdayInfo.formatted}` : null,
-      member.phone ? `📱 Liên hệ: ${member.phone}` : null,
+      `HỒ SƠ CẦU THỦ - ${teamName}`,
+      `Họ tên: ${member.name}`,
+      `Số áo: #${member.number}`,
+      `Vị trí: ${member.role || "Cầu thủ"}`,
+      `Vai trò: ${isOwner ? "Chủ đội" : isAdmin ? (member.customTitle || "Quản trị viên") : "Cầu thủ"}`,
+      birthdayInfo ? `Sinh nhật: ${birthdayInfo.formatted}` : null,
+      member.phone ? `Liên hệ: ${member.phone}` : null,
     ].filter(Boolean).join("\n");
 
     navigator.clipboard?.writeText(text);
@@ -108,7 +109,7 @@ export default function MemberQuickProfileModal({
 
             {/* Team badge / Tag */}
             <div className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold tracking-wide">
-              <span>⚽</span>
+              <span><Soccer size={20} /></span>
               <span className="truncate max-w-[170px]">{teamName}</span>
             </div>
 
@@ -182,7 +183,7 @@ export default function MemberQuickProfileModal({
             {birthdayInfo?.isToday && (
               <div className="mt-3 w-full p-2.5 rounded-2xl bg-gradient-to-r from-pink-500/15 via-rose-500/15 to-purple-500/15 border border-pink-300 dark:border-pink-800 text-pink-700 dark:text-pink-300 text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
                 <Cake size={16} />
-                <span>🎉 Hôm nay là sinh nhật của {member.name}!</span>
+                <span><PartyPopper size={20} /> Hôm nay là sinh nhật của {member.name}!</span>
               </div>
             )}
           </div>
@@ -230,7 +231,7 @@ export default function MemberQuickProfileModal({
 
               {birthdayInfo?.isThisMonth && !birthdayInfo?.isToday && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
-                  Tháng này 🎂
+                  Tháng này <Cake size={20} />
                 </span>
               )}
             </div>

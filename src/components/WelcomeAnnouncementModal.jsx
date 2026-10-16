@@ -1,7 +1,8 @@
+import {systemNoticeTitle} from '../lib/menuLabels';
 import React,{useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {AnimatePresence,motion,useReducedMotion} from 'framer-motion';
-import {X,Bell,ChevronRight} from 'lucide-react';
+import {X,Bell,ChevronRight} from "./icons";
 import {latestAnnouncements} from '../lib/announcements';
 import BirthdayBanner from './BirthdayBanner';
 import Pressable from './Pressable';
@@ -19,7 +20,7 @@ export default function WelcomeAnnouncementModal({accountId='anonymous',notices=
       <header><span className="welcome-icon"><Bell size={22}/></span><Pressable type="button" aria-label="Đóng" onClick={close}><X size={21}/></Pressable></header>
       <p className="welcome-eyebrow">HẸN NHAU RA SÂN</p><h2>Chào mừng trở lại</h2><p className="field-hint">Thông tin mới nhất từ đội của bạn.</p>
       <BirthdayBanner members={birthdays} accountId={accountId} celebrate/>
-      <div className="welcome-notices">{latest.length?latest.map((notice,index)=><Pressable type="button" key={notice.id||index} className="welcome-notice" onClick={()=>{close();onOpenNotice?.(notice);}}><span><strong>{notice.title||'Thông báo đội'}</strong><span>{notice.content}</span></span><ChevronRight size={18}/></Pressable>):<p className="welcome-empty">Chưa có thông báo mới. Cùng chuẩn bị cho buổi ra sân tiếp theo.</p>}</div>
+      <div className="welcome-notices">{latest.length?latest.map((notice,index)=><Pressable type="button" key={notice.id||index} className="welcome-notice" onClick={()=>{close();onOpenNotice?.(notice);}}><span><strong>{systemNoticeTitle(notice.title)||'Thông báo đội'}</strong><span>{notice.content}</span></span><ChevronRight size={18}/></Pressable>):<p className="welcome-empty">Chưa có thông báo mới. Cùng chuẩn bị cho buổi ra sân tiếp theo.</p>}</div>
       <label className="welcome-preference"><input type="checkbox" checked={hide} onChange={event=>{preference.current=event.target.checked;setHide(event.target.checked);}}/>Không hiển thị lại trong phiên này</label><p className="welcome-auto-close">Tự đóng sau 5 giây</p>
     </motion.section>
   </motion.div>}</AnimatePresence>,document.body);

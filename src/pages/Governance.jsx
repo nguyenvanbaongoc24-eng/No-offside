@@ -1,8 +1,9 @@
+import {Lightbulb,Zap} from '../components/icons';
 import {useLayerBack} from '../hooks/useLayerBack';
 import Pressable from '../components/Pressable';
 import { matchTimeLabel } from '../lib/matchTime';
 import React, { useId, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, X, ShieldCheck, Plus, Edit2 } from "lucide-react";
+import { ArrowLeft, BookOpen, X, ShieldCheck, Plus, Edit2 } from "../components/icons";
 import {
   adjustedViolation,
   effectiveRules,
@@ -741,7 +742,7 @@ export default function Governance({ governance, onBack }) {
                 <>
                   <div className="p-3 bg-emerald-950/40 border border-emerald-800/50 rounded-lg text-xs space-y-2">
                     <p className="text-emerald-300 font-medium">
-                      💡 Mẹo: Bạn có thể tự soạn nội quy hoặc bấm nút bên dưới để chèn mẫu nội quy bóng đá phong trào.
+                      <Lightbulb size={20} /> Mẹo: Bạn có thể tự soạn nội quy hoặc bấm nút bên dưới để chèn mẫu nội quy bóng đá phong trào.
                     </p>
                     <Pressable
                       type="button"
@@ -750,7 +751,7 @@ export default function Governance({ governance, onBack }) {
                         update("content", STANDARD_FOOTBALL_RULES_TEMPLATE)
                       }
                     >
-                      ⚡ Chèn mẫu nội quy chuẩn bóng đá
+                      <Zap size={20} /> Chèn mẫu nội quy chuẩn bóng đá
                     </Pressable>
                   </div>
                   {field("content", "Nội dung nội quy & mức phạt", "textarea")}

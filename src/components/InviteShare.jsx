@@ -2,7 +2,7 @@ import Pressable from './Pressable';
 import React,{useEffect,useRef,useState} from 'react';
 import {AnimatePresence,motion} from 'framer-motion';
 import {QRCodeSVG} from 'qrcode.react';
-import {X,Copy,Share2,ExternalLink,RotateCw,Ban,Loader2} from 'lucide-react';
+import {X,Copy,Share2,ExternalLink,RotateCw,Ban,Loader2} from "./icons";
 import Avatar from './Avatar';
 import { copyToClipboard } from '../lib/clipboard';
 

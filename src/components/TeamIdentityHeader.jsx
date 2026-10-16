@@ -1,6 +1,6 @@
 import Pressable from './Pressable';
 import React, { useState } from "react";
-import { Bell, ChevronDown } from "lucide-react";
+import { Bell, ChevronDown } from "./icons";
 import Avatar from "./Avatar";
 export function TeamSwitcher({
   teamId,

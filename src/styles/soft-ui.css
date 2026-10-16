@@ -148,3 +148,15 @@ html[data-theme] .profile-detail-content form>button[type=submit]{border-radius:
 .late-arrival-sheet input[type="time"]{display:block;appearance:auto;min-width:0;width:100%;max-width:100%;box-sizing:border-box;min-height:52px;font-family:inherit;font-size:16px;border-radius:16px;background:var(--surface-secondary);color:var(--text-primary);padding:12px 16px}
 .late-arrival-sheet input[type="time"]::-webkit-date-and-time-value{text-align:left}
 .late-arrival-sheet input[aria-invalid="true"]{border-color:var(--danger,#dc2626)}
+
+/* Rounded symbols keep the same 24 px footprint in both navigation states. */
+.material-symbol{display:inline-block;vertical-align:middle;flex-shrink:0}
+html[data-theme] .split-navigation .nav-icon-wrap{width:24px;height:24px}
+html[data-theme] .split-navigation .nav-item.is-active{flex:1 1 0;min-width:0}
+html[data-theme] .split-navigation .nav-item .nav-label{white-space:normal;line-height:1.2;text-align:left}
+html[data-theme] .split-navigation .nav-item svg,html[data-theme] .split-navigation .nav-item.is-active svg{width:24px;height:24px}
+@media(max-width:359px){html[data-theme] .split-navigation.has-fab .nav-item.is-active{font-size:11px;padding:4px;gap:4px;min-width:0}html[data-theme] .split-navigation.has-fab .nav-item.is-active .nav-icon-wrap{width:24px}}
+.quick-sheet-action{align-items:center;text-align:center;min-height:144px}
+.quick-sheet-action strong{font-size:13px;line-height:1.4;max-width:100%;min-height:36px;display:flex;align-items:center;justify-content:center}
+.quick-sheet-action:last-child strong{min-height:0}
+.menu-long-action{white-space:normal;max-width:calc(100% - 32px);text-align:center;line-height:1.4}

@@ -27,7 +27,7 @@ const bundle = await build({
   platform: 'node',
   format: 'cjs',
   write: false,
-  external: ['react', 'qrcode.react', 'lucide-react', 'framer-motion'],
+  external: ['react', 'qrcode.react', 'framer-motion'],
   plugins: [
     {
       name: 'supabase-mock',

@@ -7,7 +7,7 @@ import {
   KeyRound,
   RotateCw,
   Sparkles,
-} from 'lucide-react';
+} from "./icons";
 
 export default function QrScannerModal({
   isOpen = true,

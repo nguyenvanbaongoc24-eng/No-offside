@@ -1,7 +1,7 @@
 import Pressable from './Pressable';
 import React, { useId, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, AlertCircle } from "lucide-react";
+import { X, AlertCircle } from "./icons";
 import { defaultLate } from "../lib/governance";
 
 export default function MatchFormSheet({

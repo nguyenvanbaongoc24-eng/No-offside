@@ -10,7 +10,7 @@ import {
   Edit3,
   FileSpreadsheet,
   ChevronLeft,
-} from "lucide-react";
+} from "../components/icons";
 import { qrUrl, uid } from "../lib/teamModel";
 import BankPicker from "../components/BankPicker";
 import QrPreview from "../components/QrPreview";

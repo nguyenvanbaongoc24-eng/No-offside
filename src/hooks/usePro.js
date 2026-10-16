@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { serverRequest } from "../lib/serverRequest";
 import { beginPendingWrite } from "../lib/pendingWrites";
 import { notify } from "../lib/feedback";
+import {thirdChargeLabel} from '../lib/menuLabels';
 export const emptyPro = {
   offers: [],
   awards: [],
@@ -63,7 +64,7 @@ export function usePro({
     if (knownCharges.current)
       own
         .filter((c) => !knownCharges.current.has(c.id))
-        .forEach((c) => notify("Khoản cần đóng mới: " + c.label));
+        .forEach((c) => notify("Khoản cần đóng mới: " + thirdChargeLabel(c.label,c.kind)));
     knownCharges.current = new Set(own.map((c) => c.id));
     setState({ ...emptyPro, ...data });
     setError("");

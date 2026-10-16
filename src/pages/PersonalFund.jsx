@@ -1,6 +1,6 @@
 import Pressable from '../components/Pressable';
 import React, { useState } from "react";
-import { Wallet, Check, Clock, ArrowLeft } from "lucide-react";
+import { Wallet, Check, Clock, ArrowLeft } from "../components/icons";
 import { qrUrl, monthKey } from "../lib/teamModel";
 import QrPreview from "../components/QrPreview";
 import { formatCurrency } from "../lib/formatCurrency";

@@ -1,7 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { X } from "lucide-react";
+import { X } from "../icons";
 import { useLayerBack } from "../../hooks/useLayerBack";
 import Pressable from "../Pressable";
 export default function ProModal({

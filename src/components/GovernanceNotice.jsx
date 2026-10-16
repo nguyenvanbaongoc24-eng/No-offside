@@ -1,6 +1,6 @@
 import Pressable from './Pressable';
 import React from "react";
-import { AlertTriangle, BookOpen } from "lucide-react";
+import { AlertTriangle, BookOpen } from "./icons";
 import { effectiveRules, violationCount } from "../lib/governance";
 export default function GovernanceNotice({ governance, onOpen }) {
   const snapshot = governance.snapshot;

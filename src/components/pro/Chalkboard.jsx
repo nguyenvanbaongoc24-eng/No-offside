@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Pencil, Eraser, Move, Undo2 } from "lucide-react";
+import { Pencil, Eraser, Move, Undo2 } from "../icons";
 import Pressable from "../Pressable";
 export default function Chalkboard({
   strokes = [],
@@ -147,7 +147,7 @@ export default function Chalkboard({
         <div
           className="pro-drawing-tools"
           role="group"
-          aria-label="Công cụ sa bàn"
+          aria-label="Công cụ Chiến Thuật"
         >
           {[
             ["move", "Di chuyển cầu thủ", Move],
@@ -164,7 +164,7 @@ export default function Chalkboard({
               className={"ink-" + id}
               onClick={() => setMode(id)}
             >
-              <Icon size={19} />
+              <Icon size={20} filled={mode===id} />
             </Pressable>
           ))}
           <Pressable

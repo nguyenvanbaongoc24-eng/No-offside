@@ -1,6 +1,6 @@
 import React,{useState,useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {LogOut,Trash2,X} from 'lucide-react';
+import {LogOut,Trash2,X} from "./icons";
 import Pressable from './Pressable';
 export default function TeamExit({team,role,onExit,disabled=false}) {
   const owner=role==='owner', [open,setOpen]=useState(false),[name,setName]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');const lock=useRef(false);

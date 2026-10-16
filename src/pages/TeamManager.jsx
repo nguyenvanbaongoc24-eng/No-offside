@@ -20,7 +20,7 @@ import {
   QrCode,
   ChevronRight,
   Eye,
-} from "lucide-react";
+} from "../components/icons";
 
 export default function TeamManager({
   isOpen = true,

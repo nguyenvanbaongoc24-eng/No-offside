@@ -1,5 +1,5 @@
 import React,{useEffect} from 'react';
-import {PartyPopper} from 'lucide-react';
+import {PartyPopper} from "./icons";
 import {useReducedMotion} from 'framer-motion';
 export default function BirthdayBanner({members=[],accountId,celebrate=false}){
   const reduced=useReducedMotion();

@@ -1,3 +1,4 @@
+import {Beer,Swords} from '../components/icons';
 import ChangePassword from '../components/ChangePassword';
 import TeamExit from '../components/TeamExit';
 import Pressable from '../components/Pressable';
@@ -24,7 +25,7 @@ import {
   Languages,
   KeyRound,
   Camera,
-} from "lucide-react";
+} from "../components/icons";
 import InviteShare from "../components/InviteShare";
 import Avatar from "../components/Avatar";
 import ProfileDetails from "./ProfileDetails";
@@ -429,7 +430,7 @@ export default function ProfileMenu(props) {
           </div>
         </section>
       )}
-      {hasTeam&&props.onOpenPro&&<section className="profile-group"><h2>No Offside Pro</h2><Row icon={Trophy} onClick={()=>props.onOpenPro('stars')}>Tạo thẻ cầu thủ & MOTM</Row><Row icon={BookOpen} onClick={()=>props.onOpenPro('board')}>Sàn cáp kèo</Row><Row icon={Wallet} onClick={()=>props.onOpenPro('finance')}>Hiệp 3 & phạt tự động</Row><Row icon={Settings} onClick={()=>props.onOpenPro('media')}>Poster & khoảnh khắc</Row></section>}
+      {hasTeam&&props.onOpenPro&&<section className="profile-group"><h2>No Offside Pro</h2><Row icon={Trophy} onClick={()=>props.onOpenPro('stars')}>Tạo thẻ cầu thủ & MOTM</Row><Row icon={Swords} onClick={()=>props.onOpenPro('board')}>{t("Tìm Đối")}</Row><Row icon={Beer} onClick={()=>props.onOpenPro('finance')}>{t("Sinh Tố Lúa Mạch")}</Row><Row icon={Settings} onClick={()=>props.onOpenPro('media')}>Poster & khoảnh khắc</Row></section>}
       <section className="profile-group">
         <h2>{t("Hồ sơ")}</h2>
         <Row icon={User} onClick={() => navigateDetail("profile")}>

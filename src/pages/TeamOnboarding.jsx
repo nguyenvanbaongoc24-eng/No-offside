@@ -8,7 +8,7 @@ import {
   Shield,
   ArrowRight,
   Sparkles,
-} from 'lucide-react';
+} from "../components/icons";
 
 export default function TeamOnboarding({
   user,

@@ -1,7 +1,7 @@
 import Pressable from './Pressable';
 import React, { useState } from "react";
 import { matchTimeLabel } from '../lib/matchTime';
-import { CalendarDays, Check } from "lucide-react";
+import { CalendarDays, Check } from "./icons";
 export default function MatchList({
   matches,
   activeMatchId,

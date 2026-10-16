@@ -1,3 +1,4 @@
+import {Soccer,Target,Shield,Hand,Cake} from '../components/icons';
 import Pressable from '../components/Pressable';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +15,7 @@ import {
   Trophy,
   User,
   Hash
-} from 'lucide-react';
+} from "../components/icons";
 
 /* =====================================================================
    BƯỚC 1: SPLASH SCREEN COMPONENT (WOW EFFECT VỚI FRAMER MOTION)
@@ -72,7 +73,7 @@ export function SplashScreen({ onFinish }) {
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Soccer Ball Core */}
               <div className="w-14 h-14 rounded-full border-2 border-white/90 flex items-center justify-center bg-white/10 relative shadow-inner">
-                <span className="text-3xl filter drop-shadow">⚽</span>
+                <img src="/pwa-512x512.png" width="48" height="48" alt="Logo No Offside" />
               </div>
               {/* Arrow Up-Right overlaying corner for forward motion */}
               <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg font-black border-2 border-white">
@@ -190,7 +191,7 @@ export function AuthScreen({ onVerifySuccess }) {
         {/* Tiêu đề Chào mừng */}
         <div className="mb-6 px-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-[11px] font-black mb-3">
-            <span>⚽</span>
+            <img src="/pwa-512x512.png" width="40" height="40" alt="Logo No Offside" />
             <span>FC NO OFFSIDE</span>
           </div>
 
@@ -219,7 +220,7 @@ export function AuthScreen({ onVerifySuccess }) {
                 {/* Input SĐT bo tròn rounded-full, nền xám nhạt bg-gray-100, icon VN +84 */}
                 <div className="relative flex items-center">
                   <div className="absolute left-3.5 flex items-center gap-1.5 pointer-events-none text-xs font-extrabold text-gray-700 bg-white/80 py-1 px-2 rounded-full border border-gray-200 shadow-xs">
-                    <span>🇻🇳</span>
+                    <span>VN</span>
                     <span>+84</span>
                   </div>
 
@@ -347,10 +348,10 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
   const [jerseyNumber, setJerseyNumber] = useState(defaultData.number || 9);
 
   const positions = [
-    { id: 'st', label: 'Tiền đạo (ST)', icon: '⚽', desc: 'Săn bàn' },
-    { id: 'mf', label: 'Tiền vệ (MF)', icon: '🎯', desc: 'Kiến thiết' },
-    { id: 'df', label: 'Hậu vệ (DF)', icon: '🛡️', desc: 'Phòng ngự' },
-    { id: 'gk', label: 'Thủ môn (GK)', icon: '🧤', desc: 'Người gác đền' },
+    { id: 'st', label: 'Tiền đạo (ST)', icon: Soccer, desc: 'Săn bàn' },
+    { id: 'mf', label: 'Tiền vệ (MF)', icon: Target, desc: 'Kiến thiết' },
+    { id: 'df', label: 'Hậu vệ (DF)', icon: Shield, desc: 'Phòng ngự' },
+    { id: 'gk', label: 'Thủ môn (GK)', icon: Hand, desc: 'Người gác đền' },
   ];
 
   const popularNumbers = [7, 9, 10, 11, 14, 19, 22];
@@ -435,7 +436,7 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
               className="w-full bg-gray-100 border border-gray-200/80 rounded-full py-3 px-4 text-xs font-bold text-gray-900 focus:bg-white focus:outline-none focus:border-[#22C55E] focus:ring-4 focus:ring-emerald-500/15 transition-all duration-200"
             />
             <p className="text-[10px] text-gray-400 font-medium mt-1 pl-1">
-              Giúp đội bóng không bỏ lỡ sinh nhật của bạn 🎂
+              Giúp đội bóng không bỏ lỡ sinh nhật của bạn <Cake size={20} />
             </p>
           </div>
 
@@ -461,7 +462,7 @@ export function OnboardingScreen({ defaultData = {}, onComplete }) {
                         : 'bg-gray-100 text-gray-700 border-gray-200/60 hover:bg-gray-200/70'
                     }`}
                   >
-                    <span className="text-lg">{pos.icon}</span>
+                    <span className="text-lg"><pos.icon size={20} filled={isSelected} /></span>
                     <div className="min-w-0">
                       <p className={`text-xs font-black truncate ${isSelected ? 'text-white' : 'text-gray-900'}`}>
                         {pos.label}

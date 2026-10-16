@@ -14,7 +14,7 @@ import {
   ChevronRight,
   Shield,
   Crown,
-} from "lucide-react";
+} from "../components/icons";
 import MatchFormSheet from "../components/MatchFormSheet";
 import AddMemberModal from "../components/AddMemberModal";
 import InviteShare from "../components/InviteShare";

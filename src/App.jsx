@@ -16,6 +16,7 @@ import {safePushTarget} from './lib/pushDevice';
 import TeamAccessState from "./pages/TeamAccessState";
 import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
 import StartupGate from "./components/StartupGate";
+import {systemNoticeTitle} from './lib/menuLabels';
 import {
   Home,
   Network,
@@ -23,7 +24,7 @@ import {
   MessageSquare,
   User,
   Loader2,
-} from "lucide-react";
+} from "./components/icons";
 import PlayerDashboard from "./pages/PlayerDashboard";
 import LineupBuilder from "./pages/LineupBuilder";
 import FundManagement from "./pages/FundManagement";
@@ -331,7 +332,7 @@ function Application({ onRetryStartup }) {
   };
   const tabs = [
     { id: "dashboard", label: "Trang chủ", Icon: Home },
-    { id: "lineup", label: "Sa bàn", Icon: Network },
+    { id: "lineup", label: "Chiến Thuật", Icon: Network },
     { id: "chat", label: "Chat", Icon: MessageSquare, unreadCount: chatUnread.countFor(auth.teamSettings.id) },
     { id: "profile", label: "Tài khoản", Icon: User },
   ];
@@ -725,7 +726,7 @@ function Application({ onRetryStartup }) {
                           );
                         }}
                       >
-                        <h3 className="font-semibold">{n.title}</h3>
+                        <h3 className="font-semibold">{systemNoticeTitle(n.title)}</h3>
                         <span className="text-xs text-emerald-700">
                           Mở nội dung
                         </span>

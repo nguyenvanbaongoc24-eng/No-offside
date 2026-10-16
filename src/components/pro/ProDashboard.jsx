@@ -1,3 +1,4 @@
+import {Beer} from '../icons';
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Trophy,
@@ -6,7 +7,7 @@ import {
   Clapperboard,
   Wallet,
   Network,
-} from "lucide-react";
+} from "../icons";
 import Avatar from "../Avatar";
 import Pressable from "../Pressable";
 import ProModal from "./ProModal";
@@ -83,8 +84,8 @@ export default function ProDashboard({
       )}
       <div className="pro-shortcuts">
         {[
-          ["board", "Cáp kèo", Swords],
-          ["finance", "Hiệp 3", Wallet],
+          ["board", "Tìm Đối", Swords],
+          ["finance", "Sinh Tố Lúa Mạch", Beer],
           ["media", "Poster", Clapperboard],
         ].map(([id, label, Icon]) => (
           <Pressable key={id} onClick={() => onOpen(id)}>
@@ -94,7 +95,7 @@ export default function ProDashboard({
         ))}
         <Pressable onClick={onLineup}>
           <Network size={19} />
-          Sa bàn Pro
+          Chiến Thuật Pro
         </Pressable>
       </div>
       <ProModal

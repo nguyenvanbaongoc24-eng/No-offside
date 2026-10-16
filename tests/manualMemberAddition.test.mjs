@@ -20,7 +20,7 @@ const bundle = await build({
   platform: "node",
   format: "cjs",
   write: false,
-  external: ["react", "lucide-react"],
+  external: ["react"],
 });
 
 const compiled = { exports: {} };

@@ -1,6 +1,6 @@
 import Pressable from '../components/Pressable';
 import React from "react";
-import { ShieldAlert, BookOpen, User, UserPlus, Plus } from "lucide-react";
+import { ShieldAlert, BookOpen, User, UserPlus, Plus } from "../components/icons";
 import TeamIdentityHeader from "../components/TeamIdentityHeader";
 export default function TeamAccessState({
   team,

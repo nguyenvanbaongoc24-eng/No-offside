@@ -34,7 +34,7 @@ import {
   UserCheck,
   UserX,
   BookOpen,
-} from "lucide-react";
+} from "../components/icons";
 import Avatar from "../components/Avatar";
 import { imageDataUrl, uploadAvatarImage } from "../lib/images";
 

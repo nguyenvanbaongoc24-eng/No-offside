@@ -18,7 +18,7 @@ import {
   Save,
   RotateCcw,
   Move,
-} from "lucide-react";
+} from "../components/icons";
 
 export default function LineupBuilder({
   onBack,
@@ -507,7 +507,7 @@ export default function LineupBuilder({
         <Pressable aria-label="Quay lại" onClick={onBack}>
           <ChevronLeft size={22} />
         </Pressable>
-        <h1>Sa bàn</h1>
+        <h1>Chiến Thuật</h1>
         <Pressable
           className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!canEdit}

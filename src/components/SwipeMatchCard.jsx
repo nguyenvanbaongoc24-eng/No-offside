@@ -1,7 +1,7 @@
 import Pressable from './Pressable';
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Trash2, MoreHorizontal, X } from "lucide-react";
+import { Trash2, MoreHorizontal, X } from "./icons";
 export default function SwipeMatchCard({
   match,
   canDelete,

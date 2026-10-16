@@ -1,7 +1,7 @@
 import {notify} from '../lib/feedback';
 import Pressable from './Pressable';
 import React, { useEffect, useState } from "react";
-import { ArrowRightLeft, LogOut, Plus, Check, X, User, Trash2 } from "lucide-react";
+import { ArrowRightLeft, LogOut, Plus, Check, X, User, Trash2 } from "./icons";
 import { readStored, writeStored } from "../lib/storage";
 import { maskedIdentifier } from "../lib/accounts";
 

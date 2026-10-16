@@ -1,3 +1,4 @@
+import {MapPin,Soccer,HelpCircle,XCircle,PartyPopper} from '../components/icons';
 import Pressable from '../components/Pressable';
 import React, { useState } from 'react';
 import { 
@@ -26,7 +27,7 @@ import {
   Crown,
   UserCog,
   FileCheck
-} from 'lucide-react';
+} from "../components/icons";
 import GlassCard from '../components/ui/GlassCard';
 import Button from '../components/ui/Button';
 import MatchCard from '../components/matches/MatchCard';
@@ -180,11 +181,11 @@ export default function Dashboard({
         {notificationOpen && (
           <div className="mt-2 p-3 glass-panel-elevated rounded-xl border border-white/15 animate-in fade-in slide-in-from-top-2 duration-200 text-xs text-slate-200">
             <div className="flex items-center justify-between font-bold text-white mb-1.5">
-              <span>🔔 Thông báo nội bộ</span>
-              <Pressable onClick={() => setNotificationOpen(false)} className="text-slate-400 hover:text-white">✕</Pressable>
+              <span><Bell size={20} /> Thông báo nội bộ</span>
+              <Pressable aria-label="Đóng thông báo" onClick={() => setNotificationOpen(false)} className="text-slate-400 hover:text-white"><X size={20} /></Pressable>
             </div>
             <p className="text-slate-300">
-              ⚡ <strong>Thủ quỹ Hải:</strong> "Đã cập nhật quỹ trận gặp FC Hàng Xóm, anh em nhớ nộp trước thứ 6 nhé!"
+              <Zap size={20} /> <strong>Thủ quỹ Hải:</strong> "Đã cập nhật quỹ trận gặp FC Hàng Xóm, anh em nhớ nộp trước thứ 6 nhé!"
             </p>
           </div>
         )}
@@ -239,7 +240,7 @@ export default function Dashboard({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-2">
-                📍 Sân bóng Chuyên Việt (Sân 3) - 18D Cộng Hòa, Tân Bình
+                <MapPin size={20} /> Sân bóng Chuyên Việt (Sân 3) - 18D Cộng Hòa, Tân Bình
               </p>
             </div>
 
@@ -261,9 +262,9 @@ export default function Dashboard({
               </div>
 
               <div className="flex justify-between text-[11px] text-slate-300 font-medium">
-                <span className="text-emerald-400">⚽ Có mặt: 14</span>
-                <span className="text-amber-400">🤔 50/50: 2</span>
-                <span className="text-rose-400">❌ Vắng: 4</span>
+                <span className="text-emerald-400"><Soccer size={20} /> Có mặt: 14</span>
+                <span className="text-amber-400"><HelpCircle size={20} /> 50/50: 2</span>
+                <span className="text-rose-400"><XCircle size={20} /> Vắng: 4</span>
               </div>
             </div>
 
@@ -487,11 +488,11 @@ export default function Dashboard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-blue-500/30 flex items-center justify-center border border-white/20">
-                ⚽
+                <Soccer size={20} />
               </div>
               <div>
                 <h4 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
-                  Sa Bàn Chiến Thuật Sân 7
+                  Chiến Thuật Sân 7
                 </h4>
                 <p className="text-xs text-slate-400">Sơ đồ 2-3-1 • Đã xếp 7/7 vị trí</p>
               </div>
@@ -527,7 +528,7 @@ export default function Dashboard({
             <div className="mt-4 space-y-2.5 max-h-64 overflow-y-auto pr-1">
               {pendingApprovals.length === 0 ? (
                 <div className="text-center py-6 text-slate-400 text-xs">
-                  🎉 Đã duyệt hết tất cả các khoản đóng quỹ!
+                  <PartyPopper size={20} /> Đã duyệt hết tất cả các khoản đóng quỹ!
                 </div>
               ) : (
                 pendingApprovals.map((item) => (

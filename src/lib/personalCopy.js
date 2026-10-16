@@ -1,4 +1,5 @@
 const english = {
+  "Chiến Thuật":"Tactics", "Tìm Đối":"Find opponents", "Sinh Tố Lúa Mạch":"Sinh Tố Lúa Mạch",
   "Ngày sinh":"Date of birth", "Không bắt buộc":"Optional", "Năm sinh chỉ hiển thị trong hồ sơ của bạn.":"Your birth year is visible only in your own profile.",
   "Tên đăng nhập":"Username", "Cập nhật tên đăng nhập":"Update username", "Chỉnh sửa & Cập nhật":"Edit & update", "Số điện thoại liên hệ (tùy chọn)":"Contact phone (optional)", "Ảnh mới sẽ áp dụng khi cập nhật hồ sơ.":"Your new avatar will apply when you update your profile.", "Nhập tên và số áo từ 1 đến 99.":"Enter a name and shirt number from 1 to 99.", "Số áo này đã có thành viên sử dụng.":"This shirt number is already in use.", "Chiều cao và cân nặng phải lớn hơn 0.":"Height and weight must be greater than zero.",
   "Không rõ ngày":"Unknown date",

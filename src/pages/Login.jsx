@@ -18,7 +18,7 @@ import {
   EyeOff,
   Trash2,
   Check,
-} from "lucide-react";
+} from "../components/icons";
 import { supabase } from "../lib/supabase";
 import { readStored, writeStored } from "../lib/storage";
 import { authText } from "../lib/authCopy";
@@ -746,16 +746,16 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
           <div className="auth-preferences">
           <div className="auth-theme-tools">
           <div className="auth-preference-group" role="group" aria-label={language === "en" ? "Color theme" : "Giao diện"}>
-            <Pressable type="button" aria-label="Giao diện sáng" title="Giao diện sáng" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={18} strokeWidth={1.75} aria-hidden="true" /></Pressable>
-            <Pressable type="button" aria-label="Giao diện tối" title="Giao diện tối" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={18} strokeWidth={1.75} aria-hidden="true" /></Pressable>
+            <Pressable type="button" aria-label="Giao diện sáng" title="Giao diện sáng" aria-pressed={activeTheme === "light"} onClick={() => onThemeChange?.("light")}><Sun size={20} filled={activeTheme === 'light'} aria-hidden="true" /></Pressable>
+            <Pressable type="button" aria-label="Giao diện tối" title="Giao diện tối" aria-pressed={activeTheme === "dark"} onClick={() => onThemeChange?.("dark")}><Moon size={20} filled={activeTheme === 'dark'} aria-hidden="true" /></Pressable>
           </div>
           <details className="auth-theme-menu">
-            <summary aria-label={language === "en" ? "Theme options" : "Tùy chọn giao diện"} title={language === "en" ? "Theme options" : "Tùy chọn giao diện"}><Ellipsis size={18} strokeWidth={1.75} aria-hidden="true" /></summary>
+            <summary aria-label={language === "en" ? "Theme options" : "Tùy chọn giao diện"} title={language === "en" ? "Theme options" : "Tùy chọn giao diện"}><Ellipsis size={18}  aria-hidden="true" /></summary>
             <div className="auth-theme-popover">
               <Pressable type="button" aria-pressed={theme === "system"} onClick={(event) => {
                 onThemeChange?.("system");
                 event.currentTarget.closest("details").open = false;
-              }}><Monitor size={18} strokeWidth={1.75} aria-hidden="true" />{language === "en" ? "System" : "Hệ thống"}</Pressable>
+              }}><Monitor size={18}  aria-hidden="true" />{language === "en" ? "System" : "Hệ thống"}</Pressable>
             </div>
           </details>
           </div>

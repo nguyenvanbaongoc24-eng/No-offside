@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Download, Trophy } from "lucide-react";
+import { Download, Trophy } from "../icons";
 import Pressable from "../Pressable";
 import Avatar from "../Avatar";
 import { downloadDesign } from "../../lib/pro";

@@ -1,7 +1,7 @@
 import Pressable from './Pressable';
 import { personalText } from "../lib/personalCopy";
 import React from "react";
-import { Sun, Moon, Smartphone, Type } from "lucide-react";
+import { Sun, Moon, Smartphone, Type } from "./icons";
 
 export default function AppearanceSettings({ preferences }) {
   const t = text => personalText(text, preferences.value.language);
@@ -29,7 +29,7 @@ export default function AppearanceSettings({ preferences }) {
             aria-pressed={preferences.value.theme === value}
             onClick={() => preferences.update({ theme: value })}
           >
-            <Icon size={20} />
+            <Icon size={20} filled={preferences.value.theme === value} />
             {t(label)}
           </Pressable>
         ))}

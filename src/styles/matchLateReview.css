@@ -1,4 +1,4 @@
-.match-late-review { border-top: 1px solid var(--border-color); padding-top: 16px; min-width: 0; }
+.match-late-review { border-top: 1px solid var(--border); padding-top: 16px; min-width: 0; }
 .match-late-review h3 { font-size: 14px; font-weight: 700; display: flex; flex-wrap: wrap; gap: 6px; }
 .match-late-review article { margin-top: 12px; padding: 12px; border-radius: 16px; background: var(--surface-secondary); min-width: 0; }
 .match-late-review article p { margin-top: 6px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }

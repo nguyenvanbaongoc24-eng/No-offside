@@ -20,3 +20,17 @@ export const lateStatusLabel = status => ({
   approved: 'Xin muộn · Đã duyệt',
   rejected: 'Xin muộn · Từ chối',
 }[status] || 'Xin muộn');
+
+// The original roster remains the deadline/fine baseline. People whose server
+// attendance was accepted after joining must also be visible in the live list.
+export function matchAttendanceMembers(eligible, members, attendance = {}) {
+  const identities = new Map(members.map(member => [String(member.id), member]));
+  const roster = new Map(eligible.map(member => [String(member.id), {
+    ...member, ...identities.get(String(member.id)),
+  }]));
+  for (const member of members) {
+    if (['attending', 'absent', 'maybe'].includes(attendance[member.id]))
+      roster.set(String(member.id), member);
+  }
+  return [...roster.values()];
+}

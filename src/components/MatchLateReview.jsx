@@ -60,6 +60,7 @@ export default function MatchLateReview({ governance, matchId, members, attendan
         <p>Giờ đến: {matchTimeLabel(request.data.eta, snapshot.team.timezone)}</p>
         <p className="late-request-reason">{request.data.reason}</p>
         {decision?.data.reason && <p className="field-hint">Phản hồi: {decision.data.reason}</p>}
+        {status === 'pending' && !canReview && <p className="field-hint">Cần Chủ đội hoặc quản trị viên khác duyệt yêu cầu của bạn.</p>}
         {canReview && <div className="late-review-actions">
           <Pressable className="primary-button" disabled={busy} onClick={() => open(entry, 'approved')} aria-label={`Duyệt đến muộn cho ${name}`}>Duyệt</Pressable>
           <Pressable className="choice-button" disabled={busy} onClick={() => open(entry, 'rejected')} aria-label={`Từ chối đến muộn của ${name}`}>Từ chối</Pressable>

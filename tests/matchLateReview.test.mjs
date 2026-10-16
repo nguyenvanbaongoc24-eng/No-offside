@@ -4,9 +4,14 @@ import React from 'react';
 import renderer, {act} from 'react-test-renderer';
 import {build} from 'esbuild';
 import {createRequire} from 'node:module';
-import {matchLateRequests} from '../src/lib/matchLateRequests.js';
+import {matchLateRequests, matchAttendanceMembers} from '../src/lib/matchLateRequests.js';
 const request=(id,subject,seq,match_id='match')=>({id,subject,seq,match_id,action:'late_request',data:{status:'pending',eta:'2026-10-18T12:45Z',reason:'Kẹt xe'}});
 const events=[request('old','member',1),request('other','member',7,'different'),request('new','member',3),{id:'decision',seq:5,action:'review_late',data:{requestId:'old',status:'approved'}}];
+test('accepted attendance from late joiners is visible without changing the original eligible roster',()=>{
+ const eligible=[{id:'owner',name:'Tên cũ'}], members=[{id:'owner',name:'Tên mới'},{id:'joined',name:'Mới tham gia'},{id:'waiting',name:'Chưa điểm danh'}];
+ const roster=matchAttendanceMembers(eligible,members,{owner:'attending',joined:'attending'});
+ assert.deepEqual(roster.map(m=>m.id),['owner','joined']);assert.equal(roster[0].name,'Tên mới');assert.equal(eligible.length,1);assert.equal(eligible[0].name,'Tên cũ');
+});
 test('match list keeps only latest request, exact match and decision for that request',()=>{
  const entries=matchLateRequests(events,'match');assert.equal(entries.length,1);assert.equal(entries[0].request.id,'new');assert.equal(entries[0].status,'pending');
  assert.equal(matchLateRequests([...events,{seq:8,action:'review_late',data:{requestId:'new',status:'rejected'}}],'match')[0].status,'rejected');

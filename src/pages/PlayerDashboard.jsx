@@ -8,7 +8,7 @@ import MatchCardSummary from "../components/matches/MatchCardSummary";
 import { useTeamInvite } from "../hooks/useTeamInvite";
 import LateArrivalPanel from "../components/LateArrivalPanel";
 import MatchLateReview from "../components/MatchLateReview";
-import { matchLateRequests, lateStatusLabel } from '../lib/matchLateRequests';
+import { matchLateRequests, lateStatusLabel, matchAttendanceMembers } from '../lib/matchLateRequests';
 import { matchTimeLabel } from "../lib/matchTime";
 import SwipeMatchCard from "../components/SwipeMatchCard";
 import QrPreview from "../components/QrPreview";
@@ -209,16 +209,14 @@ export default function PlayerDashboard({
   };
 
   // Mock Attendance Roster with 4 tabs: [Có mặt] - [Chưa chắc] - [Báo vắng] - [Chưa điểm danh (Mới)]
-  const attendanceMembers = Array.isArray(activeMatch.eligibleMembers)
+  const eligibleMembers = Array.isArray(activeMatch.eligibleMembers)
     ? activeMatch.eligibleMembers
     : members.filter(
         (member) =>
           !member.membershipStatus || member.membershipStatus === "active",
       );
-  // Eligibility belongs to the match; names/avatars use the current member profile.
-  const roster = rosterFor(attendanceMembers.map(member => ({
-    ...member, ...members.find(current => String(current.id) === String(member.id)),
-  })), attendance, user);
+  const attendanceMembers = matchAttendanceMembers(eligibleMembers, members, attendance);
+  const roster = rosterFor(attendanceMembers, attendance, user);
   const rosterCount = attendanceMembers.length;
   const lateRequests = matchLateRequests(governance?.snapshot?.events, activeMatch.id);
   const memberLateLabel = id => {
@@ -1455,7 +1453,7 @@ export default function PlayerDashboard({
                     Danh sách điểm danh
                   </h3>
                   <p className="text-xs text-gray-400">
-                    {activeMatch.title} · {rosterCount} cầu thủ đủ điều kiện
+                    {activeMatch.title} · {rosterCount} thành viên trong danh sách trận
                   </p>
                 </div>
               </div>

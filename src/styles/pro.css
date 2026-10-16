@@ -642,11 +642,9 @@
   touch-action: none;
 }
 .pro-drawing-tools {
-  position: absolute;
-  bottom: 48px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 40;
+  position: relative;
+  margin: 12px auto;
+  width: max-content;
   display: flex;
   align-items: center;
   gap: 2px;

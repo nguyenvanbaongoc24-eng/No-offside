@@ -32,6 +32,7 @@ export default function LineupBuilder({
   onCreateOpened,
 }) {
   const pitchRef = useRef(null);
+  const [drawingToolbarHost, setDrawingToolbarHost] = useState(null);
   const [draggedPlayer, setDraggedPlayer] = useState(null);
   const suppressTap = useRef(false);
   useEffect(
@@ -684,7 +685,7 @@ export default function LineupBuilder({
             </div>
           ))}
 
-          <Chalkboard key={currentFormation.id} strokes={currentFormation.drawing || []} editable={canEdit} onChange={drawing=>setFormationsList(prev=>prev.map(f=>f.id===currentFormation.id?{...f,drawing}:f))}/>
+          <Chalkboard key={currentFormation.id} strokes={currentFormation.drawing || []} editable={canEdit} toolbarHost={drawingToolbarHost} onChange={drawing=>setFormationsList(prev=>prev.map(f=>f.id===currentFormation.id?{...f,drawing}:f))}/>
           {/* Hint Overlay */}
           <div className="pitch-interaction-hint">
             Kéo thả vị trí tùy ý • Chạm để đổi người
@@ -692,6 +693,7 @@ export default function LineupBuilder({
         </div>
       </div>
 
+      <div ref={setDrawingToolbarHost} className="pro-drawing-host" />
       {/* 3. Danh sách chiến thuật */}
       <div className="px-4 mt-3">
         <div className="flex items-center justify-between mb-2.5 px-1">

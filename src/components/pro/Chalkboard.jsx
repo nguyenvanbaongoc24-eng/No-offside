@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Pencil, Eraser, Move, Undo2, Trash2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Pencil, Eraser, Move, Undo2 } from "lucide-react";
 import Pressable from "../Pressable";
 export default function Chalkboard({
   strokes = [],
   onChange,
   editable = false,
+  toolbarHost = null,
 }) {
   const canvas = useRef(null),
     draft = useRef(null),
@@ -141,7 +143,7 @@ export default function Chalkboard({
           finish(e);
         }}
       />
-      {editable && (
+      {editable && toolbarHost && createPortal(
         <div
           className="pro-drawing-tools"
           role="group"
@@ -172,7 +174,7 @@ export default function Chalkboard({
           >
             <Undo2 size={19} />
           </Pressable>
-        </div>
+        </div>, toolbarHost
       )}
     </>
   );

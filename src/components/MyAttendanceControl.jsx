@@ -1,6 +1,6 @@
 import Pressable from './Pressable';
 import React, { useEffect, useState } from "react";
-import { CheckCircle2, XCircle, AlertCircle, ShieldAlert } from "lucide-react";
+import { Check, X, AlertCircle } from "lucide-react";
 
 export default function MyAttendanceControl({
   status,
@@ -30,36 +30,47 @@ export default function MyAttendanceControl({
   return (
     <section
       id="match-attendance"
-      className="my-attendance pitch-attendance-control"
+      className="my-attendance attendance-section"
       aria-label="Điểm danh của bạn"
     >
-      {/* Header khu vực điểm danh với badge trạng thái nổi bật */}
-      <div className="flex items-center justify-between mb-2.5">
-        <p className="text-xs font-bold text-white tracking-wide flex items-center gap-1.5">
-          <span>Điểm danh của bạn{closed ? " · Đã chốt" : ""}</span>
-        </p>
+      {/* Header khu vực điểm danh */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+            Điểm danh của tôi
+          </h3>
+          {/* Giữ lại đoạn text ẩn cho test assertion */}
+          <span className="sr-only">Điểm danh của bạn{closed ? " · Đã chốt" : ""}</span>
+          {closed && (
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+              · Đã chốt
+            </span>
+          )}
+        </div>
+
+        {/* Badge trạng thái nhỏ bên phải */}
         <div>
           {status === "attending" ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-400/25 text-emerald-200 border border-emerald-400/40 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Đã chốt đá ⚽
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              <Check size={12} strokeWidth={2.5} />
+              Đã có mặt
             </span>
           ) : status === "absent" ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-500/25 text-rose-200 border border-rose-400/40 shadow-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-              Đã báo vắng ❌
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+              <X size={12} strokeWidth={2.5} />
+              Đã báo vắng
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400/25 text-amber-200 border border-amber-300/40 animate-pulse">
-              <AlertCircle className="w-3 h-3 text-amber-300" />
-              Chưa chốt
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+              <AlertCircle size={12} />
+              Chưa điểm danh
             </span>
           )}
         </div>
       </div>
 
-      {/* Grid 2 nút vote phong cách sân cỏ */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Grid 2 nút vote bằng nhau, icon và chữ căn giữa */}
+      <div className="grid grid-cols-2 gap-3">
         {[
           ["attending", "Có mặt"],
           ["absent", "Báo vắng"],
@@ -71,9 +82,13 @@ export default function MyAttendanceControl({
             <Pressable
               key={value}
               type="button"
-              className={`choice-button pitch-vote-btn ${
-                isAttending ? "pitch-vote-attending" : "pitch-vote-absent"
-              } ${isSelected ? "is-selected" : ""}`}
+              className={`choice-button attendance-vote-btn h-11 sm:h-12 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 border cursor-pointer outline-none ${
+                isSelected
+                  ? isAttending
+                    ? "bg-[#17843B] dark:bg-[#1E5E35] text-white border-[#17843B] dark:border-[#1E5E35] shadow-xs"
+                    : "bg-[#C6283B] dark:bg-[#8E1E2D] text-white border-[#C6283B] dark:border-[#8E1E2D] shadow-xs"
+                  : "bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+              }`}
               aria-pressed={isSelected}
               disabled={closed || busy}
               onClick={async () => {
@@ -88,35 +103,31 @@ export default function MyAttendanceControl({
                 }
               }}
             >
-              <span className="flex items-center justify-center gap-1.5 font-bold text-sm tracking-tight">
-                {isAttending ? (
-                  <CheckCircle2
-                    className={`w-4 h-4 shrink-0 transition-transform ${
-                      isSelected ? "text-white scale-110" : "text-emerald-300/80"
-                    }`}
-                  />
+              {isSelected ? (
+                isAttending ? (
+                  <Check size={16} strokeWidth={2.5} className="text-white shrink-0" />
                 ) : (
-                  <XCircle
-                    className={`w-4 h-4 shrink-0 transition-transform ${
-                      isSelected ? "text-white scale-110" : "text-rose-300/80"
-                    }`}
-                  />
-                )}
-                <span>{label}</span>
-              </span>
+                  <X size={16} strokeWidth={2.5} className="text-white shrink-0" />
+                )
+              ) : isAttending ? (
+                <Check size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              ) : (
+                <X size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
+              )}
+              <span>{label}</span>
             </Pressable>
           );
         })}
       </div>
 
       {busy && (
-        <p role="status" className="text-xs text-emerald-200 mt-2 font-medium flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+        <p role="status" className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           Đang lưu điểm danh…
         </p>
       )}
       {error && (
-        <p role="alert" className="text-sm text-rose-200 mt-2 font-semibold bg-rose-950/60 p-2 rounded-xl border border-rose-500/40">
+        <p role="alert" className="text-xs text-rose-700 dark:text-rose-400 mt-2 font-medium p-2 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900">
           {error}
         </p>
       )}

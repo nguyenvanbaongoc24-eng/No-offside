@@ -151,127 +151,92 @@ html[data-theme] .profile-detail-content form>button[type=submit]{border-radius:
 .late-arrival-sheet input[aria-invalid="true"]{border-color:var(--danger,#dc2626)}
 html[data-theme="dark"] .late-arrival-sheet input[type="time"]{background:#0f172a;border-color:#475569;color:#f1f5f9}
 
-/* STADIUM PITCH HERO CARD & DASHBOARD PITCH AESTHETICS */
-.pitch-hero-card,
-html[data-theme] .pitch-hero-card,
-.large-match-content > section.pitch-hero-card {
-  position: relative !important;
-  background: 
-    radial-gradient(circle at 85% 15%, rgba(52, 211, 153, 0.28) 0%, transparent 55%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0px, rgba(255, 255, 255, 0.035) 28px, transparent 28px, transparent 56px),
-    linear-gradient(145deg, #064e3b 0%, #065f46 40%, #047857 72%, #022c22 100%) !important;
-  border: 1px solid rgba(52, 211, 153, 0.35) !important;
-  border-radius: 28px !important;
-  color: #ffffff !important;
-  box-shadow: 0 16px 36px -10px rgba(6, 78, 59, 0.45), 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+/* =========================================================
+   CLEAN MATCH CARD & LIGHT/DARK TOKENS (REDESIGN)
+   ========================================================= */
+:root {
+  --color-page: #F5F7F6;
+  --color-card-surface: #FFFFFF;
+  --color-text-primary: #14201A;
+  --color-text-secondary: #526159;
+  --color-card-border: #DCE5DF;
+  --color-brand-accent: #17843B;
+  --color-brand-accent-soft: rgba(23, 132, 59, 0.1);
+  --radius-card: 20px;
+  --radius-control: 12px;
+}
+
+html[data-theme="dark"], :root[data-theme="dark"] {
+  --color-page: #0B1210;
+  --color-card-surface: #141E1A;
+  --color-text-primary: #F2F6F3;
+  --color-text-secondary: #B3BFB7;
+  --color-card-border: #2B3931;
+  --color-brand-accent: #63CD79;
+  --color-brand-accent-soft: rgba(99, 205, 121, 0.12);
+}
+
+/* Thẻ trận đấu: Bo góc 20px, bề mặt ổn định, viền chuẩn */
+.match-card-container,
+html[data-theme] .match-card-container,
+.large-match-content > section.match-card-container {
+  border-radius: var(--radius-card) !important;
+  border: 1px solid var(--color-card-border) !important;
+  background: var(--color-card-surface) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 0.04) !important;
   overflow: hidden !important;
 }
 
-.pitch-hero-card::before {
-  content: "";
-  position: absolute;
-  top: -60px;
-  right: -60px;
-  width: 170px;
-  height: 170px;
-  border: 2px dashed rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-  pointer-events: none;
+/* Phần A: Header thông tin trận chỉ dùng gradient xanh nhẹ nhận diện */
+.match-card-header {
+  position: relative;
+  background: linear-gradient(135deg, #0d5c2e 0%, #17843b 100%) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
 }
 
+html[data-theme="dark"] .match-card-header {
+  background: linear-gradient(135deg, #0e3720 0%, #154c2b 100%) !important;
+}
+
+/* Bỏ hoàn toàn các vòng tròn trang trí và sọc sân bóng phía sau */
+.match-card-container::before,
+.match-card-container::after,
+.pitch-hero-card::before,
 .pitch-hero-card::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 8%;
-  right: 8%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.3), transparent);
-  pointer-events: none;
+  display: none !important;
+  content: none !important;
 }
 
-/* ATTENDANCE VOTING CONTROL */
-.pitch-attendance-control {
-  background: rgba(0, 0, 0, 0.28) !important;
-  border: 1px solid rgba(52, 211, 153, 0.25) !important;
-  border-radius: 22px !important;
-  padding: 14px !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.pitch-vote-btn {
+/* Nút điểm danh trong phần B */
+.attendance-vote-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 50px !important;
-  min-height: 50px !important;
-  border-radius: 16px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  border-radius: var(--radius-control) !important;
   font-size: 14px !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.01em !important;
-  cursor: pointer !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  font-weight: 600 !important;
+  transition: all 0.18s ease !important;
   box-sizing: border-box !important;
-  outline: none !important;
 }
 
-.pitch-vote-btn.pitch-vote-attending {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+/* Phân cách khu vực C */
+.late-arrival-section {
+  border-color: var(--color-card-border) !important;
 }
 
-.pitch-vote-btn.pitch-vote-attending:hover:not(:disabled) {
-  background: rgba(16, 185, 129, 0.25) !important;
-  border-color: rgba(52, 211, 153, 0.5) !important;
+/* Bảo đảm tương phản cho text trên phần header xanh */
+.match-card-header h2,
+.match-card-header span,
+.match-card-header time {
+  color: #ffffff;
 }
 
-.pitch-vote-btn.pitch-vote-attending[aria-pressed="true"],
-.pitch-vote-btn.pitch-vote-attending.is-selected {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  color: #ffffff !important;
-  border: 1px solid #34d399 !important;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+/* Nội dung cuối trang cuộn trên navigation */
+.dashboard-card-flow {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
-.pitch-vote-btn.pitch-vote-absent {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
-}
-
-.pitch-vote-btn.pitch-vote-absent:hover:not(:disabled) {
-  background: rgba(244, 63, 94, 0.22) !important;
-  border-color: rgba(251, 113, 133, 0.5) !important;
-}
-
-.pitch-vote-btn.pitch-vote-absent[aria-pressed="true"],
-.pitch-vote-btn.pitch-vote-absent.is-selected {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-  color: #ffffff !important;
-  border: 1px solid #fb7185 !important;
-  box-shadow: 0 0 20px rgba(244, 63, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
-}
-
-.pitch-vote-btn:disabled {
-  opacity: 0.55 !important;
-  cursor: not-allowed !important;
-  filter: grayscale(0.2) !important;
-}
-
-/* SCOREBOARD COUNTDOWN BANNER */
-.pitch-scoreboard-banner {
-  background: rgba(0, 0, 0, 0.32) !important;
-  border: 1px solid rgba(52, 211, 153, 0.25) !important;
-  border-radius: 18px !important;
-  color: #ffffff !important;
-}
-
-/* ROSTER SUMMARY & PROGRESS IN PITCH CARD */
-.pitch-roster-summary {
-  background: rgba(0, 0, 0, 0.22) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 18px !important;
-}

@@ -44,6 +44,7 @@ import {
   Info,
   Plus,
   MessageSquare,
+  MoreHorizontal,
 } from "lucide-react";
 import { formatCurrency, formatCompactCurrency } from "../lib/formatCurrency";
 import TeamManager from "./TeamManager";
@@ -97,6 +98,7 @@ export default function PlayerDashboard({
 }) {
   // Modal states
   const [matchFormError, setMatchFormError] = useState("");
+  const [showMatchActionMenu, setShowMatchActionMenu] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showAdminApproveModal, setShowAdminApproveModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -470,242 +472,254 @@ export default function PlayerDashboard({
           canDelete={isLeader}
           onDelete={onDeleteMatch}
         >
-          <section className="pitch-hero-card rounded-[28px] p-4 sm:p-5 relative overflow-hidden text-white shadow-xl">
-            {/* Top Bar Card 1 */}
-            <div className="match-toolbar flex flex-col gap-3 mb-3">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs font-bold tracking-wider text-emerald-100 bg-white/15 px-2.5 py-1 rounded-full border border-white/20 backdrop-blur-xs flex items-center gap-1">
-                  <span>⚽</span>
-                  <span>{matchInfo.category || "Kèo Sân 7"}</span>
-                </span>
-                {matchInfo.penaltyEnabled && (
-                  <span className="text-xs font-bold text-amber-200 bg-amber-400/20 px-2.5 py-1 rounded-full border border-amber-300/35 flex items-center gap-1 backdrop-blur-xs">
-                    <AlertTriangle className="w-3 h-3 text-amber-300" />
-                    <span>Phạt {matchInfo.penaltyAmount}</span>
+          <section className="match-card-container rounded-[20px] overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm transition-all bg-white dark:bg-[#141E1A]">
+            {/* KHU VỰC A: THÔNG TIN TRẬN - CHỈ GRADIENT XANH NHẸ PHẦN ĐẦU */}
+            <div className="match-card-header p-4 sm:p-5 text-white relative bg-gradient-to-br from-[#0d5c2e] to-[#17843b] dark:from-[#0e3720] dark:to-[#154c2b]">
+              {/* Hàng 1: Trạng thái thực, Tag & Menu ba chấm quản lý */}
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span className="text-xs font-bold text-white bg-white/20 backdrop-blur-xs px-2.5 py-0.5 rounded-full border border-white/25">
+                    {matchStatus === "completed" ? "Đã kết thúc" : "Trận sắp tới"}
                   </span>
-                )}
-              </div>
+                  {matchInfo.category && (
+                    <span className="text-xs font-semibold text-emerald-100 bg-white/10 px-2 py-0.5 rounded-full border border-white/15">
+                      ⚽ {matchInfo.category}
+                    </span>
+                  )}
+                  {matchInfo.penaltyEnabled && (
+                    <span className="text-xs font-semibold text-amber-200 bg-amber-500/25 px-2 py-0.5 rounded-full border border-amber-300/30 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 text-amber-300" />
+                      <span>Phạt {matchInfo.penaltyAmount}</span>
+                    </span>
+                  )}
+                </div>
 
-              {/* Match Status Switcher & Controls */}
-              <div className="match-controls flex flex-wrap items-center justify-between gap-3">
-                {(!isLeader || matchStatus === "completed") && (
-                  <span className="text-xs font-semibold text-emerald-100/90 bg-black/20 px-2.5 py-0.5 rounded-full border border-white/15">
-                    {matchStatus === "completed"
-                      ? "Đã kết thúc"
-                      : "Trận sắp đá"}
-                  </span>
-                )}
-                {isLeader && matchStatus !== "completed" && (
+                {/* Menu ba chấm góc phải */}
+                <div className="relative shrink-0">
                   <Pressable
                     type="button"
-                    className="choice-button text-xs bg-white/20 hover:bg-white/30 text-white border border-white/30 px-3 py-1 rounded-full transition-all"
-                    onClick={async () => {
-                      try {
-                        if (
-                          window.confirm(
-                            "Kết thúc trận này và mở báo cáo thành tích?",
-                          )
-                        )
-                          await setMatchStatus("completed");
-                      } catch (error) {
-                        setMatchFormError(error.message);
-                      }
-                    }}
+                    className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition-colors outline-none cursor-pointer"
+                    aria-label="Tùy chọn trận đấu"
+                    onClick={() => setShowMatchActionMenu((prev) => !prev)}
                   >
-                    Kết thúc trận
+                    <MoreHorizontal size={18} />
                   </Pressable>
-                )}
 
-                {isLeader ? (
-                  <div className="flex items-center gap-1">
-                    <Pressable
-                      onClick={() => openMatchEditor(true)}
-                      className="p-1.5 rounded-full bg-white/15 text-white hover:bg-white/25 border border-white/20 active:scale-95 transition-all duration-200 cursor-pointer"
-                      aria-label="Sửa trận"
-                      title="Sửa trận"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </Pressable>
-                  </div>
-                ) : (
-                  matchStatus === "upcoming" && (
-                    <div className="hidden sm:flex items-center gap-1 bg-black/30 border border-white/20 text-white px-2.5 py-0.5 rounded-full tabular-nums font-bold text-xs backdrop-blur-xs">
-                      <Clock className="w-3 h-3 text-emerald-300 animate-pulse" />
-                      <MatchCountdown deadline={activeMatch.deadline} />
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Tiêu đề trận đấu */}
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-xs leading-snug mt-1">
-              {matchInfo.title}
-            </h2>
-
-            {/* Chi tiết thời gian & địa điểm */}
-            <div className="mt-2 space-y-1.5 text-xs font-medium">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-emerald-300 shrink-0" />
-                <span className="font-bold text-white text-xs sm:text-sm tracking-tight">
-                  {matchInfo.dateText}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-rose-300 shrink-0" />
-                <span className="text-emerald-100/90 text-xs">{matchInfo.venue}</span>
-              </div>
-            </div>
-
-            {/* Dòng Real-time Countdown Banner to rõ cho cả Admin & Thành viên */}
-            {matchStatus === "upcoming" && (
-              <div className="match-deadline pitch-scoreboard-banner mt-3 bg-black/35 border border-emerald-400/30 backdrop-blur-md rounded-2xl p-3 flex flex-wrap gap-3 items-center justify-between text-white shadow-inner">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 text-amber-300 animate-pulse" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-amber-200 uppercase tracking-wider">
-                      Hạn chốt điểm danh
-                    </p>
-                    <p className="text-sm font-extrabold text-white tabular-nums tracking-tight">
-                      <MatchCountdown
-                        deadline={activeMatch.deadline}
+                  {/* Dropdown quản lý trận */}
+                  {showMatchActionMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowMatchActionMenu(false)}
                       />
-                    </p>
-                  </div>
-                </div>
+                      <div className="absolute right-0 top-11 z-50 w-48 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg py-1.5 text-xs text-slate-800 dark:text-slate-200 animate-in fade-in zoom-in-95 duration-100">
+                        {isLeader && (
+                          <button
+                            type="button"
+                            className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-medium cursor-pointer"
+                            onClick={() => {
+                              setShowMatchActionMenu(false);
+                              openMatchEditor(true);
+                            }}
+                          >
+                            <Edit3 size={14} className="text-slate-500" />
+                            <span>Sửa thông tin trận</span>
+                          </button>
+                        )}
 
-                <span className="text-xs font-bold text-amber-200 bg-amber-400/20 border border-amber-300/35 px-2.5 py-0.5 rounded-full">
-                  {matchInfo.penaltyEnabled ? "Có phạt quỹ" : "Tự do"}
-                </span>
+                        {isLeader && matchStatus !== "completed" && (
+                          <button
+                            type="button"
+                            className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-600 dark:text-rose-400 flex items-center gap-2 font-medium cursor-pointer"
+                            onClick={async () => {
+                              setShowMatchActionMenu(false);
+                              try {
+                                if (
+                                  window.confirm(
+                                    "Kết thúc trận này và mở báo cáo thành tích?",
+                                  )
+                                ) {
+                                  await setMatchStatus("completed");
+                                }
+                              } catch (error) {
+                                setMatchFormError(error.message);
+                              }
+                            }}
+                          >
+                            <CheckCircle2 size={14} />
+                            <span>Kết thúc trận đấu</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-medium cursor-pointer"
+                          onClick={async () => {
+                            setShowMatchActionMenu(false);
+                            await copyToClipboard(
+                              `${matchInfo.title} · ${matchInfo.dateText} tại ${matchInfo.venue}`,
+                              "matchShare",
+                            );
+                            alert("Đã sao chép thông tin trận đấu!");
+                          }}
+                        >
+                          <Copy size={14} className="text-slate-500" />
+                          <span>Sao chép thông tin trận</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            )}
 
-            {/* KHỐI VOTE LỊCH ĐÁ - ƯU TIÊN HÀNG ĐẦU CHO MỌI THÀNH VIÊN */}
-            <MyAttendanceControl
-              status={attendance[user.id]}
-              deadline={activeMatch.deadline}
-              completed={matchStatus === "completed"}
-              onChange={onAttendanceChange}
-            />
+              {/* Tên trận / Đối thủ nổi bật (khoảng 20-22px, font-bold, xuống dòng tự nhiên) */}
+              <h2 className="text-xl sm:text-[22px] font-bold text-white tracking-tight leading-snug break-words mt-1.5">
+                {matchInfo.title}
+              </h2>
 
-            {/* Body Card 1 theo vai trò */}
-            {isLeader ? (
-              /* ADMIN VIEW: Tiến độ & nút mở danh sách 4 Tab */
-              <div className="mt-3.5 pt-3 border-t border-white/15">
-                <div className="pitch-roster-summary p-3 rounded-2xl border border-white/15 mb-2.5 bg-black/25 backdrop-blur-xs">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Users2 className="w-4 h-4 text-emerald-300" />
-                      Điểm danh cả đội:
-                    </span>
-                    <span className="text-xs font-bold text-emerald-200 bg-emerald-500/25 border border-emerald-400/35 px-2.5 py-0.5 rounded-full tabular-nums">
-                      {roster.attending.length}/{rosterCount} người
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="w-full bg-black/40 rounded-full h-2.5 mb-2 overflow-hidden flex shadow-inner border border-white/10">
-                    <div
-                      className="bg-emerald-400 h-full transition-all"
-                      style={{
-                        width:
-                          (roster.attending.length / Math.max(1, rosterCount)) *
-                            100 +
-                          "%",
-                      }}
-                      title={`Có mặt (${roster.attending.length})`}
-                    ></div>
-                    <div
-                      className="bg-rose-500 h-full transition-all"
-                      style={{
-                        width:
-                          (roster.absent.length / Math.max(1, rosterCount)) *
-                            100 +
-                          "%",
-                      }}
-                      title={`Vắng (${roster.absent.length})`}
-                    ></div>
-                    <div
-                      className="bg-slate-500 h-full transition-all"
-                      style={{
-                        width:
-                          ((roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)) /
-                            Math.max(1, rosterCount)) *
-                            100 +
-                          "%",
-                      }}
-                      title={`Chưa điểm danh (${roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)})`}
-                    ></div>
-                  </div>
-
-                  <div className="flex justify-between text-xs font-semibold text-emerald-100/90">
-                    <span className="text-emerald-300 font-bold">
-                      Có mặt: {roster.attending.length}
-                    </span>
-                    <span className="text-rose-300 font-bold">
-                      Vắng: {roster.absent.length}
-                    </span>
-                    <span className="text-emerald-100/70">
-                      Chưa điểm danh: {roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Nút mở Modal Danh Sách Điểm Danh */}
-                <Pressable
-                  onClick={() => setShowAttendanceModal(true)}
-                  className="w-full py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all duration-200 cursor-pointer backdrop-blur-xs"
-                >
-                  <Users2 className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>
-                    Xem danh sách điểm danh ({rosterCount} người)
+              {/* Ngày giờ & Địa điểm ở hai hàng ngắn */}
+              <div className="mt-2.5 space-y-1.5 text-xs text-white/95">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-200 shrink-0" />
+                  <span className="font-semibold text-white tracking-tight">
+                    {matchInfo.dateText}
                   </span>
-                </Pressable>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-rose-300 shrink-0" />
+                  <span className="text-white/85 break-words">{matchInfo.venue}</span>
+                </div>
               </div>
-            ) : (
-              /* PLAYER VIEW: 2 Nút Vote & Thông tin chốt */
-              <div
-                id="match-attendance"
-                className="mt-3.5 pt-3 border-t border-white/15"
-              >
-                {/* Roster trigger button */}
-                <Pressable
-                  type="button"
-                  onClick={() => setShowAttendanceModal(true)}
-                  className="mt-2 flex items-center justify-between text-xs cursor-pointer bg-white/10 hover:bg-white/20 border border-white/15 p-2.5 rounded-2xl transition-colors backdrop-blur-xs"
-                >
+
+              {/* Hạn chốt điểm danh (Scoreboard) khi trận sắp đá */}
+              {matchStatus === "upcoming" && (
+                <div className="match-deadline mt-3 bg-black/25 border border-white/20 rounded-xl px-3 py-2 flex items-center justify-between text-white text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="flex -space-x-2">
-                      {teammatesPreview.map((tm) => (
-                        <Avatar
-                          key={tm.id}
-                          className="w-6 h-6 rounded-full ring-2 ring-emerald-900 object-cover"
-                          src={tm.avatar}
-                          name={tm.name}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-white font-medium">
-                      {roster.attending.length} người đã chốt có mặt
+                    <Clock className="w-3.5 h-3.5 text-amber-300 animate-pulse shrink-0" />
+                    <span className="text-white/80 font-medium">Hạn chốt điểm danh:</span>
+                    <span className="font-bold text-white tabular-nums tracking-tight">
+                      <MatchCountdown deadline={activeMatch.deadline} />
                     </span>
                   </div>
-                  <span className="text-xs font-bold text-emerald-200 flex items-center gap-0.5">
-                    Xem danh sách <ChevronRight className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-semibold text-amber-200 bg-amber-400/20 px-2 py-0.5 rounded-md">
+                    {matchInfo.penaltyEnabled ? "Có phạt" : "Tự do"}
                   </span>
-                </Pressable>
-              </div>
-            )}
-            {governance && (
-              <div className="mt-3 pt-3 border-t border-white/15">
+                </div>
+              )}
+            </div>
+
+            {/* THÂN THẺ: NỀN SURFACE ỔN ĐỊNH CHO TƯƠNG PHẢN TỐT NHẤT */}
+            <div className="p-4 sm:p-5 space-y-4 bg-white dark:bg-[#141E1A]">
+              {/* KHU VỰC B: ĐIỂM DANH */}
+              <MyAttendanceControl
+                status={attendance[user.id]}
+                deadline={activeMatch.deadline}
+                completed={matchStatus === "completed"}
+                onChange={onAttendanceChange}
+              />
+
+              {/* TIẾN ĐỘ CẢ ĐỘI (ROSTER TRACKER) */}
+              {isLeader ? (
+                <div className="pt-1">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 mb-2.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <Users2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        Điểm danh cả đội:
+                      </span>
+                      <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/80 px-2.5 py-0.5 rounded-full tabular-nums border border-emerald-200 dark:border-emerald-800">
+                        {roster.attending.length}/{rosterCount} người
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-2 overflow-hidden flex">
+                      <div
+                        className="bg-emerald-600 h-full transition-all"
+                        style={{
+                          width: (roster.attending.length / Math.max(1, rosterCount)) * 100 + "%",
+                        }}
+                        title={`Có mặt (${roster.attending.length})`}
+                      />
+                      <div
+                        className="bg-rose-500 h-full transition-all"
+                        style={{
+                          width: (roster.absent.length / Math.max(1, rosterCount)) * 100 + "%",
+                        }}
+                        title={`Vắng (${roster.absent.length})`}
+                      />
+                      <div
+                        className="bg-slate-400 dark:bg-slate-600 h-full transition-all"
+                        style={{
+                          width:
+                            ((roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)) /
+                              Math.max(1, rosterCount)) *
+                              100 +
+                            "%",
+                        }}
+                        title={`Chưa điểm danh (${roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)})`}
+                      />
+                    </div>
+
+                    <div className="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+                      <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                        Có mặt: {roster.attending.length}
+                      </span>
+                      <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                        Vắng: {roster.absent.length}
+                      </span>
+                      <span>
+                        Chưa điểm danh: {roster.unvoted.length + (roster.maybe ? roster.maybe.length : 0)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Pressable
+                    onClick={() => setShowAttendanceModal(true)}
+                    className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-750 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer outline-none"
+                  >
+                    <Users2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Xem danh sách điểm danh ({rosterCount} người)</span>
+                  </Pressable>
+                </div>
+              ) : (
+                <div id="match-attendance" className="pt-1">
+                  <Pressable
+                    type="button"
+                    onClick={() => setShowAttendanceModal(true)}
+                    className="w-full flex items-center justify-between text-xs cursor-pointer bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-2.5 rounded-xl transition-colors outline-none"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex -space-x-1.5">
+                        {teammatesPreview.map((tm) => (
+                          <Avatar
+                            key={tm.id}
+                            className="w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover"
+                            src={tm.avatar}
+                            name={tm.name}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-slate-700 dark:text-slate-300 font-medium">
+                        {roster.attending.length} người đã chốt có mặt
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                      Xem danh sách <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
+                  </Pressable>
+                </div>
+              )}
+
+              {/* KHU VỰC C: ĐẾN MUỘN VÀ GIỜ ĐẾN (Chỉ một đường phân cách duy nhất trong LateArrivalPanel) */}
+              {governance && (
                 <LateArrivalPanel
                   governance={governance}
                   matchId={activeMatch.id}
                   userId={user.id}
                 />
-              </div>
-            )}
+              )}
+            </div>
           </section>
         </SwipeMatchCard>
         {/* =========================================================

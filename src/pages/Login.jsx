@@ -1060,6 +1060,15 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                 <GoogleIcon />
                 <span>{t("Tiếp tục với Google")}</span>
               </Pressable>
+
+              <Pressable
+                type="button"
+                id="demo-signin-btn"
+                onClick={handleDemoAccess}
+                className="w-full mt-2.5 py-2.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 bg-emerald-500/10 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{t("Đăng nhập Demo")}</span>
+              </Pressable>
             </div>
           )}
 

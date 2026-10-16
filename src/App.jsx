@@ -516,14 +516,15 @@ function Application({ onRetryStartup }) {
   };
   const tabs = [
     { id: "dashboard", label: "Trang chủ", Icon: Home },
-    { id: "lineup", label: "Chiến Thuật", Icon: Network },
+    { id: "lineup", label: "Chiến thuật", Icon: Network },
+    { id: "fund", label: "Quỹ đội", Icon: Wallet },
     {
       id: "chat",
-      label: "Chat",
+      label: "Tin nhắn",
       Icon: MessageSquare,
       unreadCount: chatUnread.countFor(auth.teamSettings.id),
     },
-    { id: "profile", label: "Tài khoản", Icon: User },
+    { id: "profile", label: "Cá nhân", Icon: User },
   ];
   return (
     <StartupGate onRetry={onRetryStartup}>
@@ -732,12 +733,13 @@ function Application({ onRetryStartup }) {
                   onCreateOpened={() => setQuickIntent(null)}
                   actor={auth.user.name}
                   timeZone={auth.teamSettings.timezone || "Asia/Ho_Chi_Minh"}
+                  teamName={auth.teamSettings.teamName || "FC No Offside"}
                   treasurerQr={auth.teamSettings.treasurerQr}
                   onUpdateTreasurerQr={auth.updateTreasurerQr}
                   currentUserRole={auth.currentUserRole}
                   onBack={
                     navigation.hasParent
-                      ? () => navigation.back("profile")
+                      ? () => navigation.back()
                       : undefined
                   }
                 />
@@ -940,7 +942,10 @@ function Application({ onRetryStartup }) {
               tabs={tabs}
               activeTab={activeTab}
               canManage={
-                (leader || fundAccess) && auth.hasTeam && !auth.teamRestriction
+                activeTab !== "fund" &&
+                (leader || fundAccess) &&
+                auth.hasTeam &&
+                !auth.teamRestriction
               }
               quickActionsOpen={quickOpen}
               onQuickActions={() => setQuickOpen(true)}

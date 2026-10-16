@@ -2,7 +2,17 @@ import React from 'react';
 import {Plus} from "./icons";
 import Pressable from './Pressable';
 export default function FloatingBottomNavigation({tabs,activeTab,visible=true,onNavigate,onReveal,onQuickActions,canManage=false,quickActionsOpen=false}){
-  const selected=['fund','personal-fund','governance','appearance','team-settings','pro'].includes(activeTab)?'profile':activeTab;
+  const selected = tabs.some((t) => t.id === activeTab)
+    ? activeTab
+    : [
+        "personal-fund",
+        "governance",
+        "appearance",
+        "team-settings",
+        "pro",
+      ].includes(activeTab)
+      ? "profile"
+      : activeTab;
   return <nav className={'bottom-navigation split-navigation'+(visible?'':' nav-hidden')+(canManage?' has-fab':'')} aria-label="Điều hướng chính" aria-hidden={!visible} inert={visible?undefined:''} onFocusCapture={onReveal}>
     <div className="nav-items">{tabs.map(({id,label,Icon,unreadCount=0})=>{
       const active=selected===id;

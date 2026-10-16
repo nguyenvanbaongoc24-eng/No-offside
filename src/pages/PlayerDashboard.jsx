@@ -7,6 +7,8 @@ import TeamIdentityHeader from "../components/TeamIdentityHeader";
 import MatchCardSummary from "../components/matches/MatchCardSummary";
 import { useTeamInvite } from "../hooks/useTeamInvite";
 import LateArrivalPanel from "../components/LateArrivalPanel";
+import MatchLateReview from "../components/MatchLateReview";
+import { matchLateRequests, lateStatusLabel } from '../lib/matchLateRequests';
 import { matchTimeLabel } from "../lib/matchTime";
 import SwipeMatchCard from "../components/SwipeMatchCard";
 import QrPreview from "../components/QrPreview";
@@ -213,8 +215,16 @@ export default function PlayerDashboard({
         (member) =>
           !member.membershipStatus || member.membershipStatus === "active",
       );
-  const roster = rosterFor(attendanceMembers, attendance, user);
+  // Eligibility belongs to the match; names/avatars use the current member profile.
+  const roster = rosterFor(attendanceMembers.map(member => ({
+    ...member, ...members.find(current => String(current.id) === String(member.id)),
+  })), attendance, user);
   const rosterCount = attendanceMembers.length;
+  const lateRequests = matchLateRequests(governance?.snapshot?.events, activeMatch.id);
+  const memberLateLabel = id => {
+    const entry = lateRequests.find(e => e.request.subject === String(id));
+    return entry ? <p className="field-hint">{lateStatusLabel(entry.status)}</p> : null;
+  };
 
   // Create match form fields
   const [newMatchData, setNewMatchData] = useState({
@@ -852,7 +862,7 @@ export default function PlayerDashboard({
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="flex -space-x-1.5 shrink-0">
-                        {teammatesPreview.map((tm) => (
+                        {roster.attending.slice(0, 3).map((tm) => (
                           <Avatar
                             key={tm.id}
                             className="w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover"
@@ -872,6 +882,10 @@ export default function PlayerDashboard({
                 </div>
               )}
 
+              {roster.attending.length > 0 && <p className="attendance-member-names">
+                <strong>Đã điểm danh có mặt: </strong>{roster.attending.map(p => p.name).join(', ')}
+              </p>}
+
               {/* KHU VỰC C: ĐẾN MUỘN VÀ GIỜ ĐẾN (Chỉ một đường phân cách duy nhất trong LateArrivalPanel) */}
               {governance && (
                 <LateArrivalPanel
@@ -880,6 +894,7 @@ export default function PlayerDashboard({
                   userId={user.id}
                 />
               )}
+              {governance && <MatchLateReview governance={governance} matchId={activeMatch.id} members={members} attendance={attendance} canManage={isLeader} />}
             </div>
           </section>
         </SwipeMatchCard>
@@ -1517,6 +1532,7 @@ export default function PlayerDashboard({
                         <p className="text-xs text-gray-400">
                           Vị trí: {p.role}
                         </p>
+                        {memberLateLabel(p.id)}
                       </div>
                     </div>
                     <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -1546,6 +1562,7 @@ export default function PlayerDashboard({
                           {p.name}
                         </p>
                         <p className="text-xs text-rose-600 italic">{p.note}</p>
+                        {memberLateLabel(p.id)}
                       </div>
                     </div>
                     <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
@@ -1583,6 +1600,7 @@ export default function PlayerDashboard({
                           <p className="text-xs text-gray-400">
                             Vị trí: {p.role} • {p.phone}
                           </p>
+                          {memberLateLabel(p.id)}
                         </div>
                       </div>
 

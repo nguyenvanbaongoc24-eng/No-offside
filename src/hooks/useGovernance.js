@@ -149,13 +149,13 @@ export function useGovernance(
     }
     if (activeScope.current === scope && sequence === refreshSequence.current) {
       if (error) {
-        setState({
+        setState(previous => ({
           scope,
-          snapshot: null,
-          receivedAt: Date.now(),
+          snapshot: previous.scope === scope ? previous.snapshot : null,
+          receivedAt: previous.scope === scope ? previous.receivedAt : Date.now(),
           loading: false,
           error: "Không tải được dữ liệu quản trị từ server. Vui lòng thử lại.",
-        });
+        }));
       } else {
         setState({
           scope,

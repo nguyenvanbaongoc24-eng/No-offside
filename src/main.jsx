@@ -8,6 +8,7 @@ import './styles/soft-ui.css'
 import './styles/pro.css'
 import './styles/matchCard.css'
 import './styles/fundCollections.css'
+import './styles/matchLateReview.css'
 
 window.clearTimeout(window.noOffsideBootTimer)
 delete window.noOffsideBootTimer

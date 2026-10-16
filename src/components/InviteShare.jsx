@@ -1,4 +1,5 @@
 import Pressable from './Pressable';
+import {createPortal} from 'react-dom';
 import React,{useEffect,useRef,useState} from 'react';
 import {AnimatePresence,motion} from 'framer-motion';
 import {QRCodeSVG} from 'qrcode.react';
@@ -44,7 +45,7 @@ export default function InviteShare({isOpen=true,onClose,teamName='',teamLogo=''
     try{await navigator.share({title:`Gia nhập ${teamName} trên No Offside`,text:`Mã Club: ${code}`,url});}
     catch(err){if(err.name!=='AbortError')await copy(url,'Không mở được chia sẻ. Đã sao chép liên kết.');}
   };
-  return <AnimatePresence>{isOpen && <Overlay key="invite" role="dialog" aria-modal="true" aria-label="Mời thành viên" className="invite-share-overlay" {...(canAnimate ? {initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},transition:{duration:.2}} : {})}>
+  const content = <AnimatePresence>{isOpen && <Overlay key="invite" role="dialog" aria-modal="true" aria-label="Mời thành viên" className="invite-share-overlay" {...(canAnimate ? {initial:{opacity:0},animate:{opacity:1},exit:{opacity:0},transition:{duration:.2}} : {})}>
     <Sheet className="invite-share-sheet" {...(canAnimate ? {initial:{y:20,opacity:0},animate:{y:0,opacity:1},exit:{y:20,opacity:0},transition:{duration:.26,ease:[.22,.61,.36,1]}} : {})}>
       <header className="invite-share-heading"><Avatar src={teamLogo} name={teamName} className="team-logo-avatar"/><div><h2>Mời thành viên</h2><p>{teamName || 'Đội đang chọn'}</p></div>{onClose && <Pressable type="button" aria-label="Đóng" onClick={onClose}><X size={20}/></Pressable>}</header>
       {loading ? <p role="status" className="invite-feedback"><Loader2 className="animate-spin" size={20}/>Đang tải mã mời…</p> : null}
@@ -68,4 +69,5 @@ export default function InviteShare({isOpen=true,onClose,teamName='',teamLogo=''
       {notice && <p role="status" className="invite-notice">{notice}</p>}
     </Sheet>
   </Overlay>}</AnimatePresence>;
+  return canAnimate ? createPortal(content, document.body) : content;
 }

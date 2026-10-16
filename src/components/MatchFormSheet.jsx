@@ -18,7 +18,8 @@ export default function MatchFormSheet({
   const updateLate = (key, value) =>
     onChange({ ...draft, lateConfig: { ...late, [key]: value } });
 
-  const quickFines = ["20000", "50000", "100000", "200000"];
+  const quickFines = [20000, 50000, 100000, 200000];
+  const moneyValue = value => Math.min(100000000, Number(String(value).replace(/\D/g, '')) || 0);
 
   const content = (
     <div
@@ -119,8 +120,8 @@ export default function MatchFormSheet({
                 className="field-hint text-xs text-gray-400 dark:text-slate-400 mt-1 block font-normal"
               >
                 {draft.datetime
-                  ? "Giờ địa phương trên thiết bị"
-                  : "Chọn ngày và giờ trên thiết bị"}
+                  ? "Giờ theo lịch của đội"
+                  : "Chọn ngày và giờ theo lịch của đội"}
               </span>
             </div>
 
@@ -218,14 +219,12 @@ export default function MatchFormSheet({
                 <div className="relative">
                   <input
                     id={`${prefix}-fine`}
-                    type="number"
+                    type="text"
                     inputMode="numeric"
-                    min="0"
-                    step="1"
                     required
-                    value={draft.penaltyFine}
+                    value={Number(draft.penaltyFine || 0).toLocaleString('vi-VN')}
                     onChange={(e) =>
-                      onChange({ ...draft, penaltyFine: e.target.value })
+                      onChange({ ...draft, penaltyFine: moneyValue(e.target.value) })
                     }
                     placeholder="50000"
                     className="w-full h-14 pl-4 pr-10 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-gray-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-green-500 shadow-2xs"
@@ -241,7 +240,7 @@ export default function MatchFormSheet({
                     Gợi ý:
                   </span>
                   {quickFines.map((val) => {
-                    const active = String(draft.penaltyFine) === val;
+                    const active = Number(draft.penaltyFine) === val;
                     return (
                       <Pressable
                         key={val}
@@ -322,14 +321,11 @@ export default function MatchFormSheet({
               <div className="relative">
                 <input
                   id={`${prefix}-late-fine`}
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  min="0"
-                  max={100000000}
-                  step="1"
                   required
-                  value={late.fine}
-                  onChange={(e) => updateLate("fine", Number(e.target.value))}
+                  value={Number(late.fine || 0).toLocaleString('vi-VN')}
+                  onChange={(e) => updateLate("fine", moneyValue(e.target.value))}
                   className="w-full h-14 pl-4 pr-10 bg-slate-50 dark:bg-slate-800/80 border border-gray-200/50 dark:border-slate-700/60 focus:border-transparent focus:bg-white dark:focus:bg-slate-900 rounded-2xl text-sm font-semibold text-gray-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">

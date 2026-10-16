@@ -7,6 +7,7 @@ import TeamIdentityHeader from "../components/TeamIdentityHeader";
 import MatchCountdown from "../components/MatchCountdown";
 import { useTeamInvite } from "../hooks/useTeamInvite";
 import LateArrivalPanel from "../components/LateArrivalPanel";
+import { matchTimeLabel } from '../lib/matchTime';
 import SwipeMatchCard from "../components/SwipeMatchCard";
 import QrPreview from "../components/QrPreview";
 import React, { useState, useEffect } from "react";
@@ -135,15 +136,7 @@ export default function PlayerDashboard({
   // Match details state
   const matchInfo = {
     ...activeMatch,
-    dateText: new Date(activeMatch.datetime).toLocaleString("vi-VN", {
-      timeZone: teamSettings.timezone || "Asia/Ho_Chi_Minh",
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: teamSettings.appearance.timeFormat === "12h",
-    }),
+    dateText: matchTimeLabel(activeMatch.datetime, teamSettings.timezone || 'Asia/Ho_Chi_Minh'),
   };
 
   // Match Status: 'upcoming' | 'completed' (Cho phép tự báo cáo thành tích sau trận)
@@ -190,7 +183,7 @@ export default function PlayerDashboard({
     venue: teamSettings.venue || "",
     timeoutDatetime: "",
     penaltyEnabled: true,
-    penaltyFine: "50000",
+    penaltyFine: 50000,
   });
 
   // Mock pending payments for Admin approval
@@ -266,7 +259,7 @@ export default function PlayerDashboard({
               teamSettings.timezone || "Asia/Ho_Chi_Minh",
             ),
             penaltyEnabled: activeMatch.penaltyEnabled,
-            penaltyFine: activeMatch.penaltyAmount.replace(/\D/g, ""),
+            penaltyFine: Number(activeMatch.penaltyAmount.replace(/\D/g, "")),
             lateConfig: activeMatch.lateConfig,
           }
         : {
@@ -275,7 +268,7 @@ export default function PlayerDashboard({
             timeoutDatetime: "",
             venue: teamSettings.venue || "",
             penaltyEnabled: true,
-            penaltyFine: "50000",
+            penaltyFine: 50000,
           },
     );
     setShowCreateMatchModal(true);

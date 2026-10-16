@@ -1,3 +1,4 @@
+import {domStyle} from './helpers/domStyle.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -7,7 +8,7 @@ import {createRequire} from 'node:module';
 import {chatScope,messageGroup,dayLabel} from '../src/lib/chatPresentation.js';
 const storage=new Map(), listeners={}; let deny=false;
 globalThis.localStorage={getItem:key=>storage.get(key)||null,setItem:(key,value)=>{if(deny)throw Error('Quota');storage.set(key,value);}};
-globalThis.document={body:{style:{}},activeElement:null,addEventListener(){},removeEventListener(){}};
+globalThis.document={body:{style:domStyle()},activeElement:null,addEventListener(){},removeEventListener(){}};
 globalThis.window={innerHeight:844,location:{origin:'http://fixture.local'},addEventListener:(key,fn)=>listeners[key]=fn,removeEventListener:(key)=>delete listeners[key],dispatchEvent:()=>{}};
 const built=await build({stdin:{contents:"export {default as Chat} from './src/pages/Chat.jsx';export {default as Profile} from './src/pages/ProfileMenu.jsx';export {default as Details} from './src/pages/ProfileDetails.jsx';export {default as Avatar} from './src/components/Avatar.jsx';export {default as InviteShare} from './src/components/InviteShare.jsx';export {useScrollNavigation} from './src/hooks/useScrollNavigation.js';",resolveDir:process.cwd(),loader:'jsx'},bundle:true,platform:'node',format:'cjs',write:false,external:['react']});
 const mod={exports:{}};new Function('require','module','exports',built.outputFiles[0].text)(createRequire(import.meta.url),mod,mod.exports);

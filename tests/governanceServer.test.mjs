@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
+import { lateArrivalInstant } from '../src/lib/matchTime.js';
 const owner = "00000000-0000-4000-8000-000000000001",
   admin = "00000000-0000-4000-8000-000000000002",
   member = "00000000-0000-4000-8000-000000000003",
@@ -117,6 +118,15 @@ const request = {
   eta: "2026-10-13T12:45:00Z",
   reason: "Traffic delay",
 };
+test('native late time payload is accepted and stored by the real governance SQL function', async () => {
+  const team = await fixture();
+  const eta = lateArrivalInstant('2026-10-13T12:30:00Z', '19:50');
+  const result = await rpc(team, 'late_request', {matchId:'match', eta, reason:'Kẹt xe trên đường đến sân'});
+  assert.equal(Date.parse(result.data.eta), Date.parse('2026-10-13T12:50:00Z'));
+  assert.equal(result.data.reason, 'Kẹt xe trên đường đến sân');
+  const stored = (await snapshot(team)).events.find(e => e.id === result.id);
+  assert.equal(Date.parse(stored.data.eta), Date.parse(eta));
+});
 const violation = (subject = member, at = "2026-10-13T09:00Z") => ({
   subject,
   type: "other",

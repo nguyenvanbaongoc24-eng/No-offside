@@ -1,6 +1,7 @@
 import {birthdaysToday} from '../lib/announcements';
 import {BASIC_EMOJI,mentionAt,mentionCandidates,mentionLabel,insertComposerText,messageParts} from '../lib/chatComposer';
 import Pressable from '../components/Pressable';
+import { acquireScrollLock } from '../lib/scrollLock';
 import {useViewedMessages} from '../hooks/useViewedMessages';
 import { serverRequest } from "../lib/serverRequest";
 import { beginPendingWrite } from "../lib/pendingWrites";
@@ -311,11 +312,7 @@ function ScopedChat({
   const birthdays = useMemo(()=>birthdaysToday(members,timeZone),[members,timeZone]);
 
   useEffect(() => {
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
+    return acquireScrollLock();
   }, []);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import Pressable from './Pressable';
 import React, { useState } from "react";
+import { matchTimeLabel } from '../lib/matchTime';
 import { CalendarDays, Check } from "lucide-react";
 export default function MatchList({
   matches,
@@ -61,13 +62,7 @@ export default function MatchList({
                   dateTime={match.datetime}
                   className="block mt-1 text-xs text-slate-600"
                 >
-                  {new Date(match.datetime).toLocaleString("vi-VN", {
-                    timeZone,
-                    day: "2-digit",
-                    month: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}{" "}
+                  {matchTimeLabel(match.datetime, timeZone)}{" "}
                   · {match.status === "completed" ? "Đã xong" : "Sắp đá"}
                 </time>
               </span>

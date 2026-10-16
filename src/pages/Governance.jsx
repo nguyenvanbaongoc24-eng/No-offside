@@ -1,5 +1,6 @@
 import {useLayerBack} from '../hooks/useLayerBack';
 import Pressable from '../components/Pressable';
+import { matchTimeLabel } from '../lib/matchTime';
 import React, { useId, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, X, ShieldCheck, Plus, Edit2 } from "lucide-react";
 import {
@@ -39,9 +40,7 @@ export default function Governance({ governance, onBack }) {
     ["owner", "admin"].includes(snapshot.me.role);
   const rules = effectiveRules(snapshot?.rules || []);
   const date = (value) =>
-    new Date(value).toLocaleString("vi-VN", {
-      timeZone: snapshot?.team.timezone || "Asia/Ho_Chi_Minh",
-    });
+    matchTimeLabel(value, snapshot?.team.timezone || 'Asia/Ho_Chi_Minh');
   const name = (id) =>
     snapshot?.members.find((m) => m.user_id === id)?.name || "Thành viên";
   const open = (action, payload, title) => {
@@ -309,7 +308,7 @@ export default function Governance({ governance, onBack }) {
                 {date(snapshot.periodEnd)}
               </p>
               <p className="text-xs text-slate-500 mt-2">
-                {snapshot.team.timezone} · Đạt {snapshot.team.policy.threshold}{" "}
+                Đạt {snapshot.team.policy.threshold}{" "}
                 lần sẽ tạo việc cần duyệt. Quản trị viên duyệt xử lý; tự động
                 chưa được bật.
               </p>

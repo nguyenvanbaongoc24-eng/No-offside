@@ -1,5 +1,8 @@
 import Pressable from './Pressable';
 import React, { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from 'react-dom';
+import { useLayerBack } from '../hooks/useLayerBack';
+import { lateArrivalInstant, matchTimeLabel } from '../lib/matchTime';
 import { Clock, X } from "lucide-react";
 import { canRequestLate, lateCutoff, latestEvent } from "../lib/governance";
 export default function LateArrivalPanel({ governance, matchId, userId }) {
@@ -8,9 +11,15 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
     [eta, setEta] = useState(""),
     [reason, setReason] = useState(""),
     [error, setError] = useState(""),
+    [etaError, setEtaError] = useState(""),
     [busy, setBusy] = useState(false);
   const key = useRef(crypto.randomUUID()),
     prefix = useId();
+  useLayerBack(open, () => { if (!busy) setOpen(false); });
+  useEffect(() => {
+    setOpen(false); setEta(''); setReason(''); setError(''); setEtaError('');
+    key.current = crypto.randomUUID();
+  }, [matchId, userId]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -51,10 +60,13 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
       (snapshot.me.status === "locked" &&
         snapshot.me.locked_until &&
         new Date(snapshot.me.locked_until).getTime() <= serverNow));
-  const format = (value) =>
-    new Date(value).toLocaleString("vi-VN", {
-      timeZone: snapshot?.team.timezone || "Asia/Ho_Chi_Minh",
-    });
+  const zone = snapshot?.team.timezone || 'Asia/Ho_Chi_Minh';
+  const format = (value) => matchTimeLabel(value, zone);
+  const updateEta = value => {
+    setEta(value);
+    try { lateArrivalInstant(match.kickoff, value, zone); setEtaError(''); }
+    catch (err) { setEtaError(err.message); }
+  };
   const arrival = latestEvent(
     snapshot?.events || [],
     "arrival",
@@ -63,12 +75,20 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
   );
   const submit = async (e) => {
     e.preventDefault();
-    setBusy(true);
+    if (busy || !allowed) return;
     setError("");
+    const time = e.currentTarget.elements.namedItem('eta').value;
+    const note = e.currentTarget.elements.namedItem('reason').value.trim();
+    let instant;
+    try { instant = lateArrivalInstant(match.kickoff, time, zone); }
+    catch (err) { setEtaError(err.message); return; }
+    setEtaError('');
+    if (note.length < 3) { setError('Nhập lý do ít nhất 3 ký tự.'); return; }
+    setBusy(true);
     try {
       await governance.mutate(
         "late_request",
-        { matchId, eta: new Date(eta).toISOString(), reason },
+        { matchId, eta: instant, reason: note },
         key.current,
       );
       setOpen(false);
@@ -86,7 +106,7 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
         <Pressable
           className="choice-button text-sm"
           disabled={!allowed || busy}
-          onClick={() => setOpen(true)}
+          onClick={() => {setError(''); setEtaError(''); setOpen(true);}}
         >
           <Clock size={18} />
           Xin đến muộn
@@ -104,8 +124,7 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
             ? "Đã chốt vi phạm; cần người có quyền tạo điều chỉnh."
             : allowed
               ? "Có thể gửi đến " + format(cutoff)
-              : "Không thể gửi mới. Hạn: " + format(cutoff)}{" "}
-          · {snapshot.team.timezone}
+              : "Không thể gửi mới. Hạn: " + format(cutoff)}
         </p>
       )}
       {request && (
@@ -133,42 +152,47 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
           ? "Giờ đến đã được xác nhận: " + format(arrival.data.arrivedAt)
           : "Giờ đến thực tế chưa được xác nhận. Bấm Có mặt chỉ ghi lời điểm danh."}
       </p>
-      {open && (
+      {open && createPortal(
         <div
-          className="simple-overlay"
+          className="simple-overlay late-arrival-overlay backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Xin đến muộn"
+          onClick={(e) => {if (e.target === e.currentTarget && !busy) setOpen(false);}}
         >
-          <section className="simple-sheet">
+          <section className="simple-sheet late-arrival-sheet overflow-y-auto">
             <Pressable
               className="sheet-close"
               aria-label="Đóng"
+              disabled={busy}
               onClick={() => setOpen(false)}
             >
               <X size={20} />
             </Pressable>
             <h2 className="text-xl font-semibold">Xin đến muộn</h2>
             <form onSubmit={submit} className="space-y-4 mt-4">
+              <p className="field-hint">Giờ bắt đầu: {format(match.kickoff)}. Ngày đến sân là ngày diễn ra trận.</p>
               <div className="form-field">
                 <label htmlFor={prefix + "-eta"}>Giờ dự kiến đến</label>
                 <input
                   id={prefix + "-eta"}
-                  type="datetime-local"
+                  type="time"
+                  name="eta"
+                  step="60"
                   value={eta}
                   required
-                  onChange={(e) => setEta(e.target.value)}
-                  onInput={(e) => setEta(e.currentTarget.value)}
+                  aria-invalid={Boolean(etaError)}
+                  aria-describedby={etaError ? prefix + '-eta-error' : undefined}
+                  onInput={(e) => updateEta(e.currentTarget.value)}
+                  onChange={(e) => updateEta(e.currentTarget.value)}
                 />
-                <span className="field-hint">
-                  Nhập theo giờ thiết bị. Server kiểm tra hạn theo thời điểm
-                  trận.
-                </span>
+                {etaError && <p id={prefix + '-eta-error'} className="form-error" role="alert">{etaError}</p>}
               </div>
               <div className="form-field">
                 <label htmlFor={prefix + "-reason"}>Lý do</label>
                 <textarea
                   id={prefix + "-reason"}
+                  name="reason"
                   required
                   minLength={3}
                   maxLength={2000}
@@ -194,7 +218,7 @@ export default function LateArrivalPanel({ governance, matchId, userId }) {
               </Pressable>
             </form>
           </section>
-        </div>
+        </div>, document.body
       )}
     </div>
   );

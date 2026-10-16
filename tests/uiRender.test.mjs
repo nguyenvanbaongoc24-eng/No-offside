@@ -124,7 +124,7 @@ test("match sheet connects every label and separates match information from atte
   assert.equal((html.match(/type="datetime-local"/g) || []).length, 2);
   assert.match(html, /Thông tin trận/);
   assert.match(html, /Điểm danh/);
-  assert.match(html, /Chọn ngày và giờ trên thiết bị/);
+  assert.match(html, /Chọn ngày và giờ theo lịch của đội/);
   assert.doesNotMatch(html, /\p{Extended_Pictographic}/u);
 });
 

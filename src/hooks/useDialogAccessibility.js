@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
+import { acquireScrollLock } from '../lib/scrollLock';
 export function useDialogAccessibility() {
   useEffect(() => {
-    let dialog = null, restoreFocus = null, previousOverflow = '';
-    const controls = element => [...element.querySelectorAll('button:not(:disabled),input:not(:disabled),select,a[href],[tabindex="0"]')].filter(e=>e.getClientRects().length);
+    let dialog = null, restoreFocus = null, releaseScroll = null;
+    const controls = element => [...element.querySelectorAll('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href],[tabindex="0"]')].filter(e=>e.getClientRects().length);
     const update = () => {
       const dialogs = [...document.querySelectorAll('[role="dialog"]')];
       const top = dialogs.at(-1) || null;
       if (top === dialog) return;
-      if (!dialog && top) { restoreFocus = document.activeElement; previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'; }
+      if (!dialog && top) { restoreFocus = document.activeElement; releaseScroll = acquireScrollLock(); }
       dialog = top;
       document.querySelector('nav')?.toggleAttribute('inert', Boolean(top));
       if (top) {
@@ -16,7 +17,7 @@ export function useDialogAccessibility() {
         top.setAttribute('aria-label', heading?.textContent || 'Hộp thoại');
         (controls(top)[0] || top).focus();
       } else {
-        document.body.style.overflow = previousOverflow;
+        releaseScroll?.(); releaseScroll = null;
         if (restoreFocus?.isConnected) restoreFocus.focus();
       }
     };
@@ -35,6 +36,6 @@ export function useDialogAccessibility() {
     };
     const observer = new MutationObserver(update); observer.observe(document.body, { childList: true, subtree: true });
     document.addEventListener('keydown', onKey); update();
-    return () => { observer.disconnect(); document.removeEventListener('keydown',onKey); document.body.style.overflow = previousOverflow; document.querySelector('nav')?.removeAttribute('inert'); };
+    return () => { observer.disconnect(); document.removeEventListener('keydown',onKey); releaseScroll?.(); document.querySelector('nav')?.removeAttribute('inert'); };
   }, []);
 }

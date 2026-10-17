@@ -929,3 +929,515 @@ html[data-font-size="large"] .fund-duo-cell:first-child { border-right:0; border
 .fund-ledger-header { flex-wrap:wrap; align-items:flex-start; }
 .fund-ledger-actions { flex-wrap:wrap; min-width:0; flex:1 1 240px; justify-content:flex-end; }
 .fund-filter-trigger, .fund-header-back { min-width:44px; min-height:44px; }
+
+/* MONTHLY FUND COLLECTION VIEW */
+.monthly-fund-view {
+  min-width: 0;
+}
+
+.monthly-picker-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  margin-bottom: 12px;
+}
+
+.monthly-selector-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 4px 6px;
+  box-shadow: var(--shadow-card);
+}
+
+.monthly-nav-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: transparent;
+  border: 0;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.monthly-nav-btn:hover {
+  background: var(--surface-secondary);
+}
+
+.monthly-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 8px;
+  min-width: 125px;
+}
+
+.monthly-current-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.monthly-jump-now {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 1px;
+}
+
+.monthly-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  transition: opacity 150ms ease;
+}
+
+.monthly-create-btn:hover {
+  opacity: 0.92;
+}
+
+/* No Collection Banner (Ví dụ FC 21) */
+.monthly-no-collection-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+html[data-theme="dark"] .monthly-no-collection-banner,
+[data-theme="dark"] .monthly-no-collection-banner {
+  background: linear-gradient(135deg, #2b1f09 0%, #1e1505 100%);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.monthly-banner-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #b45309;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .monthly-banner-icon,
+[data-theme="dark"] .monthly-banner-icon {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.3);
+}
+
+.monthly-unlinked-notice {
+  background: rgba(16, 185, 129, 0.12);
+  border-left: 3px solid #10b981;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.monthly-banner-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: #b45309;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+}
+
+html[data-theme="dark"] .monthly-banner-action,
+[data-theme="dark"] .monthly-banner-action {
+  background: #d97706;
+}
+
+/* Card tổng quan tháng */
+.monthly-summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.monthly-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.monthly-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.monthly-stat-box {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.monthly-stat-title {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.monthly-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.monthly-progress-track {
+  height: 6px;
+  background: var(--surface-secondary);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.monthly-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 9999px;
+  transition: width 300ms ease;
+}
+
+/* Filter chips & Search */
+.monthly-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.monthly-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.monthly-chip {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.monthly-chip.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 650;
+}
+
+.monthly-chip.is-warning.is-active {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #f59e0b;
+}
+
+html[data-theme="dark"] .monthly-chip.is-warning.is-active,
+[data-theme="dark"] .monthly-chip.is-warning.is-active {
+  background: #3b280b;
+  color: #fcd34d;
+  border-color: #b45309;
+}
+
+.monthly-search-wrap {
+  position: relative;
+  margin-top: 10px;
+}
+
+.monthly-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 32px 0 34px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 13.5px !important;
+}
+
+.monthly-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.monthly-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Danh sách thành viên từng dòng */
+.monthly-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.monthly-member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  box-shadow: var(--shadow-card);
+}
+
+.monthly-member-row:hover,
+.monthly-member-row:focus-visible {
+  background: var(--surface-secondary);
+  border-color: var(--accent);
+}
+
+.monthly-member-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.monthly-member-name {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.monthly-role-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.monthly-role-tag.owner {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.monthly-role-tag.admin {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+html[data-theme="dark"] .monthly-role-tag.owner,
+[data-theme="dark"] .monthly-role-tag.owner {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+html[data-theme="dark"] .monthly-role-tag.admin,
+[data-theme="dark"] .monthly-role-tag.admin {
+  background: #1e3a8a;
+  color: #93c5fd;
+}
+
+/* Status badges */
+.monthly-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.monthly-status-badge.is-paid {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.monthly-status-badge.is-partial {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.monthly-status-badge.is-pending {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.monthly-status-badge.is-unpaid {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.monthly-status-badge.is-neutral {
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .monthly-status-badge.is-paid,
+[data-theme="dark"] .monthly-status-badge.is-paid {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+html[data-theme="dark"] .monthly-status-badge.is-partial,
+[data-theme="dark"] .monthly-status-badge.is-partial {
+  background: #3b280b;
+  color: #fcd34d;
+}
+
+html[data-theme="dark"] .monthly-status-badge.is-pending,
+[data-theme="dark"] .monthly-status-badge.is-pending {
+  background: #1e3a8a;
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .monthly-status-badge.is-unpaid,
+[data-theme="dark"] .monthly-status-badge.is-unpaid {
+  background: #4c0519;
+  color: #fda4af;
+}
+
+.monthly-btn-quick-approve {
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+}
+
+.monthly-btn-quick-record {
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Sheet chi tiết thành viên & Nộp bù */
+.monthly-member-detail-sheet {
+  color: var(--text-primary);
+}
+
+.monthly-detail-header-card {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.monthly-detail-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.monthly-history-item {
+  padding: 11px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.monthly-backpay-tag {
+  display: inline-block;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+html[data-theme="dark"] .monthly-backpay-tag,
+[data-theme="dark"] .monthly-backpay-tag {
+  background: rgba(52, 211, 153, 0.15);
+  color: #6ee7b7;
+}
+
+/* SỬA LỚP HIỂN THỊ VÀ KHOẢNG AN TOÀN ĐÁY CHO POPUP LỌC */
+.match-form-overlay {
+  z-index: 1000 !important;
+}
+
+.match-form-sheet {
+  max-height: 88vh !important;
+  max-height: calc(var(--visual-viewport-height, 88dvh) - max(16px, env(safe-area-inset-top, 0px))) !important;
+}
+
+.match-form-sheet .sheet-footer {
+  padding-bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 16px)) !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  background: var(--surface) !important;
+  z-index: 20 !important;
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.08) !important;
+}
+

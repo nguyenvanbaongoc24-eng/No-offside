@@ -61,7 +61,7 @@ export default function FundOperations({
     setDraft(value);
     setModal(kind);
   };
-  const openSchedule = (immediate = false, s) =>
+  const openSchedule = (immediate = false, s, defaultTitle = "", defaultDueDate = "") =>
     open(
       "schedule",
       s
@@ -77,13 +77,13 @@ export default function FundOperations({
             note: s.note,
           }
         : {
-            title: "",
+            title: defaultTitle || (immediate ? `Quỹ tháng ${Number(nowInput().slice(5, 7))}/${nowInput().slice(0, 4)}` : "Quỹ định kỳ hằng tháng"),
             amount: 100000,
             recipients: "all",
-            repeat: "once",
+            repeat: immediate ? "once" : "monthly",
             day: Number(nowInput().slice(8, 10)),
             sendAt: localTransactionTime(Date.now() + 60000, zone),
-            dueDate: nowInput().slice(0, 10),
+            dueDate: defaultDueDate || nowInput().slice(0, 10),
             note: "",
             immediate,
           },
@@ -103,8 +103,8 @@ export default function FundOperations({
     });
   useEffect(() => {
     if (!intent) return;
-    if (intent.action === "reminder") openSchedule();
-    if (intent.action === "collection") openSchedule(true);
+    if (intent.action === "reminder") openSchedule(false, null, intent.title, intent.dueDate);
+    if (intent.action === "collection") openSchedule(true, null, intent.title, intent.dueDate);
     if (intent.action === "bill") openBill();
     onIntentUsed?.();
   }, [intent?.id]);
@@ -377,27 +377,43 @@ export default function FundOperations({
               chạy; đợt thu ngay vẫn dùng được.
             </p>
           )}
-          {data.schedules.map((s) => (
-            <article className="fund-collection" key={s.id}>
-              <strong>{s.title}</strong>
-              <p>
-                {formatCurrency(Number(s.amount))}/người ·{" "}
-                {s.repeat === "monthly"
-                  ? `Ngày ${s.send_day} hằng tháng`
-                  : "Một lần"}{" "}
-                · {s.send_time.slice(0, 5)}
-              </p>
-              <p>
-                {s.status === "active"
-                  ? "Đang hoạt động"
-                  : s.status === "paused"
-                    ? "Tạm dừng"
-                    : s.status === "finished"
-                      ? "Đã chạy"
-                      : "Đã hủy"}{" "}
-                · Lần tới{" "}
-                {localTransactionTime(s.next_run, zone).replace("T", " · ")}
-              </p>
+          {data.schedules.map((s) => {
+            const nextRunTime = localTransactionTime(s.next_run, zone);
+            const isMonthly = s.repeat === "monthly";
+            const nextMonth = nextRunTime.slice(5, 7);
+            const nextYear = nextRunTime.slice(0, 4);
+            return (
+              <article className="fund-collection" key={s.id}>
+                <div className="flex justify-between items-start gap-2">
+                  <strong>{s.title}</strong>
+                  {isMonthly && (
+                    <span className="text-xs bg-emerald-50 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded shrink-0">
+                      Lặp hằng tháng
+                    </span>
+                  )}
+                </div>
+                {isMonthly && (
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-1">
+                    Kỳ thu lần tới: Tháng {parseInt(nextMonth, 10)}/{nextYear} (Ngày {s.send_day} hằng tháng)
+                  </p>
+                )}
+                <p>
+                  {formatCurrency(Number(s.amount))}/người ·{" "}
+                  {isMonthly
+                    ? `Ngày ${s.send_day} hằng tháng`
+                    : "Một lần"}{" "}
+                  · {s.send_time.slice(0, 5)}
+                </p>
+                <p>
+                  {s.status === "active"
+                    ? "Đang hoạt động"
+                    : s.status === "paused"
+                      ? "Tạm dừng"
+                      : s.status === "finished"
+                        ? "Đã chạy"
+                        : "Đã hủy"}{" "}
+                  · Lần chạy tiếp: {nextRunTime.replace("T", " · ")}
+                </p>
               {["active", "paused"].includes(s.status) && (
                 <div className="fund-inline-actions">
                   <Pressable onClick={() => openSchedule(false, s)}>
@@ -429,7 +445,8 @@ export default function FundOperations({
                 </div>
               )}
             </article>
-          ))}
+          );
+        })}
         </>
       )}
       {mode === "bills" && (
@@ -692,9 +709,15 @@ export default function FundOperations({
               <input
                 required
                 maxLength={120}
+                placeholder={draft.repeat === "monthly" ? "Ví dụ: Quỹ định kỳ hằng tháng" : "Ví dụ: Quỹ tháng 10/2026"}
                 value={draft.title}
                 onChange={(e) => field("title", e.target.value)}
               />
+              {draft.repeat === "monthly" && (
+                <small className="field-hint text-xs text-slate-500 mt-1 block">
+                  💡 Lịch lặp hằng tháng sẽ tự động tạo đợt thu mới cho các kỳ tiếp theo (Tháng 11, Tháng 12...). Nên đặt tên dạng "Quỹ định kỳ" để tránh hiểu nhầm chỉ thu cho một tháng cụ thể.
+                </small>
+              )}
             </label>
             <Money
               required

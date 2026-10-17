@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import FundOperations from "../components/FundOperations";
+import MonthlyFundCollection from "../components/MonthlyFundCollection";
 import { remainingCharge } from "../lib/fundCollections";
 import { notify } from "../lib/feedback";
 import ProModal from "../components/pro/ProModal";
@@ -150,15 +151,15 @@ export default function FundManagement({
   ); // null | 'debtors' | 'schedules' | 'bills' | 'qr-config' | 'permissions'
 
   const [activeTab, setActiveTab] = useState(
-    ["transactions", "collections", "approvals"].includes(viewState?.activeTab)
+    ["monthly", "transactions", "collections", "approvals"].includes(viewState?.activeTab)
       ? viewState.activeTab
-      : "transactions",
-  ); // strictly 3 main tabs: 'transactions' | 'collections' | 'approvals'
+      : fund ? "monthly" : "transactions",
+  );
 
   useEffect(() => {
     if (!fundIntent) return;
     if (fundIntent.action === "collection") {
-      setActiveTab("collections");
+      setActiveTab("monthly");
       setSubView(null);
     } else if (fundIntent.action === "reminder") {
       setSubView("schedules");
@@ -960,16 +961,19 @@ export default function FundManagement({
               type="button"
               className="fund-duo-cell"
               onClick={() => setSubView("debtors")}
-              title="Xem chi tiết khoản còn phải thu"
+              title="Xem chi tiết khoản nợ tích lũy"
             >
               <div className="fund-duo-icon" aria-hidden="true">
                 <Users size={20} />
               </div>
               <div className="fund-duo-text">
-                <span className="fund-duo-label">Còn phải thu</span>
+                <span className="fund-duo-label">Tổng nợ tích lũy</span>
                 <span className="fund-duo-value tabular-nums">
                   {formatCurrency(outstanding)}
                 </span>
+                <small className="text-[11px] text-slate-500 block leading-tight">
+                  Tất cả các kỳ & phạt
+                </small>
               </div>
             </button>
 
@@ -1060,12 +1064,15 @@ export default function FundManagement({
             <button
               type="button"
               className="fund-action-card"
-              onClick={() => setActiveTab("collections")}
+              onClick={() => {
+                setActiveTab("monthly");
+                setSubView(null);
+              }}
             >
               <div className="fund-action-icon-box" aria-hidden="true">
                 <Calendar size={20} />
               </div>
-              <span>Đợt thu</span>
+              <span>Thu quỹ tháng</span>
             </button>
 
             {canManage ? (
@@ -1113,6 +1120,21 @@ export default function FundManagement({
               <button
                 type="button"
                 role="tab"
+                id="tab-monthly"
+                aria-controls="panel-monthly"
+                aria-selected={activeTab === "monthly"}
+                className={`fund-tab-button ${activeTab === "monthly" ? "is-active" : ""}`}
+                onClick={() => setActiveTab("monthly")}
+              >
+                <span>Thu quỹ tháng</span>
+                <span className="fund-tab-badge">
+                  {fund?.data?.collections?.length || 0}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
                 id="tab-transactions"
                 aria-controls="panel-transactions"
                 aria-selected={activeTab === "transactions"}
@@ -1122,21 +1144,6 @@ export default function FundManagement({
                 <span>Giao dịch</span>
                 <span className="fund-tab-badge">
                   {visibleTransactions.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                role="tab"
-                id="tab-collections"
-                aria-controls="panel-collections"
-                aria-selected={activeTab === "collections"}
-                className={`fund-tab-button ${activeTab === "collections" ? "is-active" : ""}`}
-                onClick={() => setActiveTab("collections")}
-              >
-                <span>Đợt thu</span>
-                <span className="fund-tab-badge">
-                  {fund?.data?.collections?.length || 0}
                 </span>
               </button>
 
@@ -1156,6 +1163,55 @@ export default function FundManagement({
               </button>
             </nav>
           </div>
+
+          {/* TAB 0: THU QUỸ THÁNG */}
+          {activeTab === "monthly" && (
+            <section
+              id="panel-monthly"
+              role="tabpanel"
+              aria-labelledby="tab-monthly"
+            >
+              <MonthlyFundCollection
+                fund={fund}
+                funds={funds}
+                teamMembers={teamMembers}
+                timeZone={timeZone}
+                canManage={canManage}
+                accountId={accountId}
+                treasurerQr={treasurerQr}
+                onCreateMonthCollection={(month) => {
+                  const [y, m] = month.split("-");
+                  const monthNum = parseInt(m, 10);
+                  const lastDay = new Date(Date.UTC(Number(y), monthNum, 0)).getUTCDate();
+                  const dueDate = `${month}-${String(Math.min(15, lastDay)).padStart(2, "0")}`;
+                  setSubView("collections");
+                  setOperationIntent({
+                    id: crypto.randomUUID(),
+                    action: "collection",
+                    title: `Quỹ tháng ${monthNum}/${y}`,
+                    dueDate,
+                  });
+                }}
+                onApprovePayment={handleApprove}
+                onRejectPayment={(id) => {
+                  setRejecting(id);
+                  setRejectReason("");
+                  setTxError("");
+                }}
+                onRecordPayment={async (charge, amount) => {
+                  if (fund?.mutate) {
+                    await fund.mutate("payment", {
+                      chargeId: charge.id,
+                      amount: Number(amount),
+                    });
+                  }
+                }}
+                onRemindMember={(member) => {
+                  notify(`Đã gửi nhắc nộp quỹ tới ${member.name}`);
+                }}
+              />
+            </section>
+          )}
 
           {/* TAB 1: SỔ GIAO DỊCH */}
           {activeTab === "transactions" && (
@@ -1523,7 +1579,12 @@ export default function FundManagement({
 
       {/* FILTER BOTTOM SHEET */}
       {showFilterSheet && (
-        <div role="dialog" aria-modal="true" className="match-form-overlay">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="match-form-overlay"
+          style={{ zIndex: 1000 }}
+        >
           <section className="match-form-sheet">
             <header className="sheet-header">
               <h2>Lọc sổ giao dịch</h2>
@@ -1654,7 +1715,15 @@ export default function FundManagement({
                 </div>
               )}
 
-              <footer className="sheet-footer flex gap-2">
+              <footer
+                className="sheet-footer flex gap-2"
+                style={{
+                  paddingBottom: "max(20px, calc(env(safe-area-inset-bottom, 0px) + 16px))",
+                  position: "sticky",
+                  bottom: 0,
+                  zIndex: 20,
+                }}
+              >
                 <Pressable
                   type="button"
                   className="choice-button flex-1"

@@ -73,3 +73,240 @@ export function nextMonthlyStart(day, time, now = Date.now()) {
       return date;
   }
 }
+export function getMonthFundSummary(
+  selectedMonth,
+  collections = [],
+  charges = [],
+  pendingRequests = [],
+  transactions = []
+) {
+  const [yearStr, monthStr] = (selectedMonth || "").split("-");
+  const monthNum = parseInt(monthStr, 10);
+
+  const monthCollections = (collections || []).filter((c) => {
+    if (c.status === "cancelled") return false;
+    if (c.period === selectedMonth) return true;
+    if (c.due_date && c.due_date.startsWith(selectedMonth)) return true;
+    if (c.created_at && c.created_at.startsWith(selectedMonth)) return true;
+    if (c.title) {
+      const match = c.title.match(/tháng\s*0?(\d+)/i);
+      if (match && parseInt(match[1], 10) === monthNum) {
+        if (!c.created_at || c.created_at.startsWith(yearStr)) return true;
+      }
+    }
+    return false;
+  });
+
+  const hasCollection = monthCollections.length > 0;
+  const collectionIds = new Set(monthCollections.map((c) => c.id));
+
+  const monthCharges = (charges || []).filter(
+    (ch) => collectionIds.has(ch.collection_id) && ch.status !== "void"
+  );
+
+  const totalRequired = hasCollection
+    ? monthCharges.reduce((sum, ch) => sum + Number(ch.amount || 0), 0)
+    : null;
+
+  const totalPaid = monthCharges.reduce(
+    (sum, ch) => sum + Number(ch.paid_amount || 0),
+    0
+  );
+
+  const totalRemaining = hasCollection
+    ? monthCharges.reduce((sum, ch) => sum + remainingCharge(ch), 0)
+    : 0;
+
+  const monthChargeIds = new Set(monthCharges.map((ch) => ch.id));
+  const pendingForMonth = (pendingRequests || []).filter((p) =>
+    p.chargeId ? monthChargeIds.has(p.chargeId) : p.month === selectedMonth
+  );
+
+  const totalPending = pendingForMonth.reduce(
+    (sum, p) => sum + Number(p.amount || 0),
+    0
+  );
+
+  const paidCount = monthCharges.filter((ch) => remainingCharge(ch) === 0).length;
+  const partialCount = monthCharges.filter(
+    (ch) => Number(ch.paid_amount) > 0 && remainingCharge(ch) > 0
+  ).length;
+  const unpaidCount = monthCharges.filter(
+    (ch) => Number(ch.paid_amount) === 0 && remainingCharge(ch) > 0
+  ).length;
+  const totalCount = monthCharges.length;
+
+  const unlinkedTransactions = (transactions || []).filter((t) => {
+    if (t.type !== "income" || t.status === "void") return false;
+    const matchPeriod =
+      (t.occurredAt && t.occurredAt.startsWith(selectedMonth)) ||
+      (t.date && t.date.startsWith(selectedMonth));
+    const titleMatch =
+      t.title &&
+      (t.title.toLowerCase().includes(`tháng ${monthNum}`) ||
+        t.title.toLowerCase().includes(`t${monthNum}`));
+    return matchPeriod || titleMatch;
+  });
+
+  const unlinkedIncomeTotal = unlinkedTransactions.reduce(
+    (sum, t) => sum + Number(t.amount || 0),
+    0
+  );
+
+  return {
+    selectedMonth,
+    hasCollection,
+    collections: monthCollections,
+    charges: monthCharges,
+    totalRequired,
+    totalPaid,
+    totalPending,
+    totalRemaining,
+    paidCount,
+    partialCount,
+    unpaidCount,
+    totalCount,
+    pendingRequests: pendingForMonth,
+    unlinkedTransactions,
+    unlinkedIncomeTotal,
+  };
+}
+
+export function getMembersMonthStatus(
+  selectedMonth,
+  teamMembers = [],
+  summary,
+  allCharges = [],
+  pendingRequests = []
+) {
+  const memberMap = new Map();
+
+  teamMembers.forEach((m) => {
+    memberMap.set(m.id, {
+      id: m.id,
+      name: m.name,
+      number: m.number ?? m.jersey_number ?? "",
+      role: m.role || "member",
+      phone: m.phone || "",
+      avatar: m.avatar || "",
+      hasObligation: false,
+      amount: 0,
+      paidAmount: 0,
+      remaining: 0,
+      charge: null,
+      pending: null,
+      status: "no_obligation",
+    });
+  });
+
+  if (summary && summary.hasCollection) {
+    summary.charges.forEach((ch) => {
+      const existing = memberMap.get(ch.subject) || {
+        id: ch.subject,
+        name: "Thành viên",
+        number: "",
+        role: "member",
+        phone: "",
+        avatar: "",
+      };
+
+      const pending = (pendingRequests || []).find((p) => p.chargeId === ch.id);
+      const rem = remainingCharge(ch);
+      const paid = Number(ch.paid_amount || 0);
+      const amount = Number(ch.amount || 0);
+
+      let status = "unpaid";
+      if (pending) {
+        status = "pending";
+      } else if (rem === 0) {
+        status = "paid";
+      } else if (paid > 0) {
+        status = "partial";
+      }
+
+      memberMap.set(ch.subject, {
+        ...existing,
+        hasObligation: true,
+        amount,
+        paidAmount: paid,
+        remaining: rem,
+        charge: ch,
+        pending,
+        status,
+      });
+    });
+  }
+
+  return Array.from(memberMap.values());
+}
+
+export function getMemberMonthHistory(
+  memberId,
+  collections = [],
+  charges = [],
+  transactions = [],
+  pendingRequests = []
+) {
+  const memberCharges = (charges || []).filter(
+    (ch) => ch.subject === memberId && ch.kind === "fund"
+  );
+
+  const history = memberCharges.map((ch) => {
+    const col = (collections || []).find((c) => c.id === ch.collection_id);
+    const period = col?.period || (col?.due_date ? col.due_date.slice(0, 7) : "Khác");
+    const pending = (pendingRequests || []).find((p) => p.chargeId === ch.id);
+    const rem = remainingCharge(ch);
+    const paid = Number(ch.paid_amount || 0);
+    const amount = Number(ch.amount || 0);
+
+    const relatedTx = (transactions || []).find(
+      (t) => t.chargeId === ch.id && t.type === "income" && t.status !== "void"
+    );
+
+    let paymentDate = null;
+    let isBackpay = false;
+    let backpayMonth = null;
+
+    if (relatedTx) {
+      paymentDate = relatedTx.occurredAt || relatedTx.date;
+      if (paymentDate && period !== "Khác") {
+        const txMonth = paymentDate.slice(0, 7);
+        if (txMonth > period) {
+          isBackpay = true;
+          backpayMonth = txMonth;
+        }
+      }
+    } else if (ch.resolved_at && period !== "Khác") {
+      paymentDate = ch.resolved_at;
+      const resMonth = paymentDate.slice(0, 7);
+      if (resMonth > period) {
+        isBackpay = true;
+        backpayMonth = resMonth;
+      }
+    }
+
+    let status = "unpaid";
+    if (pending) status = "pending";
+    else if (rem === 0) status = "paid";
+    else if (paid > 0) status = "partial";
+
+    return {
+      chargeId: ch.id,
+      collectionId: ch.collection_id,
+      collectionTitle: col?.title || ch.label || `Quỹ kỳ ${period}`,
+      period,
+      dueDate: col?.due_date,
+      amount,
+      paidAmount: paid,
+      remaining: rem,
+      status,
+      pending,
+      paymentDate,
+      isBackpay,
+      backpayMonth,
+    };
+  });
+
+  history.sort((a, b) => (b.period || "").localeCompare(a.period || ""));
+  return history;
+}

@@ -48,3 +48,15 @@ test('reject requires reason, member cannot manage and admin cannot self approve
  }
  act(()=>tree.unmount());
 });
+test('approve with short feedback like ok normalizes to >= 3 chars; Decision and reason required error is translated',async()=>{
+ let tree,calls=[];const governance={snapshot,mutate:async(...args)=>{calls.push(args);throw Error('Decision and reason required');}};
+ await act(async()=>tree=renderer.create(React.createElement(Review,{governance,matchId:'match',members,attendance:{member:'attending'}})));
+ await act(async()=>tree.root.findAllByType('button').find(b=>b.props['aria-label']==='Duyệt đến muộn cho Cầu thủ A').props.onClick());
+ await act(async()=>tree.root.findByType('textarea').props.onChange({target:{value:'ok'}}));
+ await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));
+ assert.equal(calls[0][0],'review_late');
+ assert.equal(calls[0][1].status,'approved');
+ assert.equal(calls[0][1].reason,'Đồng ý: ok');
+ assert.match(JSON.stringify(tree.toJSON()),/Vui lòng nhập phản hồi hoặc lý do hợp lệ/);
+ act(()=>tree.unmount());
+});

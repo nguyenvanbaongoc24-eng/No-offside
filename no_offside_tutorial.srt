@@ -1,0 +1,52 @@
+1
+00:00:00,500 --> 00:00:08,000
+Chào mừng bạn đến với No Offside.
+Ứng dụng quản lý đội bóng phong trào thông minh. Hẹn nhau ra sân!
+
+2
+00:00:09,500 --> 00:00:13,500
+Đầu tiên, khởi tạo đội bóng của bạn bằng cách nhập tên đội,
+chọn loại sân thi đấu.
+
+3
+00:00:13,500 --> 00:00:17,000
+Sau đó nhấn Hoàn tất tạo đội để kích hoạt câu lạc bộ của bạn.
+
+4
+00:00:18,500 --> 00:00:22,500
+Để mời đồng đội, chạm dấu cộng trên thanh điều hướng,
+chọn Mời thành viên.
+
+5
+00:00:22,500 --> 00:00:26,500
+Chia sẻ mã câu lạc bộ hoặc đưa mã QR cho cầu thủ quét để vào đội.
+
+6
+00:00:28,000 --> 00:00:31,500
+Tạo lịch thi đấu nhanh chóng từ menu thao tác nhanh,
+thiết lập đối thủ và sân bóng.
+
+7
+00:00:31,500 --> 00:00:35,500
+Chọn thời gian thi đấu và ấn định hạn chót điểm danh toàn đội.
+
+8
+00:00:37,000 --> 00:00:40,500
+Thành viên chủ động điểm danh Có mặt hoặc Báo vắng ngay trên thẻ trận.
+
+9
+00:00:40,500 --> 00:00:44,500
+Ban cán sự mở danh sách điểm danh để nắm chắc quân số trước giờ bóng lăn.
+
+10
+00:00:46,000 --> 00:00:49,500
+Mục Quỹ đội giúp quản lý thu chi minh bạch và tạo các đợt thu định kỳ.
+
+11
+00:00:49,500 --> 00:00:53,500
+Theo dõi danh sách nộp quỹ và hỗ trợ quét mã VietQR chuyển khoản tức thì.
+
+12
+00:00:54,000 --> 00:00:61,000
+Truy cập ngay no-offside.vercel.app.
+Tạo đội của bạn và hẹn nhau ra sân!

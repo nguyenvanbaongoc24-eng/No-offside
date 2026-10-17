@@ -95,7 +95,11 @@ begin
    select * into v_request from public.no_gov_events where team_id=p_team_id and id=(p_payload->>'requestId')::uuid and action='late_request';
    if not found or (v_request.subject=v_actor and v_me.role<>'owner') then raise exception 'Cannot approve own request' using errcode='42501'; end if;
    if v_request.id<>(select id from public.no_gov_events where team_id=p_team_id and subject=v_request.subject and match_id=v_request.match_id and action='late_request' order by created_at desc,seq desc limit 1) then raise exception 'Request replaced'; end if;
-   if p_payload->>'status' not in ('approved','rejected') or length(trim(coalesce(p_payload->>'reason','')))<3 then raise exception 'Decision and reason required'; end if;
+   if p_payload->>'status' not in ('approved','rejected') then raise exception 'Decision and reason required'; end if;
+   if p_payload->>'status' = 'rejected' and length(trim(coalesce(p_payload->>'reason','')))<3 then raise exception 'Decision and reason required'; end if;
+   if p_payload->>'status' = 'approved' and length(trim(coalesce(p_payload->>'reason','')))<3 then
+     p_payload := jsonb_set(p_payload, '{reason}', to_jsonb(case when length(trim(coalesce(p_payload->>'reason','')))>0 then 'Đồng ý: ' || trim(p_payload->>'reason') else 'Đồng ý yêu cầu đến muộn' end));
+   end if;
    if exists(select 1 from public.no_gov_events where team_id=p_team_id and subject=v_request.subject and match_id=v_request.match_id and action='violation') then raise exception 'Record finalized'; end if;
    v_subject:=v_request.subject; v_match_id:=v_request.match_id;
    v_data:=jsonb_build_object('requestId',v_request.id,'status',p_payload->>'status','reason',p_payload->>'reason','eta',v_request.data->'eta','self_approved',(v_request.subject=v_actor));

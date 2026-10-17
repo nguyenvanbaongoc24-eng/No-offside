@@ -36,5 +36,18 @@ dist-ssr
 supabase/.temp
 
 .ui-review/
-
 public/ml-runtime/
+
+# Tutorial video scratch artifacts
+scripts/__pycache__/
+scripts/frames_raw/
+scripts/preview_steps/
+scripts/final_frames/
+scripts/test_renders/
+scripts/audio/
+scripts/*.png
+scripts/test_*.py
+scripts/capture_*.py
+scripts/clean_*.py
+scripts/check_*.py
+scripts/preview_*.py

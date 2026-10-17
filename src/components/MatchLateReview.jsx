@@ -32,16 +32,36 @@ export default function MatchLateReview({ governance, matchId, members, attendan
     }
     pending.current = true; setBusy(true); setError('');
     const submittedScope = scope;
+    const isSelf = review.request.subject === snapshot.me.user_id;
+    const defaultReason = isSelf ? 'Chủ FC tự duyệt yêu cầu' : 'Đồng ý yêu cầu đến muộn';
+    const finalReason = review.status === 'approved'
+      ? (note ? (note.length >= 3 ? note : (isSelf ? `Chủ FC tự duyệt: ${note}` : `Đồng ý: ${note}`)) : defaultReason)
+      : note;
     try {
       await governance.mutate('review_late', {
         requestId: review.request.id, status: review.status,
-        reason: note || (review.request.subject === snapshot.me.user_id ? 'Chủ FC tự duyệt yêu cầu' : 'Đồng ý yêu cầu đến muộn'),
+        reason: finalReason,
       }, key.current);
       if (activeScope.current === submittedScope) {
         setReview(null); notify(review.status === 'approved' ? 'Đã duyệt yêu cầu đến muộn.' : 'Đã từ chối yêu cầu đến muộn.');
       }
     } catch (err) {
-      if (activeScope.current === submittedScope) setError(err.message || 'Không lưu được kết quả duyệt.');
+      if (activeScope.current === submittedScope) {
+        const msg = err?.message || '';
+        let userMessage = msg || 'Không lưu được kết quả duyệt.';
+        if (msg.includes('Decision and reason required')) {
+          userMessage = 'Vui lòng nhập phản hồi hoặc lý do hợp lệ (tối thiểu 3 ký tự).';
+        } else if (msg.includes('Cannot approve own request')) {
+          userMessage = 'Bạn không thể tự duyệt yêu cầu của chính mình.';
+        } else if (msg.includes('Request replaced')) {
+          userMessage = 'Yêu cầu này đã được cập nhật hoặc không còn hiệu lực.';
+        } else if (msg.includes('Record finalized')) {
+          userMessage = 'Trận đấu hoặc yêu cầu đã được chốt sổ.';
+        } else if (msg.includes('Leader required')) {
+          userMessage = 'Chỉ Chủ đội hoặc Quản trị viên mới có quyền duyệt.';
+        }
+        setError(userMessage);
+      }
     } finally { pending.current = false; setBusy(false); }
   };
   return <section className="match-late-review" aria-label="Duyệt đến muộn của đội">

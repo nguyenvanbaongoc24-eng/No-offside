@@ -57,15 +57,31 @@ export default function Governance({ governance, onBack }) {
   const run = async (action, payload) => {
     setBusy(true);
     setError("");
-    const signature = JSON.stringify([action, payload]);
+    const finalPayload = { ...payload };
+    if (action === "review_late") {
+      const note = (finalPayload.reason || "").trim();
+      const isSelf = finalPayload.subject === snapshot?.me?.user_id;
+      const defaultReason = isSelf ? "Chủ FC tự duyệt yêu cầu" : "Đồng ý yêu cầu đến muộn";
+      finalPayload.reason = finalPayload.status === "approved"
+        ? (note ? (note.length >= 3 ? note : (isSelf ? `Chủ FC tự duyệt: ${note}` : `Đồng ý: ${note}`)) : defaultReason)
+        : note;
+    }
+    const signature = JSON.stringify([action, finalPayload]);
     if (retry.current?.signature !== signature)
       retry.current = { signature, key: crypto.randomUUID() };
     try {
-      await governance.mutate(action, payload, retry.current.key);
+      await governance.mutate(action, finalPayload, retry.current.key);
       setForm(null);
       retry.current = null;
     } catch (err) {
-      setError("Server từ chối: " + err.message);
+      const msg = err?.message || "";
+      let userMessage = "Server từ chối: " + msg;
+      if (msg.includes("Decision and reason required")) {
+        userMessage = "Vui lòng nhập phản hồi hoặc lý do hợp lệ (tối thiểu 3 ký tự).";
+      } else if (msg.includes("Cannot approve own request")) {
+        userMessage = "Bạn không thể tự duyệt yêu cầu của chính mình.";
+      }
+      setError(userMessage);
     } finally {
       setBusy(false);
     }

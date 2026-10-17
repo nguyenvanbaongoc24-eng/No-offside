@@ -127,3 +127,41 @@ test("MonthlyFundCollection renders overview, member list, and warning when coll
   assert.match(htmlWithoutCollection, /Nguyễn Văn A/);
   assert.match(htmlWithoutCollection, /Trần Văn B/);
 });
+
+test("FundManagement renders FundOperations when subView is 'collections' without blank content", () => {
+  const fund = {
+    data: {
+      teamName: "FC 21",
+      canManage: true,
+      owner: true,
+      collections: [
+        { id: "col-1", title: "Quỹ tháng 10/2026", status: "open", due_date: "2026-10-15", schedule_id: "s-1" }
+      ],
+      charges: [],
+      bills: [],
+      pendingRequests: [],
+      members: [{ id: "m-1", name: "Nguyễn Văn A" }],
+    },
+    busy: false,
+    loading: false,
+    error: "",
+    refresh: noop,
+    mutate: noop,
+  };
+
+  const html = render("FundManagement", {
+    fund,
+    funds: { transactions: [], pendingApprovals: [] },
+    teamMembers: [{ id: "m-1", name: "Nguyễn Văn A", role: "owner" }],
+    viewState: { subView: "collections" },
+    canManage: true,
+    currentUserRole: "owner",
+    teamName: "FC 21",
+  });
+
+  assert.match(html, /Quay lại Quỹ đội/);
+  assert.match(html, /fund-operations/);
+  assert.match(html, /Đợt thu/);
+  assert.match(html, /Quỹ tháng 10\/2026/);
+});
+

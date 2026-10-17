@@ -872,6 +872,27 @@ export default function FundManagement({
             </section>
           )}
 
+          {subView === "collections" && (
+            fund ? (
+              <FundOperations
+                fund={fund}
+                mode="collections"
+                intent={fundIntent || operationIntent}
+                onIntentUsed={() => {
+                  setOperationIntent(null);
+                  onFundIntentUsed?.();
+                }}
+                qr={treasurerQr}
+                accountId={accountId}
+                permissions={teamMembers}
+              />
+            ) : (
+              <div className="settings-card text-center py-8">
+                <p className="text-slate-500">Đang tải dữ liệu đợt thu…</p>
+              </div>
+            )
+          )}
+
           {subView === "schedules" && fund && (
             <FundOperations
               fund={fund}

@@ -54,6 +54,66 @@ export default function MonthlyFundCollection({
   const [recordBusy, setRecordBusy] = useState(false);
   const [recordError, setRecordError] = useState("");
 
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [createTitle, setCreateTitle] = useState("");
+  const [createAmount, setCreateAmount] = useState(100000);
+  const [createDueDate, setCreateDueDate] = useState("");
+  const [createRepeat, setCreateRepeat] = useState("once");
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  const handleOpenCreateCollection = (monthStr) => {
+    const targetMonth = monthStr || selectedMonth;
+    const [y, m] = targetMonth.split("-");
+    const monthNum = parseInt(m, 10);
+    const lastDay = new Date(Date.UTC(Number(y), monthNum, 0)).getUTCDate();
+    const defaultDueDate = `${targetMonth}-${String(Math.min(15, lastDay)).padStart(2, "0")}`;
+    setCreateTitle(`Quỹ tháng ${monthNum}/${y}`);
+    setCreateAmount(100000);
+    setCreateDueDate(defaultDueDate);
+    setCreateRepeat("once");
+    setCreateError("");
+    setIsCreatingCollection(true);
+  };
+
+  const handleConfirmCreateCollection = async (e) => {
+    e.preventDefault();
+    if (createBusy) return;
+    const amountNum = Number(createAmount);
+    if (!amountNum || amountNum <= 0) {
+      setCreateError("Vui lòng nhập số tiền hợp lệ lớn hơn 0.");
+      return;
+    }
+    setCreateBusy(true);
+    setCreateError("");
+    try {
+      if (fund?.mutate) {
+        const sendAt = new Date().toISOString();
+        const [y, m] = selectedMonth.split("-");
+        const day = Number(createDueDate?.slice(8, 10)) || 15;
+        await fund.mutate("schedule_save", {
+          title: createTitle.trim() || `Quỹ tháng ${parseInt(m, 10)}/${y}`,
+          amount: amountNum,
+          recipients: "all",
+          repeat: createRepeat,
+          day,
+          sendAt,
+          dueDate: createDueDate,
+          note: `Đợt thu tạo cho ${selectedMonth}`,
+        });
+        notify(`Đã tạo đợt thu ${createTitle.trim() || `Quỹ tháng ${parseInt(m, 10)}/${y}`}!`);
+        setIsCreatingCollection(false);
+      } else if (onCreateMonthCollection) {
+        onCreateMonthCollection(selectedMonth);
+        setIsCreatingCollection(false);
+      }
+    } catch (err) {
+      setCreateError(err.message || "Không thể tạo đợt thu.");
+    } finally {
+      setCreateBusy(false);
+    }
+  };
+
   const handleOpenPayment = (charge, defaultAmount = 0, member = null) => {
     setRecordingCharge({ ...charge, memberName: member?.name });
     setRecordAmount(defaultAmount || remainingCharge(charge));
@@ -231,7 +291,7 @@ export default function MonthlyFundCollection({
           <Pressable
             type="button"
             className="monthly-create-btn"
-            onClick={() => onCreateMonthCollection?.(selectedMonth)}
+            onClick={() => handleOpenCreateCollection(selectedMonth)}
           >
             <Plus size={16} />
             <span>Tạo đợt thu</span>
@@ -265,7 +325,7 @@ export default function MonthlyFundCollection({
                 <Pressable
                   type="button"
                   className="monthly-banner-action mt-2.5"
-                  onClick={() => onCreateMonthCollection?.(selectedMonth)}
+                  onClick={() => handleOpenCreateCollection(selectedMonth)}
                 >
                   <Plus size={15} />
                   Tạo đợt thu {monthLabel} ngay
@@ -769,6 +829,108 @@ export default function MonthlyFundCollection({
           </form>
         </ProModal>
       )}
+
+      {/* 3. MODAL TẠO ĐỢT THU CHO THÁNG */}
+      <ProModal
+        open={isCreatingCollection}
+        title={`Tạo đợt thu ${monthLabel}`}
+        onClose={() => {
+          if (!createBusy) setIsCreatingCollection(false);
+        }}
+      >
+        <form className="security-form" onSubmit={handleConfirmCreateCollection}>
+          <label className="form-field">
+            Tiêu đề đợt thu
+            <input
+              required
+              maxLength={120}
+              value={createTitle}
+              onChange={(e) => setCreateTitle(e.target.value)}
+              placeholder="Ví dụ: Quỹ tháng 10/2026"
+            />
+          </label>
+
+          <label className="form-field">
+            Số tiền mỗi người (đ)
+            <input
+              required
+              inputMode="numeric"
+              value={createAmount ? Number(createAmount).toLocaleString("vi-VN") : ""}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "");
+                setCreateAmount(raw ? Number(raw) : 0);
+              }}
+            />
+          </label>
+
+          <div className="flex gap-2 flex-wrap mb-2">
+            {[50000, 100000, 150000, 200000].map((amt) => (
+              <Pressable
+                key={amt}
+                type="button"
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  createAmount === amt
+                    ? "bg-emerald-600 text-white border-emerald-600 font-semibold"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+                }`}
+                onClick={() => setCreateAmount(amt)}
+              >
+                {formatCurrency(amt)}
+              </Pressable>
+            ))}
+          </div>
+
+          <label className="form-field">
+            Hạn nộp quỹ
+            <input
+              required
+              type="date"
+              value={createDueDate}
+              onChange={(e) => setCreateDueDate(e.target.value)}
+            />
+          </label>
+
+          <label className="form-field">
+            Hình thức đợt thu
+            <select
+              value={createRepeat}
+              onChange={(e) => setCreateRepeat(e.target.value)}
+            >
+              <option value="once">Chỉ thu 1 lần cho {monthLabel}</option>
+              <option value="monthly">Lặp lại hằng tháng</option>
+            </select>
+            {createRepeat === "monthly" && (
+              <small className="field-hint text-xs text-slate-500 mt-1 block">
+                💡 Hệ thống sẽ tự động tạo đợt thu mới cho các tháng tiếp theo (Tháng {Number(selectedMonth.slice(5, 7)) === 12 ? 1 : Number(selectedMonth.slice(5, 7)) + 1}...).
+              </small>
+            )}
+          </label>
+
+          {createError && (
+            <p role="alert" className="form-error text-xs text-rose-600 font-semibold mt-1">
+              {createError}
+            </p>
+          )}
+
+          <div className="flex gap-2 mt-4">
+            <Pressable
+              type="submit"
+              className="primary-button flex-1"
+              disabled={createBusy}
+            >
+              {createBusy ? "Đang tạo đợt…" : "Tạo đợt thu ngay"}
+            </Pressable>
+            <Pressable
+              type="button"
+              className="choice-button"
+              disabled={createBusy}
+              onClick={() => setIsCreatingCollection(false)}
+            >
+              Hủy
+            </Pressable>
+          </div>
+        </form>
+      </ProModal>
     </div>
   );
 }

@@ -1,28 +1,91 @@
 import Pressable from './Pressable';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { lifecycle } from '../lib/matchLifecycle';
 import { matchTimeLabel } from '../lib/matchTime';
-import { CalendarDays, Check, ChevronDown } from "./icons";
+import { CalendarDays, Check, ChevronDown, Search, Sliders } from "./icons";
 
 export default function MatchList({
   matches = [],
+  archivedMatches = [],
   activeMatchId,
   onSelect,
   timeZone = "Asia/Ho_Chi_Minh",
   canDelete = false,
   canManageFunds = false,
+  initialTab = "upcoming",
 }) {
-  const [filter, setFilter] = useState("upcoming");
-  const [now,setNow]=useState(Date.now());
-  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(timer);},[]);
-  const unarchivedMatches = matches;
-  const totalCount = unarchivedMatches.length;
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [now, setNow] = useState(Date.now());
 
-  const visible = unarchivedMatches.filter((match) =>
-    filter === "completed"
-      ? ['completed','cancelled','awaiting','unknown'].includes(lifecycle(match,now).key)
-      : ['upcoming','live'].includes(lifecycle(match,now).key),
-  );
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Merge & deduplicate
+  const allMap = useMemo(() => {
+    const map = new Map();
+    for (const m of matches) if (m && m.id) map.set(m.id, m);
+    for (const m of archivedMatches) if (m && m.id) map.set(m.id, m);
+    return map;
+  }, [matches, archivedMatches]);
+
+  const allList = useMemo(() => Array.from(allMap.values()), [allMap]);
+
+  // "Sắp tới": các trận sắp diễn ra, đang diễn ra hoặc chờ cập nhật kết quả
+  const upcomingList = useMemo(() => {
+    return allList
+      .filter((m) => !m.archivedAt && m.status !== "completed" && !["cancelled", "canceled"].includes(m.status))
+      .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+  }, [allList]);
+
+  // "Lịch sử": các trận đã kết thúc và được lưu trữ
+  const historyList = useMemo(() => {
+    return allList
+      .filter((m) => m.archivedAt || m.status === "completed" || ["cancelled", "canceled", "archived"].includes(m.status))
+      .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+  }, [allList]);
+
+  // Months available in history
+  const availableMonths = useMemo(() => {
+    const months = new Set();
+    for (const m of historyList) {
+      if (m.datetime) {
+        const d = new Date(m.datetime);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          months.add(`${yyyy}-${mm}`);
+        }
+      }
+    }
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [historyList]);
+
+  // Filtered history list
+  const filteredHistory = useMemo(() => {
+    return historyList.filter((m) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const opp = (m.opponent || "").toLowerCase();
+        const title = (m.title || "").toLowerCase();
+        if (!opp.includes(q) && !title.includes(q)) return false;
+      }
+      if (selectedMonth !== "all") {
+        const d = new Date(m.datetime);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          if (`${yyyy}-${mm}` !== selectedMonth) return false;
+        }
+      }
+      return true;
+    });
+  }, [historyList, searchQuery, selectedMonth]);
+
+  const totalCount = upcomingList.length + historyList.length;
 
   return (
     <details
@@ -45,29 +108,29 @@ export default function MatchList({
 
       {/* Nội dung danh sách trận khi mở ra */}
       <div className="mt-2.5 p-3.5 rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in duration-150">
-        <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
-          <h2 className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            Danh sách trận ({visible.length})
-          </h2>
+        {/* Header Tabs: Sắp tới vs Lịch sử */}
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-3 border-b border-slate-100 dark:border-slate-800 pb-2.5">
           <div
             className="match-filter flex gap-1 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800"
-            role="group"
+            role="tablist"
             aria-label="Lọc trận đấu"
           >
             {[
-              ["upcoming", "Sắp tới"],
-              ["completed", "Đã qua"],
-            ].map(([value, label]) => (
+              ["upcoming", `Sắp tới (${upcomingList.length})`],
+              ["history", `Lịch sử (${historyList.length})`],
+            ].map(([tabKey, label]) => (
               <Pressable
-                key={value}
+                key={tabKey}
                 type="button"
-                aria-pressed={filter === value}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                  filter === value
+                role="tab"
+                aria-selected={activeTab === tabKey}
+                aria-pressed={activeTab === tabKey}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  activeTab === tabKey
                     ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                 }`}
-                onClick={() => setFilter(value)}
+                onClick={() => setActiveTab(tabKey)}
               >
                 {label}
               </Pressable>
@@ -75,61 +138,215 @@ export default function MatchList({
           </div>
         </div>
 
-        {visible.length === 0 && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 py-3 text-center" role="status">
-            Chưa có trận {filter === "completed" ? "đã xong" : "sắp đá"}.
-          </p>
+        {/* Tab Sắp tới */}
+        {activeTab === "upcoming" && (
+          <div className="space-y-2">
+            {upcomingList.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400 py-3 text-center" role="status">
+                Chưa có trận sắp diễn ra.
+              </p>
+            ) : (
+              <ul className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                {upcomingList.map((match) => {
+                  const st = lifecycle(match, now);
+                  const isAwaiting = st.key === "awaiting";
+                  const isLive = st.key === "live";
+
+                  return (
+                    <li key={match.id}>
+                      <Pressable
+                        type="button"
+                        className={`match-select-button w-full flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left cursor-pointer ${
+                          match.id === activeMatchId
+                            ? "border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100"
+                            : "border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
+                        }`}
+                        aria-pressed={match.id === activeMatchId}
+                        onClick={() => onSelect(match.id)}
+                      >
+                        <CalendarDays
+                          size={18}
+                          className={`shrink-0 ${
+                            match.id === activeMatchId
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-slate-400"
+                          }`}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-xs font-bold break-words">
+                            {match.matchType === "internal"
+                              ? (match.title?.includes(" — ") ? match.title.split(" — ").at(-1) : (match.title || "Trận nội bộ"))
+                              : (match.opponent || match.title)}
+                          </span>
+                          <time
+                            dateTime={match.datetime}
+                            className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400"
+                          >
+                            {matchTimeLabel(match.datetime, timeZone)} · {match.venue || "Chưa chốt sân"}
+                          </time>
+                          <span className="inline-flex items-center gap-1 mt-1">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
+                                isLive
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 animate-pulse"
+                                  : isAwaiting
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                                  : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              }`}
+                            >
+                              {st.label}
+                            </span>
+                          </span>
+                        </span>
+                        {match.id === activeMatchId && (
+                          <Check
+                            size={16}
+                            className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                          />
+                        )}
+                      </Pressable>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         )}
 
-        <ul className="space-y-2 max-h-60 overflow-y-auto pr-0.5">
-          {visible.map((match) => (
-            <li key={match.id}>
-              <Pressable
-                type="button"
-                className={`match-select-button w-full flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left cursor-pointer ${
-                  match.id === activeMatchId
-                    ? "border-emerald-500/60 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-100"
-                    : "border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200"
-                }`}
-                aria-pressed={match.id === activeMatchId}
-                onClick={() => onSelect(match.id)}
-              >
-                <CalendarDays
-                  size={18}
-                  className={`shrink-0 ${
-                    match.id === activeMatchId
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-slate-400"
-                  }`}
+        {/* Tab Lịch sử */}
+        {activeTab === "history" && (
+          <div className="space-y-3">
+            {/* Filters: Search by opponent + Month dropdown */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                 />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-bold break-words">
-                    {match.title}
-                  </span>
-                  <time
-                    dateTime={match.datetime}
-                    className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400"
-                  >
-                    {matchTimeLabel(match.datetime, timeZone)}{" "}
-                    · {lifecycle(match,now).label}
-                  </time>
-                  <span className="block text-xs">{match.status==='completed'?(match.scoreHome!=null?`${match.scoreHome} : ${match.scoreAway}`:'Chưa cập nhật kết quả'):''}{match.venue?' · '+match.venue:' · Chưa chốt sân'}</span>
-                  {match.status==='completed'&&!match.cancelledAt&&<span className="field-hint">
-                    {canDelete&&!match.detailState?.finalized?'Chưa chốt điểm danh · ':''}
-                    {(canDelete||canManageFunds)&&!match.detailState?.costKnown?'Chưa cập nhật chi phí · ':''}
-                    {(canDelete||canManageFunds)&&Number(match.detailState?.remaining)>0?'Còn khoản phải thu':Number(match.detailState?.ownRemaining)>0?'Còn khoản phải đóng':''}
-                  </span>}
-                </span>
-                {match.id === activeMatchId && (
-                  <Check
-                    size={16}
-                    className="text-emerald-600 dark:text-emerald-400 shrink-0"
-                  />
-                )}
-              </Pressable>
-            </li>
-          ))}
-        </ul>
+                <input
+                  type="text"
+                  placeholder="Tìm theo đối thủ hoặc tên trận..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="relative">
+                <Sliders
+                  size={14}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                />
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  aria-label="Lọc theo tháng"
+                  className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  <option value="all">Tất cả các tháng ({historyList.length})</option>
+                  {availableMonths.map((ym) => {
+                    const [y, m] = ym.split("-");
+                    return (
+                      <option key={ym} value={ym}>
+                        Tháng {parseInt(m, 10)}/{y}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {filteredHistory.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400 py-3 text-center" role="status">
+                {historyList.length === 0
+                  ? "Chưa có trận nào trong lịch sử."
+                  : "Không tìm thấy trận phù hợp."}
+              </p>
+            ) : (
+              <ul className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+                {filteredHistory.map((match) => {
+                  const isManager = canDelete || canManageFunds;
+                  const isCancelled = !!match.cancelledAt;
+                  const hasScore = match.scoreHome != null && match.scoreAway != null;
+                  const scoreDisplay = hasScore
+                    ? `${match.scoreHome} - ${match.scoreAway}`
+                    : "Chưa cập nhật kết quả";
+
+                  // Nhãn còn việc cần xử lý
+                  const unfinalized = canDelete && !match.detailState?.finalized && !isCancelled;
+                  const uncosted = isManager && !(match.detailState?.costKnown || match.detailState?.costUpdated) && !isCancelled;
+                  const hasReceivables = isManager && (Number(match.detailState?.remaining || 0) > 0 || !!match.detailState?.pendingReceivables);
+                  const hasOwnDebt = !isManager && (Number(match.detailState?.ownRemaining || 0) > 0 || !!match.detailState?.ownPendingDebt);
+
+                  const displayName = match.matchType === "internal"
+                    ? (match.title?.includes(" — ") ? match.title.split(" — ").at(-1) : (match.title || "Trận nội bộ"))
+                    : (match.opponent || match.title || "Đối thủ");
+
+                  return (
+                    <li key={match.id}>
+                      <Pressable
+                        type="button"
+                        className="match-history-card w-full p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition-all cursor-pointer block space-y-1.5"
+                        onClick={() => onSelect(match.id)}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {displayName}
+                          </span>
+                          <span
+                            className={`text-xs font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                              hasScore
+                                ? "bg-slate-200/70 dark:bg-slate-700 text-slate-900 dark:text-white"
+                                : "text-slate-400 italic font-normal"
+                            }`}
+                          >
+                            {scoreDisplay}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                          <span>
+                            {matchTimeLabel(match.datetime, timeZone)} · {match.venue || "Chưa chốt sân"}
+                          </span>
+                          {isCancelled && (
+                            <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                              Đã hủy
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Nhãn còn việc cần xử lý */}
+                        {(unfinalized || uncosted || hasReceivables || hasOwnDebt) && (
+                          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                            {unfinalized && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60">
+                                Chưa chốt điểm danh
+                              </span>
+                            )}
+                            {uncosted && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60">
+                                Chưa cập nhật chi phí
+                              </span>
+                            )}
+                            {hasReceivables && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60">
+                                Còn khoản phải thu
+                              </span>
+                            )}
+                            {hasOwnDebt && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60">
+                                Còn khoản phải đóng
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </Pressable>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
     </details>
   );

@@ -19,6 +19,7 @@ import MatchFormSheet from "../components/MatchFormSheet";
 import AddMemberModal from "../components/AddMemberModal";
 import InviteShare from "../components/InviteShare";
 import TeamManager from "./TeamManager";
+import MatchList from "../components/MatchList";
 
 export default function EmptyTeam({
   teamSettings = {},
@@ -41,9 +42,21 @@ export default function EmptyTeam({
   switchingTeam,
   onOpenNotifications,
   unreadCount,
+  matches = [],
+  archivedMatches = [],
+  onSelectMatch,
+  canManageFunds = false,
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const pendingHistoryMatches = (archivedMatches || []).filter(
+    (m) =>
+      !m.cancelledAt &&
+      (!m.detailState?.finalized ||
+        !m.detailState?.costKnown ||
+        Number(m.detailState?.remaining || 0) > 0)
+  );
+  const pendingHistoryCount = pendingHistoryMatches.length;
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
@@ -117,6 +130,42 @@ export default function EmptyTeam({
         unreadCount={unreadCount}
       />
       <BirthdayBanner members={birthdays} accountId={accountId} celebrate/>
+
+      {archivedMatches.length > 0 && (
+        <div className="space-y-2">
+          <MatchList
+            matches={matches}
+            archivedMatches={archivedMatches}
+            timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}
+            canDelete={isLeader}
+            canManageFunds={canManageFunds}
+            initialTab="history"
+            onSelect={onSelectMatch}
+          />
+          {(isLeader || canManageFunds) && pendingHistoryCount > 0 && (
+            <div className="px-4">
+              <Pressable
+                type="button"
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs font-semibold hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition-colors cursor-pointer"
+                onClick={() => {
+                  if (pendingHistoryMatches[0]) {
+                    onSelectMatch?.(pendingHistoryMatches[0].id);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Có {pendingHistoryCount} trận trong lịch sử cần hoàn tất</span>
+                </div>
+                <span className="text-[11px] text-amber-700 dark:text-amber-300 font-medium shrink-0 ml-2 flex items-center gap-0.5">
+                  <span>Xử lý</span>
+                  <ChevronRight size={13} />
+                </span>
+              </Pressable>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CARD 1: CHƯA CÓ TRẬN SẮP TỚI */}
       <div className="bg-white dark:bg-slate-900/90 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-soft text-center transition-all">

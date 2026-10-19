@@ -22,12 +22,20 @@ export default function MatchDetail({team,matchId,accountId,token,demo,fund,gove
  const [result,setResult]=useState({home:'',away:'',note:''}),[reason,setReason]=useState(''),[entries,setEntries]=useState({});
  const [edit,setEdit]=useState(null),[fines,setFines]=useState([]),[busy,setBusy]=useState(false),[ownBusy,setOwnBusy]=useState(false);
  const [cost,setCost]=useState({total:'',support:0,payerKind:'',payerId:'',confirmed:false,ids:[],shares:null});
+ const [finishStep,setFinishStep]=useState('input');
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(timer);},[]);
  const data=detail.data;
- const open=kind=>{setError('');setReason('');setEntries({});setModal(kind);};
+ const open=kind=>{setError('');setReason('');setEntries({});setFinishStep('input');setModal(kind);};
  const run=async(action,payload)=>{
   if(busy||detail.busy)return;setBusy(true);setError('');
-  try{const saved=await detail.mutate(action,payload);setModal(null);notify(saved.notificationPending?'Đã lưu trận; thông báo đang chờ gửi.':'Đã lưu cập nhật trận.');}
+  try{
+    const saved=await detail.mutate(action,payload);setModal(null);
+    if(action==='finish'){
+      notify('Đã chuyển trận đấu vào Lịch sử','success',{text:'Xem lịch sử',onClick:()=>detail.refresh()});
+    }else{
+      notify(saved.notificationPending?'Đã lưu trận; thông báo đang chờ gửi.':'Đã lưu cập nhật trận.');
+    }
+  }
   catch(e){setError(e.message);}finally{setBusy(false);}
  };
  if(detail.loading&&!data)return <div className="match-detail-page"><header><Pressable aria-label="Quay lại" onClick={onBack}><ArrowLeft/></Pressable><h1>Chi tiết trận</h1></header><p role="status">Đang tải trận đấu…</p></div>;
@@ -90,13 +98,36 @@ export default function MatchDetail({team,matchId,accountId,token,demo,fund,gove
   </section>
   {(ended||cancelled)&&<section className="match-v2-card"><h2>Ghi chú & lịch sử</h2><p className="match-note">{record.post_note||match.note||'Chưa có ghi chú sau trận.'}</p>{data.history.map((event,i)=><p className="field-hint" key={i}>{({finish:'Kết thúc trận',result:'Cập nhật kết quả',cancel:'Hủy trận',actual:'Xác nhận thực tế',finalize:'Chốt điểm danh',cost:'Xác nhận chi phí',schedule_change:'Đổi lịch / sân'})[event.action]||event.action} · {matchTimeLabel(event.created_at)} · {roster.find(p=>p.id===event.actor)?.name||'Ban quản lý'}</p>)}</section>}
   {edit&&<MatchFormSheet editing draft={edit} onChange={setEdit} error={error} venues={[team.venue,...(team.venues||[])]} onClose={()=>setEdit(null)} onSubmit={async e=>{e.preventDefault();try{await onSaveMatch(edit,matchId);setEdit(null);await detail.refresh();}catch(err){setError(err.message);}}}/>}
-  <ProModal open={!!modal} title={({finish:'Kết thúc trận',result:'Cập nhật kết quả',actual:'Tham gia thực tế',finalize:'Kiểm tra & chốt điểm danh',cost:'Chi phí trận thực tế',charges:'Khoản thu của trận',third:'Sinh tố lúa mạch',cancel:'Hủy trận'})[modal]||''} busy={busy||detail.busy} onClose={()=>setModal(null)}>
-   {(modal==='finish'||modal==='result')&&<form className="space-y-4" onSubmit={e=>{e.preventDefault();run(modal,{reason,home:result.home===''?null:Number(result.home),away:result.away===''?null:Number(result.away),note:result.note});}}>
+  <ProModal open={!!modal} title={modal==='finish'&&finishStep==='confirm'?'Kết thúc và lưu vào lịch sử?':({finish:'Kết thúc trận',result:'Cập nhật kết quả',actual:'Tham gia thực tế',finalize:'Kiểm tra & chốt điểm danh',cost:'Chi phí trận thực tế',charges:'Khoản thu của trận',third:'Sinh tố lúa mạch',cancel:'Hủy trận'})[modal]||''} busy={busy||detail.busy} onClose={()=>setModal(null)}>
+   {modal==='finish'&&finishStep==='input'&&<form className="space-y-4" onSubmit={e=>{e.preventDefault();setFinishStep('confirm');}}>
     <p>Để trống cả hai ô nếu chưa cập nhật kết quả. Trận nội bộ có thể không cần tỷ số.</p><div className="match-v2-grid">{[['home',team.teamName],['away',match.opponent||'Đối thủ / nội bộ']].map(([key,label])=><label className="form-field" key={key}>{label}<input type="number" min="0" max="999" step="1" value={result[key]} onChange={e=>setResult({...result,[key]:e.target.value})}/></label>)}</div>
     <label className="form-field">Ghi chú sau trận<textarea maxLength={4000} value={result.note} onChange={e=>setResult({...result,note:e.target.value})}/></label>
-    {modal==='result'&&<label className="form-field">Lý do cập nhật<textarea required minLength={3} maxLength={1000} value={reason} onChange={e=>setReason(e.target.value)}/></label>}
     <details><summary>Kiểm tra danh sách thực tế</summary>{roster.map(p=><p key={p.id}>{p.name} · {actualLabel[actual[p.id]?.status]||'Chưa xác nhận'}</p>)}</details><p className="field-hint">Kết thúc trận không chốt điểm danh, không tạo phạt và không ghi chi phí. Bạn có thể xác nhận thực tế riêng sau bước này.</p>
-    <Pressable className="primary-button w-full" disabled={busy||detail.busy} type="submit">{busy?'Đang lưu…':modal==='result'?'Lưu kết quả & lý do':'Xác nhận kết thúc trận'}</Pressable>
+    <Pressable className="primary-button w-full" type="submit">Tiếp tục</Pressable>
+   </form>}
+   {modal==='finish'&&finishStep==='confirm'&&<div className="space-y-4">
+    <p className="text-sm text-slate-700 dark:text-slate-300">Trận đấu sẽ được chuyển sang tab Lịch sử và không còn hiển thị trong danh sách trận trên dashboard. Bạn vẫn có thể xem kết quả, xử lý điểm danh và thu chi tại đó.</p>
+    {(!record.finalized_at||!finance||(!finance.bill&&!finance.zero)||(finance&&remaining>0))&&<div className="unfinished-tasks-box p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs space-y-1">
+     <p className="font-bold">Các việc chưa hoàn tất:</p>
+     <ul className="list-disc pl-4 space-y-0.5">
+      {!record.finalized_at&&<li>Điểm danh chưa chốt.</li>}
+      {(!finance||(!finance.bill&&!finance.zero))&&<li>Chi phí chưa cập nhật.</li>}
+      {finance&&remaining>0&&<li>Còn khoản phải thu.</li>}
+     </ul>
+    </div>}
+    <div className="flex gap-2 pt-2">
+     <Pressable type="button" className="choice-button flex-1" disabled={busy||detail.busy} onClick={()=>setFinishStep('input')}>Quay lại</Pressable>
+     <Pressable type="button" className="primary-button flex-1" disabled={busy||detail.busy} onClick={()=>run('finish',{home:result.home===''?null:Number(result.home),away:result.away===''?null:Number(result.away),note:result.note})}>
+      {busy||detail.busy?'Đang lưu trữ…':'Kết thúc & lưu trữ'}
+     </Pressable>
+    </div>
+   </div>}
+   {modal==='result'&&<form className="space-y-4" onSubmit={e=>{e.preventDefault();run('result',{reason,home:result.home===''?null:Number(result.home),away:result.away===''?null:Number(result.away),note:result.note});}}>
+    <p>Để trống cả hai ô nếu chưa cập nhật kết quả. Trận nội bộ có thể không cần tỷ số.</p><div className="match-v2-grid">{[['home',team.teamName],['away',match.opponent||'Đối thủ / nội bộ']].map(([key,label])=><label className="form-field" key={key}>{label}<input type="number" min="0" max="999" step="1" value={result[key]} onChange={e=>setResult({...result,[key]:e.target.value})}/></label>)}</div>
+    <label className="form-field">Ghi chú sau trận<textarea maxLength={4000} value={result.note} onChange={e=>setResult({...result,note:e.target.value})}/></label>
+    <label className="form-field">Lý do cập nhật<textarea required minLength={3} maxLength={1000} value={reason} onChange={e=>setReason(e.target.value)}/></label>
+    <details><summary>Kiểm tra danh sách thực tế</summary>{roster.map(p=><p key={p.id}>{p.name} · {actualLabel[actual[p.id]?.status]||'Chưa xác nhận'}</p>)}</details>
+    <Pressable className="primary-button w-full" disabled={busy||detail.busy} type="submit">{busy?'Đang lưu…':'Lưu kết quả & lý do'}</Pressable>
    </form>}
    {modal==='actual'&&<form className="space-y-4" onSubmit={e=>{e.preventDefault();try{const changed=Object.entries(entries).map(([id,v])=>({...v,id,arrivedAt:v.status==='present'&&v.arrivedAt?transactionInstant(v.arrivedAt):null}));if(!changed.length){setError('Chọn thành viên cần xác nhận.');return;}run('actual',{entries:changed,reason});}catch(err){setError(err.message);}}}>
     <p>Chỉ ghi nhận điều đã kiểm chứng tại sân. Giờ đến quyết định nhóm đúng giờ/đến muộn; không lấy giờ xin phép làm giờ đến thật.</p>

@@ -295,10 +295,15 @@ function Application({ onRetryStartup }) {
   const openNotice = async (notice) => {
     try {
       if (notice.matchId) {
-        if (!auth.matches.some((m) => m.id === notice.matchId))
+        const found = [...auth.matches, ...auth.archivedMatches].find((m) => m.id === notice.matchId);
+        if (!found)
           throw Error(
             "Trận trong thông báo không còn khả dụng với tài khoản này.",
           );
+        if (notice.route === "match-detail" || found.archivedAt || found.status === "completed") {
+          openMatch(notice.matchId);
+          return;
+        }
         await auth.selectMatch(notice.matchId);
         if (notice.memberId)
           setAttendanceFocus({
@@ -865,6 +870,10 @@ function Application({ onRetryStartup }) {
                 onRevokeInvite={auth.revokeInvite}
                 onSaveMatch={saveMatch}
                 onNavigate={navigate}
+                matches={auth.matches}
+                archivedMatches={auth.archivedMatches}
+                onSelectMatch={openMatch}
+                canManageFunds={treasurer}
               />
             ) : (
               <PlayerDashboard
@@ -880,6 +889,7 @@ function Application({ onRetryStartup }) {
                 balance={auth.balance}
                 activeMatch={auth.activeMatch}
                 matches={auth.matches}
+                archivedMatches={auth.archivedMatches}
                 attendance={auth.attendance}
                 reports={auth.reports}
                 onSaveMatch={saveMatch}
@@ -919,42 +929,6 @@ function Application({ onRetryStartup }) {
               />
             )}
           </main>
-          {activeTab === "dashboard" && auth.archivedMatches.length > 0 && (
-            <details className="mx-4 my-5 settings-card">
-              <summary className="text-sm font-semibold">
-                Trận đã lưu trữ ({auth.archivedMatches.length})
-              </summary>
-              {auth.archivedMatches.map((match) => (
-                <article key={match.id} className="border-t py-3 mt-3">
-                  <p className="text-sm font-medium">{match.title}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {new Date(match.datetime).toLocaleString("vi-VN")} · Điểm
-                    danh và báo cáo được bảo toàn
-                  </p>
-                  {leader && (
-                    <Pressable
-                      className="choice-button mt-3"
-                      onClick={async () => {
-                        try {
-                          if (governance.snapshot)
-                            await governance.mutate("restore_match", {
-                              matchId: match.id,
-                            });
-                          auth.restoreArchivedMatch(match.id);
-                        } catch {
-                          alert(
-                            "Không khôi phục được. Kiểm tra quyền và kết nối.",
-                          );
-                        }
-                      }}
-                    >
-                      Khôi phục trận
-                    </Pressable>
-                  )}
-                </article>
-              ))}
-            </details>
-          )}
           {navigationAvailable && (
             <FloatingBottomNavigation
               tabs={tabs}

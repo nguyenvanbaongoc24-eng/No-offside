@@ -134,7 +134,7 @@ begin
  if exists(select 1 from public.no_match_events where team_id=p_team and actor=auth.uid() and request_key=p_key) then return public.no_match_state(p_team,p_match);end if;
  select * into me from public.no_gov_members where team_id=p_team and user_id=auth.uid();m:=state->'match';
  if (p_action='cost' and not (state->>'canManageFunds')::boolean) or (p_action<>'cost' and not (state->>'canManage')::boolean) then raise exception 'Không có quyền thực hiện thao tác trận.' using errcode='42501';end if;
- if m->>'cancelledAt' is not null or m->>'archivedAt' is not null then raise exception 'Trận đã hủy; chỉ xem lịch sử.';end if;
+ if m->>'cancelledAt' is not null or (m->>'archivedAt' is not null and m->>'status'<>'completed') then raise exception 'Trận đã hủy; chỉ xem lịch sử.';end if;
  insert into public.no_match_records(team_id,match_id) values(p_team,p_match) on conflict do nothing;
  select * into r from public.no_match_records where team_id=p_team and match_id=p_match for update;before_record:=to_jsonb(r);
  case p_action
@@ -144,7 +144,7 @@ begin
   if (m->>'datetime')::timestamptz>clock_timestamp() then raise exception 'Chưa đến giờ bắt đầu trận.';end if;
   if (p_payload->>'home' is null)<>(p_payload->>'away' is null) or coalesce((p_payload->>'home')::numeric,0) not between 0 and 999 or coalesce((p_payload->>'away')::numeric,0) not between 0 and 999 or coalesce((p_payload->>'home')::numeric,0)<>trunc(coalesce((p_payload->>'home')::numeric,0)) or coalesce((p_payload->>'away')::numeric,0)<>trunc(coalesce((p_payload->>'away')::numeric,0)) or length(coalesce(p_payload->>'note',''))>4000 then raise exception 'Tỷ số phải là số nguyên không âm, nhập cả hai đội hoặc để trống.';end if;
   update public.no_match_records set ended_at=case when p_action='finish' then clock_timestamp() else ended_at end,ended_by=case when p_action='finish' then auth.uid() else ended_by end,score_home=(p_payload->>'home')::integer,score_away=(p_payload->>'away')::integer,post_note=coalesce(p_payload->>'note','') where team_id=p_team and match_id=p_match;
-  update public.no_app_workspaces set data=jsonb_set(data,'{matches}',(select jsonb_agg(case when x->>'id'=p_match then x||jsonb_build_object('status','completed','scoreHome',(p_payload->>'home')::integer,'scoreAway',(p_payload->>'away')::integer)||case when p_action='finish' then jsonb_build_object('endedAt',clock_timestamp()) else '{}'::jsonb end else x end) from jsonb_array_elements(data->'matches') x)),revision=revision+1 where team_id=p_team;
+   update public.no_app_workspaces set data=jsonb_set(jsonb_set(data,'{matches}',(select jsonb_agg(case when x->>'id'=p_match then x||jsonb_build_object('status','completed','scoreHome',(p_payload->>'home')::integer,'scoreAway',(p_payload->>'away')::integer)||case when p_action='finish' then jsonb_build_object('endedAt',clock_timestamp(),'archivedAt',clock_timestamp(),'archivedBy',auth.uid()) else '{}'::jsonb end else x end) from jsonb_array_elements(data->'matches') x)),'{notices}',case when p_action='finish' and not exists(select 1 from jsonb_array_elements(coalesce(data->'notices','[]'::jsonb)) n where n->>'id'=md5(p_key::text||':archive_notice')) then jsonb_build_array(jsonb_build_object('id',md5(p_key::text||':archive_notice'),'title','Đã chuyển trận đấu vào Lịch sử','content',coalesce(m->>'title','Trận đấu'),'message','Đã chuyển trận đấu vào Lịch sử','destination','match-detail','route','match-detail','matchId',p_match,'audience','leaders','createdAt',clock_timestamp())) || coalesce(data->'notices','[]'::jsonb) else coalesce(data->'notices','[]'::jsonb) end),revision=revision+1 where team_id=p_team;
  when 'cancel' then
   if m->>'status'='completed' or length(trim(coalesce(p_payload->>'reason','')))<3 then raise exception 'Cần lý do hủy; trận đã kết thúc không được hủy bằng thao tác này.';end if;
   perform public.no_gov_mutate(p_team,'archive_match',jsonb_build_object('matchId',p_match),p_key);
@@ -217,7 +217,7 @@ begin
  insert into public.no_match_events(team_id,match_id,actor,action,request_key,payload,before_value,after_value) select p_team,p_match,auth.uid(),p_action,p_key,p_payload,before_record,to_jsonb(x) from public.no_match_records x where team_id=p_team and match_id=p_match;
  if p_action in ('finish','result','cancel') then
   for person in select value from jsonb_array_elements(state->'roster') loop
-   perform public.no_fund_notice(p_team,person->>'id','match-'||p_key||':'||(person->>'id'),case when p_action='cancel' then 'Trận đấu đã hủy' when p_action='result' then 'Kết quả trận được cập nhật' else 'Trận đấu đã kết thúc' end,coalesce(m->>'title','Trận đấu'),'dashboard',jsonb_build_object('matchId',p_match));
+   perform public.no_fund_notice(p_team,person->>'id','match-'||p_key||':'||(person->>'id'),case when p_action='cancel' then 'Trận đấu đã hủy' when p_action='result' then 'Kết quả trận được cập nhật' else 'Đã chuyển trận đấu vào Lịch sử' end,coalesce(m->>'title','Trận đấu'),'match-detail',jsonb_build_object('matchId',p_match));
   end loop;
  end if;
  update public.no_app_workspaces set revision=revision+1 where team_id=p_team;
@@ -234,7 +234,7 @@ declare linked jsonb;
 begin
  if p_action='bill' and nullif(p_payload->>'matchId','') is not null then
   linked:=public.no_match_state(p_team,p_payload->>'matchId');
-  if linked->'match'->>'cancelledAt' is not null or linked->'match'->>'archivedAt' is not null then raise exception 'Không tạo thêm hóa đơn cho trận đã hủy.';end if;
+  if linked->'match'->>'cancelledAt' is not null or (linked->'match'->>'archivedAt' is not null and linked->'match'->>'status'<>'completed') then raise exception 'Không tạo thêm hóa đơn cho trận đã hủy.';end if;
  end if;
  return public.no_fund_action_before_match_lifecycle(p_team,p_action,p_payload,p_key);
 end$$;

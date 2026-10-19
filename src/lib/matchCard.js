@@ -12,8 +12,9 @@ export function finePolicy(enabled, value) {
 
 export function deadlineState(match, now = Date.now()) {
   const end = Date.parse(match.deadline);
-  if (match.archivedAt || ['cancelled', 'canceled', 'archived'].includes(match.status)) return {text: 'Trận đã hủy', running: false};
+  if (match.cancelledAt || ['cancelled', 'canceled'].includes(match.status)) return {text: 'Trận đã hủy', running: false};
   if (match.status === 'completed') return {text: 'Trận đã kết thúc', running: false};
+  if (match.archivedAt || match.status === 'archived') return {text: 'Trận đã hủy', running: false};
   if (!Number.isFinite(end)) return {text: 'Chưa đặt hạn điểm danh', running: false};
   const remaining = end - now;
   if (remaining <= 0) return {text: 'Đã chốt điểm danh', running: false};

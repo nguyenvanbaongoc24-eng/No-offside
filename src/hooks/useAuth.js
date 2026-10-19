@@ -2022,7 +2022,9 @@ export function useAuth() {
       return setData((prev) => ({
         ...prev,
         matches: prev.matches.map((m) =>
-          m.id === activeMatch.id ? { ...m, status } : m,
+          m.id === activeMatch.id
+            ? { ...m, status, ...(status === 'completed' ? { archivedAt: new Date().toISOString(), archivedBy: user?.id } : {}) }
+            : m,
         ),
       }));
   };
@@ -2215,6 +2217,7 @@ export function useAuth() {
     restoreArchivedMatch,
     matches: data.matches.filter((m) => !m.archivedAt),
     archivedMatches: data.matches.filter((m) => m.archivedAt),
+    allMatches: data.matches,
     attendance: data.attendance[activeMatch?.id] || {},
     reports: data.reports[user.id] || {},
     saveMatch,

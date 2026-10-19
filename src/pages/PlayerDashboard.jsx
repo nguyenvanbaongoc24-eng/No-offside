@@ -97,6 +97,7 @@ export default function PlayerDashboard({
   balance,
   activeMatch,
   matches,
+  archivedMatches = [],
   attendance,
   reports,
   onSaveMatch,
@@ -209,6 +210,15 @@ export default function PlayerDashboard({
       setMatchFormError(error.message || "Không lưu được thành tích.");
     }
   };
+
+  const pendingHistoryMatches = (archivedMatches || []).filter(
+    (m) =>
+      !m.cancelledAt &&
+      (!m.detailState?.finalized ||
+        !m.detailState?.costKnown ||
+        Number(m.detailState?.remaining || 0) > 0)
+  );
+  const pendingHistoryCount = pendingHistoryMatches.length;
 
   // Mock Attendance Roster with 4 tabs: [Có mặt] - [Chưa chắc] - [Báo vắng] - [Chưa điểm danh (Mới)]
   const eligibleMembers = Array.isArray(activeMatch.eligibleMembers)
@@ -623,13 +633,37 @@ export default function PlayerDashboard({
       )}
       <MatchList
         matches={matches}
+        archivedMatches={archivedMatches}
         timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}
-        activeMatchId={activeMatch.id}
+        activeMatchId={activeMatch?.id}
         canDelete={isLeader}
         canManageFunds={treasurer}
         onSelect={onSelectMatch}
         onDelete={onDeleteMatch}
       />
+
+      {(isLeader || treasurer) && pendingHistoryCount > 0 && (
+        <div className="px-4 my-2">
+          <Pressable
+            type="button"
+            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs font-semibold hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition-colors cursor-pointer"
+            onClick={() => {
+              if (pendingHistoryMatches[0]) {
+                onOpenMatch?.(pendingHistoryMatches[0].id);
+              }
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+              <span className="truncate">Có {pendingHistoryCount} trận trong lịch sử cần hoàn tất</span>
+            </div>
+            <span className="text-[11px] text-amber-700 dark:text-amber-300 font-medium shrink-0 ml-2 flex items-center gap-0.5">
+              <span>Xử lý</span>
+              <ChevronRight size={13} />
+            </span>
+          </Pressable>
+        </div>
+      )}
 
       {/* =========================================================
           2. CARDS CONTAINER VỚI TIGHT SPACING & MOTION

@@ -1,4 +1,5 @@
 import {validBirthday} from '../lib/calendarDate';
+import { normalizeMatchDraft } from '../lib/matchLifecycle';
 import {disconnectPushDevice} from '../lib/pushDevice';
 import {
   transactionInstant,
@@ -818,7 +819,7 @@ export function useAuth() {
   const activeMatch =
     data.matches.find((m) => m.id === data.activeMatchId && !m.archivedAt) ||
     data.matches.find((m) => !m.archivedAt);
-  const setData = (fn) => {
+  const setData = (fn, requestKey) => {
     if (demoSession) {
       setTeams((prev) => ({ ...prev, [dataKey]: fn(prev[dataKey] || data) }));
       return Promise.resolve();
@@ -847,7 +848,7 @@ export function useAuth() {
             action: "commit",
             teamId,
             revision: revisions.current.get(dataKey),
-            requestKey: uid(),
+            requestKey: requestKey || uid(),
             patch,
           });
           acceptReceipt(result, next.activeMatchId);
@@ -1173,19 +1174,16 @@ export function useAuth() {
         prev === "owner" ? "admin" : prev === "admin" ? "member" : "owner",
       );
   };
-  const setAttendance = async (status) => {
-    if (!["attending", "maybe", "absent"].includes(status) || !activeMatch)
-      return;
-    if (new Date(activeMatch.deadline).getTime() <= Date.now()) {
-      alert("Đã hết hạn điểm danh. Liên hệ ban quản trị để điều chỉnh.");
-      return;
-    }
+  const setAttendance = async (status, matchId = activeMatch?.id) => {
+    const targetMatch = data.matches.find(m => m.id === matchId);
+    if (!["attending", "maybe", "absent"].includes(status) || !targetMatch) throw Error('Không tìm thấy trận để đăng ký.');
+    if (targetMatch.status === 'completed' || targetMatch.cancelledAt || targetMatch.archivedAt || new Date(targetMatch.deadline).getTime() <= Date.now()) throw Error('Đã hết hạn đăng ký hoặc trận đã kết thúc/hủy.');
     await setData((prev) => ({
       ...prev,
       attendance: {
         ...prev.attendance,
-        [activeMatch.id]: {
-          ...prev.attendance[activeMatch.id],
+        [targetMatch.id]: {
+          ...prev.attendance[targetMatch.id],
           [user.id]: status,
         },
       },
@@ -1961,13 +1959,12 @@ export function useAuth() {
     )
       throw new Error("Tiền phạt phải là số nguyên không âm.");
     const zone = teamSettings.timezone || "Asia/Ho_Chi_Minh";
+    const metadata = normalizeMatchDraft(form, zone);
     const kickoffInstant = transactionInstant(form.datetime, zone),
       deadlineInstant = transactionInstant(form.timeoutDatetime, zone);
     const start = new Date(kickoffInstant),
       deadline = new Date(deadlineInstant);
     if (
-      !form.opponent.trim() ||
-      !form.venue.trim() ||
       !Number.isFinite(start.getTime()) ||
       !Number.isFinite(deadline.getTime()) ||
       deadline >= start ||
@@ -1982,14 +1979,14 @@ export function useAuth() {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 7);
     if (
-      !editId &&
+      !editId && !data.matches.some(m => m.id === options.id) &&
       data.matches.filter(
         (m) =>
           new Date(m.datetime) >= weekStart && new Date(m.datetime) < weekEnd,
       ).length >= 4
     )
       throw new Error("Tối đa 4 trận trong một tuần.");
-    const lateConfig = { ...defaultLate, ...form.lateConfig };
+    const lateConfig = { ...defaultLate, ...teamSettings.lateConfig, ...form.lateConfig };
     if (
       ![lateConfig.lateBefore, lateConfig.grace, lateConfig.fine].every(
         (n) => Number.isInteger(Number(n)) && Number(n) >= 0,
@@ -1999,14 +1996,15 @@ export function useAuth() {
     const match = {
       ...(editId ? data.matches.find((m) => m.id === editId) : {}),
       id: editId || options.id || uid(),
-      title: "Kèo " + teamSettings.teamCategory + " — " + form.opponent.trim(),
+      ...metadata,
+      title: metadata.matchType === 'internal' ? 'Trận nội bộ · ' + teamSettings.teamName : 'Kèo ' + teamSettings.teamCategory + ' — ' + (metadata.opponent || 'Đang tìm đối'),
       category: teamSettings.teamCategory,
       datetime: kickoffInstant,
       deadline: deadlineInstant,
-      venue: form.venue,
+      venue: metadata.venue,
       penaltyEnabled: form.penaltyEnabled,
       penaltyAmount: Number(form.penaltyFine).toLocaleString("vi-VN") + " đ",
-      status: editId ? activeMatch.status : "upcoming",
+      status: editId ? data.matches.find(m => m.id === editId)?.status || 'upcoming' : "upcoming",
       lateConfig,
     };
     if (options.persist !== false)
@@ -2014,9 +2012,9 @@ export function useAuth() {
         ...prev,
         matches: editId
           ? prev.matches.map((m) => (m.id === editId ? match : m))
-          : [...prev.matches, match],
+          : [...prev.matches.filter(m => m.id !== match.id), match],
         activeMatchId: match.id,
-      }));
+      }), options.requestKey);
     return match;
   };
   const setMatchStatus = (status) => {

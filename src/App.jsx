@@ -5,11 +5,13 @@ import ProDashboard from "./components/pro/ProDashboard";
 import { weeklyAwards } from "./lib/pro";
 import { useAppNavigation } from "./hooks/useAppNavigation";
 import FeedbackToast from "./components/FeedbackToast";
-import { withFeedback } from "./lib/feedback";
+import { withFeedback, notify } from "./lib/feedback";
 import Pressable from "./components/Pressable";
 import QuickActions from "./components/QuickActions";
 import QuickInvite from "./components/QuickInvite";
 import MatchFormSheet from "./components/MatchFormSheet";
+import MatchDetail from './pages/MatchDetail';
+import { matchDraft } from './lib/matchLifecycle';
 import WelcomeAnnouncementModal from "./components/WelcomeAnnouncementModal";
 import { birthdaysToday } from "./lib/announcements";
 import NotificationSettings from "./components/NotificationSettings";
@@ -181,9 +183,12 @@ function Application({ onRetryStartup }) {
       persist: false,
       id: saveRequest.current.id,
     });
-    await auth.saveMatch(form, editId, { id: match.id });
+    const saved = await auth.saveMatch(form, editId, { id: match.id, requestKey: saveRequest.current.key });
     saveRequest.current = null;
-    await governance.refresh();
+    try { await governance.refresh(); } catch {}
+    openMatch(match.id);
+    notify(saved?.notificationPending?'Trận đã lưu; thông báo đang chờ gửi.':editId?'Đã cập nhật trận.':'Đã tạo trận và lưu lời mời điểm danh.');
+    return match;
   };
   const deleteMatch = async (id) => {
     await auth.deleteMatch(id);
@@ -209,11 +214,11 @@ function Application({ onRetryStartup }) {
           : tab;
   const navigationAvailable =
     !auth.teamRestriction &&
-    !["create-team", "invite-landing", "team-settings"].includes(activeTab);
+    !["create-team", "invite-landing", "team-settings", "match-detail"].includes(activeTab);
   const scrollPositions = useRef(new Map());
   const scrollRoute = useRef(null);
   const scrollKey =
-    auth.accountId + "::" + auth.teamSettings.id + "::" + activeTab;
+    auth.accountId + "::" + auth.teamSettings.id + "::" + activeTab + (activeTab==='match-detail'?':'+navigation.matchId:'');
   useLayoutEffect(() => {
     if (!auth.isLoggedIn || auth.authLoading) return;
     window.scrollTo({
@@ -241,6 +246,7 @@ function Application({ onRetryStartup }) {
     navigate("fund");
     if (action) setQuickIntent({ id: crypto.randomUUID(), action });
   };
+  const openMatch = id => { auth.selectMatch(id); navigate('match-detail',{matchId:id}); };
   const openPro = (section) => {
     if (section === "finance") {
       openFund("bill");
@@ -467,7 +473,7 @@ function Application({ onRetryStartup }) {
           initialMode={loginInitialMode}
           onLoginSuccess={(profile) => {
             auth.login(profile);
-            navigate("dashboard");
+            if (tab!=='match-detail') navigate("dashboard");
           }}
         />
       </StartupGate>
@@ -625,6 +631,16 @@ function Application({ onRetryStartup }) {
                   navigate("login");
                 }}
                 onBackToApp={() => navigate("profile")}
+              />
+            ) : activeTab === 'match-detail' ? (
+              <MatchDetail key={auth.accountId+':'+auth.teamSettings.id+':'+navigation.matchId}
+                team={displayTeam} accountId={auth.accountId} token={auth.authSession?.access_token} demo={auth.demoSession}
+                matchId={navigation.matchId} fund={fund} governance={governance}
+                onUpdated={async()=>{await auth.refreshWorkspace(auth.teamSettings.id);await governance.refresh();await fund.refresh();}}
+                onBack={()=>navigation.back('dashboard')} onSaveMatch={saveMatch}
+                onDuplicate={match=>{setQuickMatch(matchDraft(match,auth.teamSettings,true));setQuickMatchError('');}}
+                onOpenFund={()=>openFund()} onOpenRules={()=>navigate('governance')} onOpenTactics={()=>navigate('lineup')}
+                onRegistration={async value=>{await auth.setAttendance(value,navigation.matchId);await governance.refresh();}}
               />
             ) : activeTab === "governance" ? (
               <Governance
@@ -868,7 +884,8 @@ function Application({ onRetryStartup }) {
                 reports={auth.reports}
                 onSaveMatch={saveMatch}
                 onSetMatchStatus={auth.setMatchStatus}
-                onSelectMatch={auth.selectMatch}
+                onSelectMatch={openMatch}
+                onOpenMatch={openMatch}
                 onDeleteMatch={deleteMatch}
                 governance={governance}
                 onAddNotice={auth.addNotice}
@@ -966,6 +983,8 @@ function Application({ onRetryStartup }) {
           {quickMatch && leader && (
             <MatchFormSheet
               draft={quickMatch}
+              venues={[auth.teamSettings.venue,...auth.matches.map(m=>m.venue)]}
+              teamLateConfig={auth.teamSettings.lateConfig}
               onChange={setQuickMatch}
               error={quickMatchError}
               onClose={() => setQuickMatch(null)}

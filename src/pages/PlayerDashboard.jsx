@@ -1,3 +1,4 @@
+import { matchDraft } from '../lib/matchLifecycle';
 import BirthdayBanner from "../components/BirthdayBanner";
 import Pressable from "../components/Pressable";
 import MyAttendanceControl from "../components/MyAttendanceControl";
@@ -101,6 +102,7 @@ export default function PlayerDashboard({
   onSaveMatch,
   onSetMatchStatus,
   onSelectMatch,
+  onOpenMatch,
   onDeleteMatch,
   onAddNotice,
   teamSettings,
@@ -293,32 +295,7 @@ export default function PlayerDashboard({
   const openMatchEditor = (edit) => {
     setMatchFormError("");
     setEditingMatchId(edit ? activeMatch.id : null);
-    setNewMatchData(
-      edit
-        ? {
-            opponent: activeMatch.title.split(" — ").at(-1),
-            datetime: localTransactionTime(
-              activeMatch.datetime,
-              teamSettings.timezone || "Asia/Ho_Chi_Minh",
-            ),
-            venue: activeMatch.venue,
-            timeoutDatetime: localTransactionTime(
-              activeMatch.deadline,
-              teamSettings.timezone || "Asia/Ho_Chi_Minh",
-            ),
-            penaltyEnabled: activeMatch.penaltyEnabled,
-            penaltyFine: Number(activeMatch.penaltyAmount.replace(/\D/g, "")),
-            lateConfig: activeMatch.lateConfig,
-          }
-        : {
-            opponent: "",
-            datetime: "",
-            timeoutDatetime: "",
-            venue: teamSettings.venue || "",
-            penaltyEnabled: true,
-            penaltyFine: 50000,
-          },
-    );
+    setNewMatchData(edit ? matchDraft(activeMatch,teamSettings) : matchDraft({},teamSettings));
     setShowCreateMatchModal(true);
   };
 
@@ -641,6 +618,7 @@ export default function PlayerDashboard({
         timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}
         activeMatchId={activeMatch.id}
         canDelete={isLeader}
+        canManageFunds={treasurer}
         onSelect={onSelectMatch}
         onDelete={onDeleteMatch}
       />
@@ -699,23 +677,10 @@ export default function PlayerDashboard({
                           <button
                             type="button"
                             className="w-full px-3.5 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-400 flex items-center gap-2 font-medium cursor-pointer"
-                            onClick={async () => {
-                              setShowMatchActionMenu(false);
-                              try {
-                                if (
-                                  window.confirm(
-                                    "Kết thúc trận này và mở báo cáo thành tích?",
-                                  )
-                                ) {
-                                  await setMatchStatus("completed");
-                                }
-                              } catch (error) {
-                                setMatchFormError(error.message);
-                              }
-                            }}
+                            onClick={() => {setShowMatchActionMenu(false);onOpenMatch?.(activeMatch.id);}}
                           >
                             <CheckCircle2 size={15} />
-                            <span>Kết thúc trận đấu</span>
+                            <span>Kết quả & chốt trận</span>
                           </button>
                         )}
 
@@ -767,7 +732,7 @@ export default function PlayerDashboard({
               <MyAttendanceControl
                 status={attendance[user.id]}
                 deadline={activeMatch.deadline}
-                completed={matchStatus === "completed"}
+                completed={matchStatus === "completed" || !!activeMatch.cancelledAt || !!activeMatch.archivedAt}
                 onChange={onAttendanceChange}
               />
 
@@ -884,6 +849,7 @@ export default function PlayerDashboard({
                 <strong>Đã điểm danh có mặt: </strong>{roster.attending.map(p => p.name).join(', ')}
               </p>}
 
+              {onOpenMatch && <Pressable className="choice-button w-full" onClick={()=>onOpenMatch(activeMatch.id)}>Xem chi tiết trận · kết quả, thực tế & chi phí</Pressable>}
               {/* KHU VỰC C: ĐẾN MUỘN VÀ GIỜ ĐẾN (Chỉ một đường phân cách duy nhất trong LateArrivalPanel) */}
               {governance && (
                 <LateArrivalPanel
@@ -1648,6 +1614,8 @@ export default function PlayerDashboard({
           ========================================================= */}
       {showCreateMatchModal && isLeader && (
         <MatchFormSheet
+          teamLateConfig={teamSettings.lateConfig}
+          venues={[teamSettings.venue,...matches.map(m=>m.venue)]}
           draft={newMatchData}
           onChange={setNewMatchData}
           onSubmit={handleCreateMatchSubmit}

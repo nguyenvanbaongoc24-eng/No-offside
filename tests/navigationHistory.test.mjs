@@ -25,3 +25,12 @@ test('nested sheets close one level at a time rather than leaving the fund scree
  act(()=>{a=renderer.create(React.createElement(Layer,{open:true,onClose:()=>outer++}));});act(()=>{b=renderer.create(React.createElement(Layer,{open:true,onClose:()=>inner++}));});
  act(()=>window.history.back());assert.equal(inner,1);assert.equal(outer,0);act(()=>b.unmount());act(()=>window.history.back());assert.equal(outer,1);act(()=>a.unmount());assert.equal(listeners.size,0);
 });
+
+
+test('match deep link survives refresh and match IDs stay distinct in history',()=>{
+ assert.equal(initialRoute('/matches/game-a',null),'match-detail');
+ setup();window.location.pathname='/matches/game-a';let tree;
+ act(()=>{tree=renderer.create(React.createElement(Harness));});assert.equal(nav.tab,'match-detail');assert.equal(nav.matchId,'game-a');
+ act(()=>nav.navigate('match-detail',{matchId:'game-b'}));assert.equal(nav.matchId,'game-b');assert.equal(window.history.state.noOffsideMatchId,'game-b');
+ act(()=>tree.unmount());assert.equal(listeners.size,0);
+});

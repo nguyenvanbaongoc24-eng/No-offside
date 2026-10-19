@@ -315,6 +315,8 @@ export default function EmptyTeam({
       {/* MODAL 1: TẠO TRẬN ĐẤU */}
       {open && leader && (
         <MatchFormSheet
+          teamLateConfig={teamSettings.lateConfig}
+          venues={[teamSettings.venue]}
           draft={form}
           onChange={setForm}
           error={error}

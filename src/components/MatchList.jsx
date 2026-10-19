@@ -1,5 +1,6 @@
 import Pressable from './Pressable';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { lifecycle } from '../lib/matchLifecycle';
 import { matchTimeLabel } from '../lib/matchTime';
 import { CalendarDays, Check, ChevronDown } from "./icons";
 
@@ -8,15 +9,19 @@ export default function MatchList({
   activeMatchId,
   onSelect,
   timeZone = "Asia/Ho_Chi_Minh",
+  canDelete = false,
+  canManageFunds = false,
 }) {
   const [filter, setFilter] = useState("upcoming");
-  const unarchivedMatches = matches.filter((m) => !m.archivedAt);
+  const [now,setNow]=useState(Date.now());
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(timer);},[]);
+  const unarchivedMatches = matches;
   const totalCount = unarchivedMatches.length;
 
   const visible = unarchivedMatches.filter((match) =>
     filter === "completed"
-      ? match.status === "completed"
-      : match.status !== "completed",
+      ? ['completed','cancelled','awaiting','unknown'].includes(lifecycle(match,now).key)
+      : ['upcoming','live'].includes(lifecycle(match,now).key),
   );
 
   return (
@@ -50,8 +55,8 @@ export default function MatchList({
             aria-label="Lọc trận đấu"
           >
             {[
-              ["upcoming", "Sắp đá"],
-              ["completed", "Đã xong"],
+              ["upcoming", "Sắp tới"],
+              ["completed", "Đã qua"],
             ].map(([value, label]) => (
               <Pressable
                 key={value}
@@ -98,7 +103,7 @@ export default function MatchList({
                   }`}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-bold truncate">
+                  <span className="block text-xs font-bold break-words">
                     {match.title}
                   </span>
                   <time
@@ -106,8 +111,14 @@ export default function MatchList({
                     className="block mt-0.5 text-[11px] text-slate-500 dark:text-slate-400"
                   >
                     {matchTimeLabel(match.datetime, timeZone)}{" "}
-                    · {match.status === "completed" ? "Đã xong" : "Sắp đá"}
+                    · {lifecycle(match,now).label}
                   </time>
+                  <span className="block text-xs">{match.status==='completed'?(match.scoreHome!=null?`${match.scoreHome} : ${match.scoreAway}`:'Chưa cập nhật kết quả'):''}{match.venue?' · '+match.venue:' · Chưa chốt sân'}</span>
+                  {match.status==='completed'&&!match.cancelledAt&&<span className="field-hint">
+                    {canDelete&&!match.detailState?.finalized?'Chưa chốt điểm danh · ':''}
+                    {(canDelete||canManageFunds)&&!match.detailState?.costKnown?'Chưa cập nhật chi phí · ':''}
+                    {(canDelete||canManageFunds)&&Number(match.detailState?.remaining)>0?'Còn khoản phải thu':Number(match.detailState?.ownRemaining)>0?'Còn khoản phải đóng':''}
+                  </span>}
                 </span>
                 {match.id === activeMatchId && (
                   <Check

@@ -9,6 +9,7 @@ import './styles/pro.css'
 import './styles/matchCard.css'
 import './styles/fundCollections.css'
 import './styles/matchLateReview.css'
+import './styles/matchLifecycle.css'
 
 window.clearTimeout(window.noOffsideBootTimer)
 delete window.noOffsideBootTimer

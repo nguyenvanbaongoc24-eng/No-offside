@@ -42,6 +42,7 @@ export default function FundOperations({
   qr = {},
   accountId,
   permissions = [],
+  matchId,
 }) {
   const { data, busy, error, loading, mutate } = fund;
   const [modal, setModal] = useState(null),
@@ -100,6 +101,7 @@ export default function FundOperations({
       allocations: [],
       custom: false,
       confirmed: false,
+      matchId,
     });
   useEffect(() => {
     if (!intent) return;
@@ -152,7 +154,7 @@ export default function FundOperations({
   const charges = detail
     ? data.charges.filter((c) => c.collection_id === detail)
     : mode === "bills"
-      ? data.charges.filter((c) => c.kind === "third")
+      ? data.charges.filter((c) => c.kind === "third" && (!matchId || data.bills.some(b=>b.id===c.bill_id && b.details?.matchId===matchId && b.details?.purpose!=="match")))
       : data.charges;
   const pendingFor = (id) =>
     (data.pendingRequests || []).find((p) => p.chargeId === id);
@@ -325,7 +327,7 @@ export default function FundOperations({
                     )}
                   </div>
                 </Pressable>
-                {data.canManage && c.status === "open" && (
+                {data.canManage && c.status === "open" && c.schedule_id && (
                   <div className="fund-inline-actions">
                     <Pressable
                       disabled={busy}
@@ -460,7 +462,7 @@ export default function FundOperations({
               </Pressable>
             )}
           </div>
-          {data.bills.map((b) => (
+          {data.bills.filter(b=>b.details?.purpose!=='match' && (!matchId || b.details?.matchId===matchId)).map((b) => (
             <article className="fund-collection" key={b.id}>
               <strong>{b.title}</strong>
               <p>
@@ -868,6 +870,7 @@ export default function FundOperations({
                 occurredAt: transactionInstant(draft.occurredAt, zone),
                 allocations: shares,
                 confirmed: draft.confirmed,
+                matchId: draft.matchId,
               });
             }}
           >

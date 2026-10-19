@@ -2,7 +2,7 @@ import { localTransactionTime, transactionInstant } from './transactionTime.js';
 import { defaultLate } from './governance.js';
 export const MATCH_ZONE = 'Asia/Ho_Chi_Minh';
 export function lifecycle(match, now = Date.now()) {
-  if (match.cancelledAt || match.archivedAt) return { key: 'cancelled', label: match.cancelledAt?'Đã hủy':'Đã lưu trữ' };
+  if (match.cancelledAt || match.archivedAt || ['cancelled','canceled','archived'].includes(match.status)) return { key: 'cancelled', label: match.cancelledAt?'Đã hủy':'Đã lưu trữ' };
   if (match.status === 'completed') return { key: 'completed', label: 'Đã kết thúc' };
   if (match.endsAt && now >= Date.parse(match.endsAt)) return { key: 'awaiting', label: 'Chờ cập nhật kết quả' };
   if (!match.endsAt && now >= Date.parse(match.datetime)) return { key: 'unknown', label: 'Chưa cập nhật trạng thái' };

@@ -22,6 +22,7 @@ Hai cấu hình hiện tại được giữ nguyên: mức vi phạm đến mu�
 - Build production đạt; có cảnh báo bundle chính lớn sẵn có, không thêm dependency.
 - Preview cục bộ dùng React thật → `/api/sync` thật → PostgreSQL dùng một lần. Đã thao tác kết thúc 3:2 và tạo trận nội bộ 23:30 ngày 25/10 đến 01:30 ngày 26/10, chưa chốt sân. Tái hiện và sửa việc input ngày native bị mất khi nhập tiếp giờ.
 - Chi tiết Light/Dark, cỡ chữ lớn ở viewport thực tế 320/360/390/430 px: không tràn ngang/thẻ, vùng nút tối thiểu 44 px. Form Dark cùng bốn chiều rộng: một vùng cuộn trong sheet; footer ở trong viewport, không tràn ngang.
+- Kiểm tra production: RPC mới có sẵn; authenticated không được đọc trực tiếp bảng mới, anon không được gọi thao tác trận. Đã đăng nhập tài khoản test, chuyển đúng FC 37 và mở được trận cũ qua URL chi tiết; dữ liệu RSVP/đơn xin muộn cũ còn nguyên, thực tế vẫn chưa xác nhận.
 - Auth và vận chuyển push của preview dùng một lần được giả lập; các kết quả này không chứng minh WebSocket hoặc push production.
 
 ## Preview

@@ -3,6 +3,7 @@ import {Calendar, MapPin, Clock, Shield, ChevronRight} from '../icons';
 import Avatar from '../Avatar';
 import {matchTimeLabel} from '../../lib/matchTime';
 import {formatCurrency} from '../../lib/formatCurrency';
+import {lifecycle} from '../../lib/matchLifecycle';
 import {deadlineState, finePolicy} from '../../lib/matchCard';
 
 export function DeadlineStatus({match, timeZone}) {
@@ -29,8 +30,9 @@ export function DeadlineStatus({match, timeZone}) {
 
 export default function MatchCardSummary({match, timeZone = 'Asia/Ho_Chi_Minh', menu, onOpenRules}) {
   const fine = finePolicy(match.penaltyEnabled, match.penaltyAmount);
-  const cancelled = Boolean(match.archivedAt) || ['cancelled', 'canceled', 'archived'].includes(match.status);
-  const status = cancelled ? 'Đã hủy' : match.status === 'completed' ? 'Đã kết thúc' : 'Sắp diễn ra';
+  const [now,setNow]=useState(Date.now);
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(timer);},[]);
+  const status=lifecycle(match,now).label;
   const validDeadline = Number.isFinite(Date.parse(match.deadline));
   return <>
     <header className="match-card-header match-summary-header">

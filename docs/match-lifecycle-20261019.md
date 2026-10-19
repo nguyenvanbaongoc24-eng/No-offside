@@ -21,7 +21,7 @@ Hai cấu hình hiện tại được giữ nguyên: mức vi phạm đến mu�
 - `npm test`: 252/252 đạt. Chín bài PostgreSQL/PGlite mới chạy toàn bộ migration nền và migration mới: quyền chéo đội, retry, thời gian, không suy diễn có mặt, kết thúc không tiền/phạt, chốt chống trùng/khóa sửa, kết quả có lý do, chi phí 1.200.000 − 200.000 = 1.000.000, chờ duyệt 800.000 không tính thu, duyệt xong còn 200.000, cá nhân ứng và hóa đơn giao lưu tách biệt.
 - Build production đạt; có cảnh báo bundle chính lớn sẵn có, không thêm dependency.
 - Preview cục bộ dùng React thật → `/api/sync` thật → PostgreSQL dùng một lần. Đã thao tác kết thúc 3:2 và tạo trận nội bộ 23:30 ngày 25/10 đến 01:30 ngày 26/10, chưa chốt sân. Tái hiện và sửa việc input ngày native bị mất khi nhập tiếp giờ.
-- Chi tiết Light/Dark, cỡ chữ lớn ở viewport thực tế 320/360/390/430 px: không tràn ngang/thẻ, vùng nút tối thiểu 44 px. Form Dark cùng bốn chiều rộng: một vùng cuộn trong sheet; footer ở trong viewport, không tràn ngang.
+- Chi tiết Light/Dark, cỡ chữ lớn ở viewport thực tế 320/360/390/430 px: không tràn ngang/thẻ, vùng nút tối thiểu 44 px. Form Light/Dark cùng bốn chiều rộng: một vùng cuộn trong sheet; footer ở trong viewport, không tràn ngang.
 - Kiểm tra production: RPC mới có sẵn; authenticated không được đọc trực tiếp bảng mới, anon không được gọi thao tác trận. Đã đăng nhập tài khoản test, chuyển đúng FC 37 và mở được trận cũ qua URL chi tiết; dữ liệu RSVP/đơn xin muộn cũ còn nguyên, thực tế vẫn chưa xác nhận.
 - Auth và vận chuyển push của preview dùng một lần được giả lập; các kết quả này không chứng minh WebSocket hoặc push production.
 
@@ -32,6 +32,15 @@ Hai cấu hình hiện tại được giữ nguyên: mức vi phạm đến mu�
 - [Form Light](previews/match-create-light.png)
 - [Chi tiết Light](previews/match-detail-light.png)
 - [Chi tiết Dark](previews/match-detail-dark.png)
+
+## Kiểm chứng hai phiên và phát hành
+
+- Hai tài khoản test đã được người dùng chỉ định, chỉ thao tác trong FC 37. Tạo trận `[Kiểm thử vòng đời 19/10]` ngày 20/10, không đặt dự toán/phạt chưa điểm danh, không tạo khoản thu.
+- Tài khoản thành viên đăng ký tham gia: phiên quản trị tự hiện 1/2, không tải lại trang. Thành viên gửi đơn 19:45; phiên quản trị tự hiện 1 đơn chờ. Quản trị duyệt, phiên thành viên tự hiện Được duyệt và phản hồi. Chưa tách nguồn tín hiệu WebSocket với fallback 15 giây; chỉ xác nhận cập nhật tự động quan sát được.
+- Trận test ID `2797b293-d450-4c61-a73e-28ec309db097` đã hủy với lý do kiểm thử hoàn tất. Hai phiên cùng hiện Đã hủy, lịch sử còn nguyên, thực tế vẫn 2 người chưa xác nhận và chưa có chi phí. Không xác nhận có mặt giả, không duyệt tiền thật.
+- Form ở chiều cao 420 px vẫn cuộn nội dung và hiện footer; đóng form còn 0 dialog, overflow-y body auto, html visible. Đây là mô phỏng chiều cao, không phải bàn phím iOS thật.
+- App commit `effaa13362eda40d3b1edeff52606f13690a16ee` đã push main và promote deployment `dpl_EFcHfmXZ1aSKrDjSruhWiuxbzoHq` lên https://no-offside.vercel.app/. `version.json` trên domain chính trả đúng commit, URL chi tiết trả HTTP 200. Đã mở domain chính và áp dụng cập nhật PWA qua nút Cập nhật hiện có.
+- Hai tài khoản đều có nhiều đội: liên kết trận được giới hạn theo đội đang chọn. Phiên mới chọn nhầm đội nhận lỗi không tìm thấy; sau chọn FC 37, mở/refresh giữ đúng URL và đọc được trận. Chưa tự dò/chuyển đội từ URL chỉ có match ID.
 
 ## Giới hạn / bàn giao
 

@@ -613,6 +613,14 @@ export default function PlayerDashboard({
         </Pressable>
       )}
 
+      {isLeader && (
+        <div className="dashboard-create-match">
+          <Pressable className="primary-button" onClick={() => openMatchEditor(false)}>
+            <PlusCircle size={20} aria-hidden="true" />
+            <span>Tạo trận đấu mới</span>
+          </Pressable>
+        </div>
+      )}
       <MatchList
         matches={matches}
         timeZone={teamSettings.timezone || "Asia/Ho_Chi_Minh"}

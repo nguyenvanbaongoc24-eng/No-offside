@@ -47,3 +47,7 @@
 
 .match-v2-header { flex-shrink:0; }
 .match-v2-form { flex:1 1 auto; }
+
+.dashboard-create-match { padding:0 16px;margin:12px 0; }
+.dashboard-create-match .primary-button { width:100%;min-height:48px;white-space:normal;line-height:1.5; }
+.dashboard-create-match svg { flex-shrink:0; }

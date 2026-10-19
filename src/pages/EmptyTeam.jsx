@@ -127,11 +127,11 @@ export default function EmptyTeam({
           Chưa có trận sắp tới
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
-          {leader
+          {isLeader
             ? "Tạo lịch thi đấu để đội bắt đầu điểm danh."
             : "Chờ chủ đội hoặc quản trị viên tạo lịch thi đấu."}
         </p>
-        {leader && (
+        {isLeader && (
           <Pressable
             className="primary-button mt-4 px-6 py-2.5 rounded-full font-bold text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer"
             onClick={() => {
@@ -140,7 +140,7 @@ export default function EmptyTeam({
             }}
           >
             <Plus size={18} className="stroke-[2.5]" />
-            <span>Tạo trận</span>
+            <span>Tạo trận đấu mới</span>
           </Pressable>
         )}
       </div>

@@ -1,6 +1,16 @@
 import { localTransactionTime, transactionInstant } from './transactionTime.js';
 import { defaultLate } from './governance.js';
 export const MATCH_ZONE = 'Asia/Ho_Chi_Minh';
+export function isMatchArchived(match) {
+  if (!match) return false;
+  return Boolean(
+    match.archivedAt ||
+    match.status === 'completed' ||
+    match.status === 'archived' ||
+    match.cancelledAt ||
+    ['cancelled', 'canceled'].includes(match.status)
+  );
+}
 export function lifecycle(match, now = Date.now()) {
   if (match.cancelledAt || ['cancelled','canceled'].includes(match.status)) return { key: 'cancelled', label: 'Đã hủy' };
   if (match.status === 'completed') return { key: 'completed', label: 'Đã kết thúc' };

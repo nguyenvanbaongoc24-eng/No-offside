@@ -1,5 +1,5 @@
 import {validBirthday} from '../lib/calendarDate';
-import { normalizeMatchDraft } from '../lib/matchLifecycle';
+import { normalizeMatchDraft, isMatchArchived } from '../lib/matchLifecycle';
 import {disconnectPushDevice} from '../lib/pushDevice';
 import {
   transactionInstant,
@@ -817,8 +817,9 @@ export function useAuth() {
     };
   const funds = data.funds;
   const activeMatch =
-    data.matches.find((m) => m.id === data.activeMatchId && !m.archivedAt) ||
-    data.matches.find((m) => !m.archivedAt);
+    data.matches.find((m) => m.id === data.activeMatchId && !isMatchArchived(m)) ||
+    data.matches.find((m) => !isMatchArchived(m)) ||
+    null;
   const setData = (fn, requestKey) => {
     if (demoSession) {
       setTeams((prev) => ({ ...prev, [dataKey]: fn(prev[dataKey] || data) }));
@@ -2215,8 +2216,8 @@ export function useAuth() {
     balance: fundBalance(funds.transactions),
     activeMatch,
     restoreArchivedMatch,
-    matches: data.matches.filter((m) => !m.archivedAt),
-    archivedMatches: data.matches.filter((m) => m.archivedAt),
+    matches: data.matches.filter((m) => !isMatchArchived(m)),
+    archivedMatches: data.matches.filter((m) => isMatchArchived(m)),
     allMatches: data.matches,
     attendance: data.attendance[activeMatch?.id] || {},
     reports: data.reports[user.id] || {},

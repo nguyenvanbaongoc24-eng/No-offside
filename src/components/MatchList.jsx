@@ -1,6 +1,6 @@
 import Pressable from './Pressable';
 import React, { useState, useEffect, useMemo } from "react";
-import { lifecycle } from '../lib/matchLifecycle';
+import { lifecycle, isMatchArchived } from '../lib/matchLifecycle';
 import { matchTimeLabel } from '../lib/matchTime';
 import { CalendarDays, Check, ChevronDown, Search, Sliders } from "./icons";
 
@@ -37,14 +37,14 @@ export default function MatchList({
   // "Sắp tới": các trận sắp diễn ra, đang diễn ra hoặc chờ cập nhật kết quả
   const upcomingList = useMemo(() => {
     return allList
-      .filter((m) => !m.archivedAt && m.status !== "completed" && !["cancelled", "canceled"].includes(m.status))
+      .filter((m) => !isMatchArchived(m))
       .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
   }, [allList]);
 
   // "Lịch sử": các trận đã kết thúc và được lưu trữ
   const historyList = useMemo(() => {
     return allList
-      .filter((m) => m.archivedAt || m.status === "completed" || ["cancelled", "canceled", "archived"].includes(m.status))
+      .filter((m) => isMatchArchived(m))
       .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
   }, [allList]);
 

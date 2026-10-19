@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { createMasterDb, asUser, rpc, owner, member, outsider } from './helpers/masterDb.mjs';
-import { lifecycle } from '../src/lib/matchLifecycle.js';
+import { lifecycle, isMatchArchived } from '../src/lib/matchLifecycle.js';
 
 // Compile React components for static UI checks
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -218,6 +218,33 @@ test('Dashboard and EmptyTeam render manager banner "Có X trận trong lịch s
     balance: 0,
   });
   assert.doesNotMatch(memberDashboardHtml, /trong lịch sử cần hoàn tất/);
+});
+
+test('Legacy completed match without archivedAt is classified as archived and excluded from upcoming active match', () => {
+  const legacyMatch = {
+    id: 'legacy-1',
+    title: 'Kèo Sân 7 — fc cc',
+    datetime: '2026-10-17T12:30:00.000Z',
+    status: 'completed',
+    // archivedAt is undefined
+  };
+  assert.equal(isMatchArchived(legacyMatch), true);
+  assert.equal(isMatchArchived({ id: 'up', status: 'upcoming' }), false);
+
+  // In MatchList, legacyMatch appears in history tab, not in upcoming tab
+  const historyHtml = render('MatchList', {
+    matches: [legacyMatch],
+    archivedMatches: [],
+    initialTab: 'history',
+  });
+  assert.match(historyHtml, /Kèo Sân 7 — fc cc/);
+
+  const upcomingHtml = render('MatchList', {
+    matches: [legacyMatch],
+    archivedMatches: [],
+    initialTab: 'upcoming',
+  });
+  assert.doesNotMatch(upcomingHtml, /Kèo Sân 7 — fc cc/);
 });
 
 test('Backend match finish atomically sets archivedAt, removes from dashboard list, and preserves funds & attendance', async () => {

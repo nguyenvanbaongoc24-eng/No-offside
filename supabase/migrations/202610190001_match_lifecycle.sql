@@ -139,7 +139,7 @@ begin
  select * into r from public.no_match_records where team_id=p_team and match_id=p_match for update;before_record:=to_jsonb(r);
  case p_action
  when 'finish','result' then
-  if p_action='finish' and m->>'status'='completed' then raise exception 'Trận đã kết thúc; không ghi đè kết quả bằng thao tác kết thúc.';end if;
+  if p_action='finish' and m->>'status'='completed' and m->>'archivedAt' is not null then raise exception 'Trận đã kết thúc; không ghi đè kết quả bằng thao tác kết thúc.';end if;
   if p_action='result' and (m->>'status'<>'completed' or length(trim(coalesce(p_payload->>'reason','')))<3) then raise exception 'Chỉ bổ sung/sửa kết quả trận đã kết thúc; cần lý do cập nhật.';end if;
   if (m->>'datetime')::timestamptz>clock_timestamp() then raise exception 'Chưa đến giờ bắt đầu trận.';end if;
   if (p_payload->>'home' is null)<>(p_payload->>'away' is null) or coalesce((p_payload->>'home')::numeric,0) not between 0 and 999 or coalesce((p_payload->>'away')::numeric,0) not between 0 and 999 or coalesce((p_payload->>'home')::numeric,0)<>trunc(coalesce((p_payload->>'home')::numeric,0)) or coalesce((p_payload->>'away')::numeric,0)<>trunc(coalesce((p_payload->>'away')::numeric,0)) or length(coalesce(p_payload->>'note',''))>4000 then raise exception 'Tỷ số phải là số nguyên không âm, nhập cả hai đội hoặc để trống.';end if;
@@ -254,5 +254,6 @@ begin
 end$$;
 revoke all on function public.no_gov_mutate(text,text,jsonb,uuid) from public,anon;
 grant execute on function public.no_gov_mutate(text,text,jsonb,uuid) to authenticated;
+update public.no_app_workspaces set data=jsonb_set(data,'{matches}',(select coalesce(jsonb_agg(case when x->>'status'='completed' and x->>'archivedAt' is null then x||jsonb_build_object('archivedAt',coalesce(x->>'endedAt',x->>'datetime',clock_timestamp()::text)) else x end),'[]'::jsonb) from jsonb_array_elements(coalesce(data->'matches','[]'::jsonb)) x)) where exists(select 1 from jsonb_array_elements(coalesce(data->'matches','[]'::jsonb)) x where x->>'status'='completed' and x->>'archivedAt' is null);
 notify pgrst,'reload schema';
 commit;

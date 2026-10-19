@@ -715,14 +715,17 @@ export default function PlayerDashboard({
                           </button>
                         )}
 
-                        {isLeader && matchStatus !== "completed" && (
+                        {isLeader && (
                           <button
                             type="button"
                             className="w-full px-3.5 py-2.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-400 flex items-center gap-2 font-medium cursor-pointer"
-                            onClick={() => {setShowMatchActionMenu(false);onOpenMatch?.(activeMatch.id);}}
+                            onClick={() => {
+                              setShowMatchActionMenu(false);
+                              onOpenMatch?.(activeMatch.id);
+                            }}
                           >
                             <CheckCircle2 size={15} />
-                            <span>Kết quả & chốt trận</span>
+                            <span>{matchStatus === "completed" ? "Xem kết quả & chi tiết" : "Kết thúc & lưu vào lịch sử"}</span>
                           </button>
                         )}
 
@@ -891,7 +894,19 @@ export default function PlayerDashboard({
                 <strong>Đã điểm danh có mặt: </strong>{roster.attending.map(p => p.name).join(', ')}
               </p>}
 
-              {onOpenMatch && <Pressable className="choice-button w-full" onClick={()=>onOpenMatch(activeMatch.id)}>Xem chi tiết trận · kết quả, thực tế & chi phí</Pressable>}
+              {onOpenMatch && (
+                <Pressable
+                  className="choice-button w-full flex items-center justify-center gap-1.5 font-semibold"
+                  onClick={() => onOpenMatch(activeMatch.id)}
+                >
+                  <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400" />
+                  <span>
+                    {matchStatus === "completed"
+                      ? "Xem chi tiết trận · kết quả, thực tế & chi phí"
+                      : "Kết thúc trận & lưu vào lịch sử"}
+                  </span>
+                </Pressable>
+              )}
               {/* KHU VỰC C: ĐẾN MUỘN VÀ GIỜ ĐẾN (Chỉ một đường phân cách duy nhất trong LateArrivalPanel) */}
               {governance && (
                 <LateArrivalPanel

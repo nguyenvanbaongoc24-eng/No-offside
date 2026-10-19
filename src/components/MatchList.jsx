@@ -93,7 +93,7 @@ export default function MatchList({
       className="match-picker group px-4 my-1.5"
     >
       <summary className="flex items-center justify-between list-none cursor-pointer py-1.5 select-none outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xl">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
           Lịch đấu
         </span>
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -293,7 +293,7 @@ export default function MatchList({
                             {displayName}
                           </span>
                           <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                            className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md shrink-0 ${
                               hasScore
                                 ? "bg-slate-200/70 dark:bg-slate-700 text-slate-900 dark:text-white"
                                 : "text-slate-400 italic font-normal"

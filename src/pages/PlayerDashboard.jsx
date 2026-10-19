@@ -929,7 +929,7 @@ export default function PlayerDashboard({
           <div className="flex items-center justify-between mb-3.5 px-1">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <h2 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Thao tác nhanh
               </h2>
             </div>
@@ -1404,7 +1404,7 @@ export default function PlayerDashboard({
         ) ? (
           <section className="secondary-summary p-4 rounded-[24px]">
             <div className="flex items-center justify-between mb-2.5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <h2 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Thống kê cá nhân
               </h2>
               <Pressable
@@ -1444,7 +1444,7 @@ export default function PlayerDashboard({
         ) : (
           <section className="secondary-summary p-4 rounded-[24px]">
             <div className="flex items-center justify-between mb-1.5">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <h2 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Thống kê cá nhân
               </h2>
             </div>

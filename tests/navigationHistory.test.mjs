@@ -34,3 +34,13 @@ test('match deep link survives refresh and match IDs stay distinct in history',(
  act(()=>nav.navigate('match-detail',{matchId:'game-b'}));assert.equal(nav.matchId,'game-b');assert.equal(window.history.state.noOffsideMatchId,'game-b');
  act(()=>tree.unmount());assert.equal(listeners.size,0);
 });
+
+
+test('closing a conditionally mounted form retires its history entry without undoing new navigation',async()=>{
+ setup({noOffsideTab:'profile'});let tree;function Layer(){useLayerBack(true,()=>{});return null;}
+ await act(async()=>{tree=renderer.create(React.createElement(Layer));});assert.equal(index,1);
+ await act(async()=>{tree.unmount();await Promise.resolve();});assert.equal(index,0);assert.equal(listeners.size,0);
+ await act(async()=>{tree=renderer.create(React.createElement(Layer));});
+ window.history.pushState({noOffsideTab:'match-detail',noOffsideMatchId:'new-match'},'','/matches/new-match');
+ await act(async()=>{tree.unmount();await Promise.resolve();});assert.equal(window.history.state.noOffsideTab,'match-detail');
+});

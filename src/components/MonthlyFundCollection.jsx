@@ -1,3 +1,4 @@
+import { notify } from '../lib/feedback';
 import React, { useState, useMemo } from "react";
 import Pressable from "./Pressable";
 import ProModal from "./pro/ProModal";
@@ -47,7 +48,7 @@ export default function MonthlyFundCollection({
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [memberFilter, setMemberFilter] = useState("all"); // 'all' | 'unpaid' | 'pending' | 'paid'
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedMemberId, setSelectedMemberId] = useState(null);
   const [recordingCharge, setRecordingCharge] = useState(null);
   const [recordAmount, setRecordAmount] = useState(0);
   const [recordNote, setRecordNote] = useState("");
@@ -70,7 +71,7 @@ export default function MonthlyFundCollection({
     const defaultDueDate = `${targetMonth}-${String(Math.min(15, lastDay)).padStart(2, "0")}`;
     setCreateTitle(`Quỹ tháng ${monthNum}/${y}`);
     setCreateAmount(100000);
-    setCreateDueDate(defaultDueDate);
+    setCreateDueDate(defaultDueDate < now.slice(0,10) ? now.slice(0,10) : defaultDueDate);
     setCreateRepeat("once");
     setCreateError("");
     setIsCreatingCollection(true);
@@ -80,7 +81,7 @@ export default function MonthlyFundCollection({
     e.preventDefault();
     if (createBusy) return;
     const amountNum = Number(createAmount);
-    if (!amountNum || amountNum <= 0) {
+    if (!Number.isSafeInteger(amountNum) || amountNum <= 0 || amountNum > 1000000000) {
       setCreateError("Vui lòng nhập số tiền hợp lệ lớn hơn 0.");
       return;
     }
@@ -125,8 +126,8 @@ export default function MonthlyFundCollection({
     e.preventDefault();
     if (!recordingCharge || recordBusy) return;
     const amountNum = Number(recordAmount);
-    if (!amountNum || amountNum <= 0) {
-      setRecordError("Nhập số tiền hợp lệ lớn hơn 0.");
+    if (!Number.isSafeInteger(amountNum) || amountNum <= 0 || amountNum > remainingCharge(recordingCharge)) {
+      setRecordError("Nhập số nguyên VND lớn hơn 0 và không vượt phần còn thiếu của khoản này.");
       return;
     }
     setRecordBusy(true);
@@ -139,7 +140,8 @@ export default function MonthlyFundCollection({
             amount: amountNum,
           });
         } else {
-          await onRecordPayment?.(recordingCharge, amountNum);
+          if (!onRecordPayment) throw Error('Chưa có kết nối để ghi nhận khoản thu.');
+          await onRecordPayment(recordingCharge, amountNum);
         }
       } else {
         if (fund?.mutate) {
@@ -148,8 +150,9 @@ export default function MonthlyFundCollection({
             amount: amountNum,
             note: recordNote,
           });
-        }
+        } else throw Error('Chưa có kết nối để gửi yêu cầu chuyển khoản.');
       }
+      notify(canManage ? "Đã ghi nhận tiền thực nhận." : "Đã gửi yêu cầu, đang chờ Thủ quỹ duyệt.");
       setRecordingCharge(null);
     } catch (err) {
       setRecordError(err.message || "Không thể thực hiện thao tác.");
@@ -195,20 +198,12 @@ export default function MonthlyFundCollection({
     );
   }, [selectedMonth, fund?.data?.collections, fund?.data?.charges, fund?.data?.pendingRequests, funds?.pendingApprovals, funds?.transactions]);
 
-  // Compute members status for this month
+  const allMemberRows=useMemo(()=>getMembersMonthStatus(selectedMonth,teamMembers,summary,fund?.data?.charges || [],fund?.data?.pendingRequests || funds?.pendingApprovals || []).filter(m=>canManage || m.id===accountId),[selectedMonth,teamMembers,summary,fund?.data?.charges,fund?.data?.pendingRequests,funds?.pendingApprovals,canManage,accountId]);
   const membersList = useMemo(() => {
-    const baseList = getMembersMonthStatus(
-      selectedMonth,
-      teamMembers,
-      summary,
-      fund?.data?.charges || [],
-      fund?.data?.pendingRequests || funds?.pendingApprovals || []
-    );
-
-    return baseList.filter((m) => {
+    return allMemberRows.filter((m) => {
       // Filter by status
       if (memberFilter === "unpaid") {
-        if (!summary.hasCollection) return true; // Khi chưa có đợt thu, tất cả coi như chưa đóng/chưa nghĩa vụ
+        if (!summary.hasCollection) return false; // Khi chưa có đợt thu, tất cả coi như chưa đóng/chưa nghĩa vụ
         if (m.status !== "unpaid" && m.status !== "partial") return false;
       } else if (memberFilter === "pending") {
         if (m.status !== "pending") return false;
@@ -227,9 +222,11 @@ export default function MonthlyFundCollection({
 
       return true;
     });
-  }, [selectedMonth, teamMembers, summary, fund?.data?.charges, fund?.data?.pendingRequests, funds?.pendingApprovals, memberFilter, searchQuery]);
+  }, [allMemberRows,summary,memberFilter,searchQuery]);
 
   // Member history for detail modal
+  const selectedMember = allMemberRows.find(m=>m.id===selectedMemberId) || null;
+
   const memberHistory = useMemo(() => {
     if (!selectedMember) return [];
     return getMemberMonthHistory(
@@ -245,7 +242,7 @@ export default function MonthlyFundCollection({
   const memberTotalDebt = useMemo(() => {
     if (!selectedMember) return 0;
     return (fund?.data?.charges || [])
-      .filter((ch) => ch.subject === selectedMember.id && ch.status !== "void")
+      .filter((ch) => ch.subject === selectedMember.id && ch.kind === "fund" && ch.status !== "void")
       .reduce((sum, ch) => sum + remainingCharge(ch), 0);
   }, [selectedMember, fund?.data?.charges]);
 
@@ -316,7 +313,7 @@ export default function MonthlyFundCollection({
               {summary.unlinkedTransactions.length > 0 && (
                 <div className="monthly-unlinked-notice mt-2">
                   <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                    💡 Đã có {summary.unlinkedTransactions.length} giao dịch ghi nhận trong sổ cho tháng này ({formatCurrency(summary.unlinkedIncomeTotal)}).
+                    Đã có {summary.unlinkedTransactions.length} giao dịch ghi nhận trong sổ cho tháng này ({formatCurrency(summary.unlinkedIncomeTotal)}).
                     Hãy tạo đợt thu để đối soát và phân bổ theo từng thành viên.
                   </p>
                 </div>
@@ -342,7 +339,7 @@ export default function MonthlyFundCollection({
           <div className="flex items-center gap-2">
             <Calendar size={18} className="text-emerald-600 dark:text-emerald-400" />
             <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-              Tổng quan quỹ {monthLabel}
+              {canManage ? "Tổng quan quỹ" : "Các khoản đóng của bạn"} {monthLabel}
             </h2>
           </div>
           {summary.hasCollection && summary.totalCount > 0 && (
@@ -408,14 +405,14 @@ export default function MonthlyFundCollection({
               className={`monthly-chip ${memberFilter === "all" ? "is-active" : ""}`}
               onClick={() => setMemberFilter("all")}
             >
-              Tất cả ({teamMembers.length})
+              Tất cả ({allMemberRows.length})
             </button>
             <button
               type="button"
               className={`monthly-chip ${memberFilter === "unpaid" ? "is-active" : ""}`}
               onClick={() => setMemberFilter("unpaid")}
             >
-              Còn thiếu ({summary.hasCollection ? summary.unpaidCount + summary.partialCount : teamMembers.length})
+              Còn thiếu ({summary.hasCollection ? summary.unpaidCount + summary.partialCount : 0})
             </button>
             {summary.pendingRequests.length > 0 && (
               <button
@@ -476,12 +473,12 @@ export default function MonthlyFundCollection({
                 <article
                   key={m.id}
                   className="monthly-member-row"
-                  onClick={() => setSelectedMember(m)}
+                  onClick={() => setSelectedMemberId(m.id)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
-                      setSelectedMember(m);
+                      setSelectedMemberId(m.id);
                     }
                   }}
                 >
@@ -498,7 +495,7 @@ export default function MonthlyFundCollection({
                         <span className="monthly-role-tag owner">Chủ đội</span>
                       )}
                       {m.role === "admin" && (
-                        <span className="monthly-role-tag admin">Bầu đội</span>
+                        <span className="monthly-role-tag admin">Quản trị viên</span>
                       )}
                     </div>
 
@@ -568,7 +565,7 @@ export default function MonthlyFundCollection({
                       {(isUnpaid || isPartial) && canManage && m.charge && (
                         <Pressable
                           className="monthly-btn-quick-record"
-                          onClick={() => handleOpenPayment(m.charge, m.remaining, m)}
+                          onClick={() => handleOpenPayment(m.charge, remainingCharge(m.charge), m)}
                           title="Ghi nhận thu tiền"
                         >
                           Thu tiền
@@ -589,7 +586,7 @@ export default function MonthlyFundCollection({
         <ProModal
           open={!!selectedMember}
           title={`Hồ sơ quỹ · ${selectedMember.name}`}
-          onClose={() => setSelectedMember(null)}
+          onClose={() => setSelectedMemberId(null)}
         >
           <div className="monthly-member-detail-sheet">
             {/* Header profile tóm tắt */}
@@ -657,14 +654,14 @@ export default function MonthlyFundCollection({
                             {/* Báo khoản nộp bù giải quyết rõ ràng vấn đề gây nhầm */}
                             {h.isBackpay && (
                               <div className="monthly-backpay-tag mt-1">
-                                <span>⭐ Nộp bù kỳ này vào {h.paymentDate?.slice(0, 10).split("-").reverse().join("/")}</span>
+                                <span>Nộp bù kỳ này vào {h.paymentDate?.slice(0, 10).split("-").reverse().join("/")}</span>
                               </div>
                             )}
                           </div>
 
                           <div className="text-right">
                             <span className={`monthly-status-badge ${isPeriodPaid ? "is-paid" : h.status === "pending" ? "is-pending" : "is-unpaid"}`}>
-                              {isPeriodPaid ? "Đã nộp đủ" : h.status === "pending" ? "Chờ duyệt" : `Còn thiếu ${formatCurrency(h.remaining)}`}
+                              {h.status==="cancelled" ? "Đã hủy nghĩa vụ" : isPeriodPaid ? "Đã nộp đủ" : h.status === "pending" ? "Chờ duyệt" : `Còn thiếu ${formatCurrency(h.remaining)}`}
                             </span>
                             {h.paymentDate && !h.isBackpay && (
                               <span className="text-[11px] text-slate-400 block mt-1">
@@ -673,6 +670,7 @@ export default function MonthlyFundCollection({
                             )}
                           </div>
                         </div>
+                        {h.remaining>0 && h.status!=='pending' && (canManage || selectedMember.id===accountId) && <Pressable className="choice-button w-full mt-2" onClick={()=>{const charge=(fund?.data?.charges || []).find(c=>c.id===h.chargeId);if(charge){handleOpenPayment(charge,h.remaining,selectedMember);}}}>{canManage?'Thu khoản này':'Báo chuyển khoản này'}</Pressable>}
                       </div>
                     );
                   })}
@@ -687,9 +685,8 @@ export default function MonthlyFundCollection({
                   className="primary-button flex-1"
                   onClick={() => {
                     const ch = selectedMember.charge;
-                    const rem = selectedMember.remaining;
+                    const rem = remainingCharge(ch);
                     const mem = selectedMember;
-                    setSelectedMember(null);
                     handleOpenPayment(ch, rem, mem);
                   }}
                 >
@@ -715,9 +712,8 @@ export default function MonthlyFundCollection({
                   className="primary-button flex-1"
                   onClick={() => {
                     const ch = selectedMember.charge;
-                    const rem = selectedMember.remaining;
+                    const rem = remainingCharge(ch);
                     const mem = selectedMember;
-                    setSelectedMember(null);
                     handleOpenPayment(ch, rem, mem);
                   }}
                 >
@@ -755,9 +751,9 @@ export default function MonthlyFundCollection({
               <input
                 required
                 type="number"
-                min={1000}
-                max={100000000}
-                step={1000}
+                min={1}
+                max={remainingCharge(recordingCharge)}
+                step={1}
                 value={recordAmount}
                 onChange={(e) => setRecordAmount(Number(e.target.value))}
                 className="tabular-nums"
@@ -885,7 +881,9 @@ export default function MonthlyFundCollection({
             <input
               required
               type="date"
+              min={now.slice(0,10)}
               value={createDueDate}
+              onInput={e=>setCreateDueDate(e.currentTarget.value)}
               onChange={(e) => setCreateDueDate(e.target.value)}
             />
           </label>

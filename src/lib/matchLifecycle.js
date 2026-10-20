@@ -52,3 +52,7 @@ export function matchFinance(bill, charges = []) {
   const paid = rows.reduce((n, c) => n + Number(c.paid_amount || 0), 0);
   return { total: Number(bill.total), support, required, received: Math.max(0, paid - own), offset: own, remaining: Math.max(0, required - paid) };
 }
+
+export function matchNoticeTarget(match,memberId) {
+  return isMatchArchived(match) || !memberId ? {tab:'match-detail',matchId:match.id} : {tab:'dashboard'};
+}

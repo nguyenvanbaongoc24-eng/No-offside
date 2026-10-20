@@ -1,3 +1,4 @@
+import {localTransactionTime} from '../lib/transactionTime';
 import Pressable from './Pressable';
 import React, { useState, useEffect, useMemo } from "react";
 import { lifecycle, isMatchArchived } from '../lib/matchLifecycle';
@@ -53,16 +54,11 @@ export default function MatchList({
     const months = new Set();
     for (const m of historyList) {
       if (m.datetime) {
-        const d = new Date(m.datetime);
-        if (!isNaN(d.getTime())) {
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, "0");
-          months.add(`${yyyy}-${mm}`);
-        }
+        try { months.add(localTransactionTime(m.datetime,timeZone).slice(0,7)); } catch {}
       }
     }
     return Array.from(months).sort((a, b) => b.localeCompare(a));
-  }, [historyList]);
+  }, [historyList,timeZone]);
 
   // Filtered history list
   const filteredHistory = useMemo(() => {
@@ -74,16 +70,11 @@ export default function MatchList({
         if (!opp.includes(q) && !title.includes(q)) return false;
       }
       if (selectedMonth !== "all") {
-        const d = new Date(m.datetime);
-        if (!isNaN(d.getTime())) {
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, "0");
-          if (`${yyyy}-${mm}` !== selectedMonth) return false;
-        }
+        try { if(localTransactionTime(m.datetime,timeZone).slice(0,7)!==selectedMonth)return false; } catch { return false; }
       }
       return true;
     });
-  }, [historyList, searchQuery, selectedMonth]);
+  }, [historyList, searchQuery, selectedMonth,timeZone]);
 
   const totalCount = upcomingList.length + historyList.length;
 

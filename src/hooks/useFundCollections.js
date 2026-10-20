@@ -30,7 +30,7 @@ export function useFundCollections({
     scope,
     data: empty,
     error: "",
-    loading: false,
+    loading: !demo && enabled && !!token,
   });
   const [busyScope, setBusyScope] = useState(null),
     lock = useRef(null),
@@ -117,9 +117,9 @@ export function useFundCollections({
     }
   };
   return {
-    ...(bundle.scope === scope
+    ...(!demo && enabled && token && bundle.scope === scope
       ? bundle
-      : { data: empty, error: "", loading: true }),
+      : { data: empty, error: "", loading: !demo && enabled && !!token }),
     busy: busyScope === scope,
     refresh,
     loadHistory: (id) => request("history", { id }),

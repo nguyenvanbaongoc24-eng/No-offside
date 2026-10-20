@@ -1,3 +1,4 @@
+import DashboardFundSummary from '../components/DashboardFundSummary';
 import { matchDraft } from '../lib/matchLifecycle';
 import BirthdayBanner from "../components/BirthdayBanner";
 import Pressable from "../components/Pressable";
@@ -87,6 +88,8 @@ export default function PlayerDashboard({
   switchingTeam,
   unreadCount,
   treasurerQr,
+  collectionFund,
+  onOpenFund,
   onUpdateMatchStats,
   members = [],
   onRemoveMember,
@@ -427,7 +430,7 @@ export default function PlayerDashboard({
       },
       {
         id: "lineup",
-        label: "Sa bàn Pro",
+        label: "Chiến thuật",
         description: "Sơ đồ chiến thuật và đội hình",
         Icon: Network,
         iconBg:
@@ -444,6 +447,7 @@ export default function PlayerDashboard({
           "bg-amber-50 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800/80",
         iconColor: "text-amber-600 dark:text-amber-400",
         onClick: () => {
+          if (collectionFund && !demoSession) {onOpenFund('monthly');return;}
           if (
             !isLeader &&
             user.fundDebt > 0 &&
@@ -564,6 +568,9 @@ export default function PlayerDashboard({
     ];
   }, [
     isLeader,
+    onOpenFund,
+    collectionFund,
+    demoSession,
     onNavigate,
     onOpenPro,
     onOpenPoster,
@@ -987,7 +994,7 @@ export default function PlayerDashboard({
           )}
         </section>
         {/* CARD 2: TÀI CHÍNH & QUỸ ĐỘI PREVIEW */}
-        <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
+        {collectionFund && !demoSession ? <DashboardFundSummary fund={collectionFund} accountId={accountId} members={members} balance={balance} timeZone={teamSettings.timezone} onOpen={onOpenFund}/> : <section className="bg-white rounded-[28px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-4 sm:p-5 border border-gray-100 transition-all">
           <div className="flex items-center justify-between mb-2.5 px-1">
             <span className="text-xs font-semibold  tracking-wider text-gray-400">
               {isLeader ? "Tổng quan quỹ" : "TÀI CHÍNH & QUỸ ĐỘI"}
@@ -1123,7 +1130,7 @@ export default function PlayerDashboard({
               </Pressable>
             </div>
           )}
-        </section>
+        </section>}
 
         {/* CARD NẰM NGANG [Thành viên đội] - HIỂN THỊ CHO TẤT CẢ THÀNH VIÊN */}
         <div className="dashboard-roster w-full bg-white dark:bg-slate-900/90 rounded-[26px] p-4 shadow-soft border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all group text-left relative overflow-hidden">

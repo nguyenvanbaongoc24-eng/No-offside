@@ -158,7 +158,9 @@ export default function FundManagement({
 
   useEffect(() => {
     if (!fundIntent) return;
-    if (fundIntent.action === "collection") {
+    if (["monthly","approvals"].includes(fundIntent.action)) {
+      setActiveTab(fundIntent.action);setSubView(null);onFundIntentUsed?.();
+    } else if (fundIntent.action === "collection") {
       setActiveTab("monthly");
       setSubView(null);
     } else if (fundIntent.action === "reminder") {
@@ -937,7 +939,7 @@ export default function FundManagement({
         /* MAIN FUND VIEW */
         <>
           {/* 2. Tổng quan số dư */}
-          <section className="fund-balance-card">
+          {canManage ? <section className="fund-balance-card">
             <SoccerWatermark />
             <div className="fund-card-content">
               <div className="fund-card-top">
@@ -971,11 +973,11 @@ export default function FundManagement({
                 </div>
               </dl>
             </div>
-          </section>
+          </section> : <section className="dashboard-fund-preview"><h2>Quỹ cá nhân của bạn</h2><p>Các khoản đóng và giao dịch dưới đây thuộc tài khoản của bạn; số dư toàn đội chỉ hiển thị cho người có quyền quản lý quỹ.</p></section>}
 
           {/* 3. Còn phải thu và Lịch nhắc (Hàng 2 cột gọn) */}
           <section
-            className="fund-duo-row"
+            className={`fund-duo-row ${!canManage?"fund-duo-personal":""}`}
             aria-label="Tóm tắt công nợ và lịch nhắc"
           >
             <button
@@ -998,7 +1000,7 @@ export default function FundManagement({
               </div>
             </button>
 
-            <button
+            {canManage && <button
               type="button"
               className="fund-duo-cell"
               onClick={() => setSubView("schedules")}
@@ -1013,7 +1015,7 @@ export default function FundManagement({
                   {activeSchedulesCount}
                 </span>
               </div>
-            </button>
+            </button>}
           </section>
 
           {/* 4. Thao tác nhanh (1 hàng 4 nút cân đối) */}
@@ -1116,7 +1118,7 @@ export default function FundManagement({
             ) : null}
           </section>
 
-          {/* 5. Sinh Tố Lúa Mạch */}
+          {/* 5. Sinh tố lúa mạch */}
           <button
             type="button"
             className="fund-beer-card"
@@ -1124,7 +1126,7 @@ export default function FundManagement({
           >
             <div className="fund-beer-left">
               <Beer size={20} />
-              <span>Sinh Tố Lúa Mạch</span>
+              <span>Sinh tố lúa mạch</span>
             </div>
             <div className="fund-beer-right" aria-hidden="true">
               <ChevronRight size={18} />
@@ -1227,8 +1229,12 @@ export default function FundManagement({
                     });
                   }
                 }}
-                onRemindMember={(member) => {
-                  notify(`Đã gửi nhắc nộp quỹ tới ${member.name}`);
+                onRemindMember={async member => {
+                  try {
+                    if (!fund?.mutate) throw Error('Chưa có kết nối máy chủ để gửi nhắc.');
+                    await fund.mutate('remind_member',{subject:member.id,chargeIds:(member.charges || [member.charge]).filter(c=>c && remainingCharge(c)>0).map(c=>c.id)});
+                    notify(`Đã lưu nhắc đóng quỹ cho ${member.name}.`);
+                  } catch(error) { notify(error.message || 'Không gửi được nhắc đóng quỹ.','error'); }
                 }}
               />
             </section>

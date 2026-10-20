@@ -1,3 +1,4 @@
+import DashboardFundSummary from '../components/DashboardFundSummary';
 import BirthdayBanner from '../components/BirthdayBanner';
 import Pressable from '../components/Pressable';
 import TeamIdentityHeader from "../components/TeamIdentityHeader";
@@ -23,6 +24,9 @@ import MatchList from "../components/MatchList";
 
 export default function EmptyTeam({
   teamSettings = {},
+  collectionFund,
+  balance,
+  onOpenFund,
   leader = false,
   members = [],
   onAddMember,
@@ -193,6 +197,8 @@ export default function EmptyTeam({
           </Pressable>
         )}
       </div>
+
+      {collectionFund && !collectionFund.demo && <DashboardFundSummary fund={collectionFund} accountId={accountId} members={members} balance={balance} timeZone={teamSettings.timezone} onOpen={onOpenFund}/>}
 
       {/* CARD 2: THÀNH VIÊN ĐỘI */}
       <div className="w-full bg-white dark:bg-slate-900/90 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-soft space-y-3.5 transition-all">

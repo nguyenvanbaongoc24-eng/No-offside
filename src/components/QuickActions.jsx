@@ -1,3 +1,4 @@
+import {menuLabels} from '../lib/menuLabels';
 import { Beer, Bell } from "./icons";
 import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -20,9 +21,9 @@ export const quickActionItems = [
   { id: "transaction", label: "Tạo khoản thu/chi", Icon: Wallet },
   { id: "formation", label: "Tạo chiến thuật mới", Icon: Network },
   { id: "invite", label: "Mời thành viên", Icon: UserPlus },
-  { id: "board", label: "Tìm Đối", Icon: Swords },
+  { id: "board", label: menuLabels.board, Icon: Swords },
   { id: "stars", label: "Ngôi sao & MOTM", Icon: Trophy },
-  { id: "finance", label: "Sinh Tố Lúa Mạch", Icon: Beer },
+  { id: "finance", label: menuLabels.finance, Icon: Beer },
   { id: "media", label: "Poster & khoảnh khắc", Icon: Clapperboard },
   { id: "settings", label: "Cài đặt đội bóng", Icon: Settings2 },
 ];

@@ -1,3 +1,4 @@
+import {matchNoticeTarget} from './lib/matchLifecycle';
 import { useFundCollections } from "./hooks/useFundCollections";
 import FundOperations from "./components/FundOperations";
 import { usePro } from "./hooks/usePro";
@@ -405,9 +406,11 @@ function Application({ onRetryStartup }) {
           return;
         }
         if (pushAccount.current !== auth.accountId) return;
+        let matchTarget=null;
         if (pushTarget.matchId) {
-          if (!auth.matches.some((m) => m.id === pushTarget.matchId))
-            throw Error("Trận không còn khả dụng.");
+          const targetMatch=auth.matches.find(m=>m.id===pushTarget.matchId);
+          if (!targetMatch) throw Error("Trận không còn khả dụng.");
+          matchTarget=matchNoticeTarget(targetMatch,pushTarget.memberId);
           await auth.selectMatch(pushTarget.matchId);
           setAttendanceFocus({
             matchId: pushTarget.matchId,
@@ -415,7 +418,7 @@ function Application({ onRetryStartup }) {
             key: crypto.randomUUID(),
           });
         }
-        navigate(pushTarget.view);
+        navigate(matchTarget?.tab || pushTarget.view,matchTarget?.matchId ? {matchId:matchTarget.matchId} : undefined);
         setPushTarget(null);
         sessionStorage.removeItem("no_offside_push_target");
       } catch {
@@ -735,7 +738,7 @@ function Application({ onRetryStartup }) {
                   accountId={auth.accountId}
                   teamMembers={auth.teamSettings.members}
                   fundIntent={
-                    ["reminder", "collection", "bill"].includes(
+                    ["reminder", "collection", "bill", "monthly", "approvals"].includes(
                       quickIntent?.action,
                     )
                       ? quickIntent
@@ -850,6 +853,7 @@ function Application({ onRetryStartup }) {
               </React.Fragment>
             ) : !auth.activeMatch ? (
               <EmptyTeam
+                collectionFund={fund} balance={auth.balance} onOpenFund={openFund}
                 memberships={memberships}
                 birthdays={birthdayMembers}
                 accountId={auth.accountId}
@@ -877,6 +881,7 @@ function Application({ onRetryStartup }) {
               />
             ) : (
               <PlayerDashboard
+                collectionFund={fund} onOpenFund={openFund}
                 treasurer={treasurer}
                 attendanceFocus={attendanceFocus}
                 onOpenPro={openPro}

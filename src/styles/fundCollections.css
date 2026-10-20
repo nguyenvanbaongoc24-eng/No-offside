@@ -1441,3 +1441,32 @@ html[data-theme="dark"] .monthly-backpay-tag,
   box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
+
+.dashboard-fund-preview { background:var(--surface);color:var(--text-primary);border:1px solid var(--border);border-radius:20px;padding:16px;min-width:0; }
+.dashboard-fund-preview h2 { display:flex;align-items:center;gap:8px;font-size:1rem;font-weight:700;margin-bottom:12px; }
+.dashboard-fund-preview p { line-height:1.6;margin:8px 0;overflow-wrap:anywhere; }
+.dashboard-fund-actions { display:flex;flex-wrap:wrap;gap:8px;margin-top:12px; }
+.dashboard-fund-actions button { min-height:44px;white-space:normal;flex:1 1 140px; }
+.monthly-detail-actions { flex-wrap:wrap; }
+
+.fund-duo-personal { grid-template-columns:minmax(0,1fr); }
+.fund-duo-personal .fund-duo-cell:first-child { border-right:0; }
+
+/* Keep the monthly task readable at 320px and with enlarged text. */
+.monthly-search-input { min-height:44px; height:auto; padding-top:10px; padding-bottom:10px; font-size:16px !important; }
+.monthly-chip, .monthly-btn-quick-record, .monthly-btn-quick-approve { min-height:44px; }
+.monthly-stat-box { min-width:0; }
+.monthly-stat-value { overflow-wrap:anywhere; }
+.fund-tab-button { white-space:normal; min-width:0; flex-wrap:wrap; }
+.monthly-summary-header { flex-wrap:wrap; }
+@media(max-width:480px) {
+ .monthly-member-row { display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px; }
+ .monthly-member-info > div:first-child { flex-wrap:wrap; }
+ .monthly-member-name { white-space:normal;overflow-wrap:anywhere; }
+ .monthly-member-status-col { grid-column:2;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;min-width:0; }
+ .monthly-member-status-col > div { margin:0; }
+ .monthly-member-debt { overflow-wrap:anywhere; }
+ .monthly-quick-actions { margin-left:auto !important; }
+}
+.fund-quick-grid { grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); }
+.fund-action-card span { white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere; }

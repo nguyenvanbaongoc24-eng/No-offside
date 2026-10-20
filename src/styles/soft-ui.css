@@ -255,3 +255,12 @@ html[data-theme] .split-navigation .nav-item svg,html[data-theme] .split-navigat
 /* Legacy inline dialogs may have a transformed ancestor; fixed nav must not cover them. */
 .bottom-navigation[inert] { visibility:hidden; }
 html[data-theme] .conversation-page .chat-composer textarea { background:var(--surface)!important; }
+/* Five tabs plus the management FAB must never squeeze the active touch target. */
+@media(max-width:430px) {
+ html[data-theme] .split-navigation.has-fab .nav-item,
+ html[data-theme] .split-navigation.has-fab .nav-item.is-active { flex:1 0 44px;min-width:44px;width:auto;max-width:none;padding:4px; }
+ html[data-theme] .split-navigation.has-fab .nav-item .nav-label { display:none; }
+}
+@media(max-width:359px) {
+ html[data-theme] .split-navigation.has-fab .navigation-fab { flex-basis:56px;width:56px;height:56px;min-width:56px;min-height:56px; }
+}

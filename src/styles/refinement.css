@@ -682,3 +682,10 @@ html[data-theme] .nav-item { transition:background-color var(--motion-control),c
 .nav-icon-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;flex:none}
 html[data-theme] .nav-item .chat-unread-badge{display:block;min-height:0;max-width:none;position:absolute;top:-7px;left:15px;min-width:17px;height:17px;padding:0 4px;border-radius:10px;background:#c6283b;color:#fff;font-size:10px;line-height:17px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
 .notification-option{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 0;font-size:14px;line-height:1.5}.notification-option input{width:20px;height:20px;flex:none;accent-color:var(--accent,#168344)}
+/* Give the auth wordmark its own row rather than truncating it on narrow phones. */
+@media(max-width:359px) {
+ .auth-header { flex-wrap:wrap; }
+ .auth-identity { flex-basis:100%; }
+ .auth-header-controls { margin-left:auto; }
+ .auth-identity h1 { overflow:visible; }
+}

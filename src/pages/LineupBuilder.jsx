@@ -507,7 +507,7 @@ export default function LineupBuilder({
         <Pressable aria-label="Quay lại" onClick={onBack}>
           <ChevronLeft size={22} />
         </Pressable>
-        <h1>Chiến Thuật</h1>
+        <h1>Chiến thuật</h1>
         <Pressable
           className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!canEdit}
@@ -527,7 +527,7 @@ export default function LineupBuilder({
       <div className="px-4 mt-2.5 flex flex-wrap gap-2 items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
           <Move className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Kéo để xếp, chạm để đổi</span>
+          <span>{canEdit ? "Kéo để xếp, chạm để đổi" : "Bạn đang xem chiến thuật của đội"}</span>
         </div>
 
         {/* NÚT LƯU SƠ ĐỒ */}
@@ -688,7 +688,7 @@ export default function LineupBuilder({
           <Chalkboard key={currentFormation.id} strokes={currentFormation.drawing || []} editable={canEdit} toolbarHost={drawingToolbarHost} onChange={drawing=>setFormationsList(prev=>prev.map(f=>f.id===currentFormation.id?{...f,drawing}:f))}/>
           {/* Hint Overlay */}
           <div className="pitch-interaction-hint">
-            Kéo thả vị trí tùy ý • Chạm để đổi người
+            {canEdit ? "Kéo thả vị trí tùy ý • Chạm để đổi người" : "Chế độ xem chiến thuật"}
           </div>
         </div>
       </div>
@@ -701,7 +701,7 @@ export default function LineupBuilder({
             Danh sách chiến thuật ({formationsList.length})
           </span>
           <span className="text-xs font-medium text-gray-400">
-            Chạm để xem và chỉnh sửa
+            {canEdit ? "Chạm để xem và chỉnh sửa" : "Chạm để xem sơ đồ"}
           </span>
         </div>
 

@@ -110,7 +110,7 @@ export default function TeamSettings({
             Hiển thị lời chúc sinh nhật trong tin nhắn đội
           </label>
           <p className="text-sm text-slate-500 mt-3">
-            Thông báo SMS, Zalo và push tự động chưa được kết nối.
+            Lựa chọn này hiển thị lời chúc trong app; không gửi SMS, Zalo hay thông báo đẩy sinh nhật tự động.
           </p>
         </section>
         <Pressable

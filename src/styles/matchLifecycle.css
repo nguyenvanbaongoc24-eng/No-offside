@@ -51,3 +51,10 @@
 .dashboard-create-match { padding:0 16px;margin:12px 0; }
 .dashboard-create-match .primary-button { width:100%;min-height:48px;white-space:normal;line-height:1.5; }
 .dashboard-create-match svg { flex-shrink:0; }
+
+.match-workflow ol { display:grid;gap:14px;counter-reset:match-step;margin:16px 0;padding:0;list-style:none; }
+.match-workflow li { display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:10px;min-width:0; }
+.match-workflow li::before { counter-increment:match-step;content:counter(match-step);grid-row:span 2;align-self:start;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700; }
+.match-workflow li strong,.match-workflow li span { overflow-wrap:anywhere; }
+.match-workflow li span { color:var(--text-secondary);font-size:.875rem;line-height:1.6;margin-top:3px; }
+.match-workflow-blockers { margin:12px 0;display:grid;gap:8px;list-style:disc;padding-left:20px;color:var(--text-secondary);font-size:.875rem;line-height:1.6;overflow-wrap:anywhere; }

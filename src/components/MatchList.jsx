@@ -1,3 +1,4 @@
+import { matchPendingTasks } from '../lib/matchWorkflow';
 import {localTransactionTime} from '../lib/transactionTime';
 import Pressable from './Pressable';
 import React, { useState, useEffect, useMemo } from "react";
@@ -255,18 +256,18 @@ export default function MatchList({
             ) : (
               <ul className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
                 {filteredHistory.map((match) => {
-                  const isManager = canDelete || canManageFunds;
-                  const isCancelled = !!match.cancelledAt;
+                  const isCancelled = lifecycle(match).key === 'cancelled';
                   const hasScore = match.scoreHome != null && match.scoreAway != null;
                   const scoreDisplay = hasScore
                     ? `${match.scoreHome} - ${match.scoreAway}`
                     : "Chưa cập nhật kết quả";
 
                   // Nhãn còn việc cần xử lý
-                  const unfinalized = canDelete && !match.detailState?.finalized && !isCancelled;
-                  const uncosted = isManager && !(match.detailState?.costKnown || match.detailState?.costUpdated) && !isCancelled;
-                  const hasReceivables = isManager && (Number(match.detailState?.remaining || 0) > 0 || !!match.detailState?.pendingReceivables);
-                  const hasOwnDebt = !isManager && (Number(match.detailState?.ownRemaining || 0) > 0 || !!match.detailState?.ownPendingDebt);
+                  const tasks = matchPendingTasks(match, { canManage: canDelete, canManageFunds });
+                  const unfinalized = tasks.some(task => task.key === 'attendance');
+                  const uncosted = tasks.some(task => task.key === 'cost');
+                  const hasReceivables = tasks.some(task => task.key === 'receivable');
+                  const hasOwnDebt = tasks.some(task => task.key === 'debt');
 
                   const displayName = match.matchType === "internal"
                     ? (match.title?.includes(" — ") ? match.title.split(" — ").at(-1) : (match.title || "Trận nội bộ"))

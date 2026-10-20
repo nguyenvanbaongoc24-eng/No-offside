@@ -1,3 +1,4 @@
+import { matchPendingTasks } from '../lib/matchWorkflow';
 import DashboardFundSummary from '../components/DashboardFundSummary';
 import BirthdayBanner from '../components/BirthdayBanner';
 import Pressable from '../components/Pressable';
@@ -53,14 +54,6 @@ export default function EmptyTeam({
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
-  const pendingHistoryMatches = (archivedMatches || []).filter(
-    (m) =>
-      !m.cancelledAt &&
-      (!m.detailState?.finalized ||
-        !m.detailState?.costKnown ||
-        Number(m.detailState?.remaining || 0) > 0)
-  );
-  const pendingHistoryCount = pendingHistoryMatches.length;
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showTeamManagerModal, setShowTeamManagerModal] = useState(false);
@@ -78,6 +71,11 @@ export default function EmptyTeam({
 
   const isLeader =
     leader || currentUserRole === "owner" || currentUserRole === "admin";
+  const pendingHistoryMatches = (archivedMatches || []).filter(m =>
+    matchPendingTasks(m, { canManage: isLeader, canManageFunds }).length > 0
+  );
+  const pendingHistoryCount = pendingHistoryMatches.length;
+
 
   const invite = useTeamInvite(
     teamSettings,
@@ -159,7 +157,10 @@ export default function EmptyTeam({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
-                  <span className="truncate">Có {pendingHistoryCount} trận trong lịch sử cần hoàn tất</span>
+                  <span className="min-w-0 text-left whitespace-normal">
+                    <span className="block">Có {pendingHistoryCount} trận trong lịch sử cần hoàn tất</span>
+                    <span className="block font-normal mt-1">{matchPendingTasks(pendingHistoryMatches[0], { canManage: isLeader, canManageFunds }).map(task => task.label).join(' · ')}</span>
+                  </span>
                 </div>
                 <span className="text-[11px] text-amber-700 dark:text-amber-300 font-medium shrink-0 ml-2 flex items-center gap-0.5">
                   <span>Xử lý</span>

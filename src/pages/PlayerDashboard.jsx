@@ -1,3 +1,4 @@
+import { matchPendingTasks } from '../lib/matchWorkflow';
 import DashboardFundSummary from '../components/DashboardFundSummary';
 import { matchDraft } from '../lib/matchLifecycle';
 import BirthdayBanner from "../components/BirthdayBanner";
@@ -214,14 +215,6 @@ export default function PlayerDashboard({
     }
   };
 
-  const pendingHistoryMatches = (archivedMatches || []).filter(
-    (m) =>
-      !m.cancelledAt &&
-      (!m.detailState?.finalized ||
-        !m.detailState?.costKnown ||
-        Number(m.detailState?.remaining || 0) > 0)
-  );
-  const pendingHistoryCount = pendingHistoryMatches.length;
 
   // Mock Attendance Roster with 4 tabs: [Có mặt] - [Chưa chắc] - [Báo vắng] - [Chưa điểm danh (Mới)]
   const eligibleMembers = Array.isArray(activeMatch.eligibleMembers)
@@ -334,6 +327,11 @@ export default function PlayerDashboard({
   const isOwner = currentUserRole === "owner";
   const isAdmin = currentUserRole === "admin";
   const isLeader = isOwner || isAdmin;
+  const pendingHistoryMatches = (archivedMatches || []).filter(m =>
+    matchPendingTasks(m, { canManage: isLeader, canManageFunds: treasurer }).length > 0
+  );
+  const pendingHistoryCount = pendingHistoryMatches.length;
+
 
   const DEFAULT_ACTION_IDS = ["attendance", "lineup", "fund", "chat"];
   const [showCustomizeShortcuts, setShowCustomizeShortcuts] = useState(false);
@@ -662,7 +660,10 @@ export default function PlayerDashboard({
           >
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
-              <span className="truncate">Có {pendingHistoryCount} trận trong lịch sử cần hoàn tất</span>
+              <span className="min-w-0 text-left whitespace-normal">
+                    <span className="block">Có {pendingHistoryCount} trận trong lịch sử cần hoàn tất</span>
+                    <span className="block font-normal mt-1">{matchPendingTasks(pendingHistoryMatches[0], { canManage: isLeader, canManageFunds: treasurer }).map(task => task.label).join(' · ')}</span>
+                  </span>
             </div>
             <span className="text-[11px] text-amber-700 dark:text-amber-300 font-medium shrink-0 ml-2 flex items-center gap-0.5">
               <span>Xử lý</span>

@@ -181,6 +181,7 @@ test('Dashboard and EmptyTeam render manager banner "Có X trận trong lịch s
   const leaderDashboardHtml = render('Dashboard', {
     user: managerUser,
     currentUserRole: 'owner',
+    treasurer: true,
     teamSettings: { teamName: 'Đội Lưu Trữ', members: [managerUser], appearance: {} },
     members: [managerUser],
     activeMatch: currentMatch,
@@ -196,6 +197,7 @@ test('Dashboard and EmptyTeam render manager banner "Có X trận trong lịch s
   // Leader sees the count on EmptyTeam when there are no active matches
   const leaderEmptyTeamHtml = render('EmptyTeam', {
     leader: true,
+    canManageFunds: true,
     teamSettings: { teamName: 'Đội Lưu Trữ', members: [managerUser] },
     archivedMatches: archivedWithPending,
     onNavigate: noop,

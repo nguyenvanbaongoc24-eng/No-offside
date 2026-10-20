@@ -10,6 +10,7 @@ import './styles/matchCard.css'
 import './styles/fundCollections.css'
 import './styles/matchLateReview.css'
 import './styles/matchLifecycle.css'
+import './styles/auth.css'
 
 window.clearTimeout(window.noOffsideBootTimer)
 delete window.noOffsideBootTimer

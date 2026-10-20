@@ -983,17 +983,17 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                 <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5 stroke-[2.2]" />
                 <div className="space-y-1">
                   <p className="font-bold text-rose-200 text-xs leading-snug">
-                    Email của bạn chưa được xác minh. Hãy kiểm tra hộp thư, mở liên kết xác minh rồi đăng nhập lại.
+                    {t("Email của bạn chưa được xác minh. Hãy kiểm tra hộp thư, mở liên kết xác minh rồi đăng nhập lại.")}
                   </p>
                   <p className="text-[11px] text-rose-300/90 font-medium">
-                    Nếu chưa thấy email, hãy kiểm tra thư rác.
+                    {t("Nếu chưa thấy email, hãy kiểm tra thư rác.")}
                   </p>
                 </div>
               </div>
 
               {resendNotice && (
                 <p className="text-[11px] font-semibold text-emerald-300 bg-emerald-950/60 p-2 rounded-xl border border-emerald-500/30">
-                  {resendNotice}
+                  {t(resendNotice)}
                 </p>
               )}
 
@@ -1011,12 +1011,12 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
                   {resendingEmail ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang gửi lại...</span>
+                      <span>{t("Đang gửi lại...")}</span>
                     </>
                   ) : resendCooldown > 0 ? (
-                    <span>Gửi lại sau {resendCooldown}s</span>
+                    <span>{t("Gửi lại sau")} {resendCooldown}s</span>
                   ) : (
-                    <span>Gửi lại email xác minh</span>
+                    <span>{t("Gửi lại email xác minh")}</span>
                   )}
                 </Pressable>
               </div>

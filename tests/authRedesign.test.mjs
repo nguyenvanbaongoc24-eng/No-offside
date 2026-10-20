@@ -48,6 +48,7 @@ test('duplicate sign-in submits make one request; failures and unconfirmed email
   await act(async()=>{resolve({error:{message:'Invalid login credentials'}});await Promise.all([a,b]);});assert.equal(logins,0);assert.equal(input(tree,'login-username').props.value,'review@example.test');assert.equal(input(tree,'login-password').props.value,'123456');assert.ok(tree.root.findAllByProps({role:'alert'}).some(n=>text(n.props.children).includes('không chính xác')));
   __authUiClient.auth.signInWithPassword=async()=>({error:{message:'Email not confirmed',code:'email_not_confirmed'}});
   await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.ok(tree.root.findAllByProps({role:'alert'}).some(n=>text(n.props.children).includes('Email của bạn chưa được xác minh')));assert.ok(button(tree,'Gửi lại email xác minh'));assert.equal(logins,0);
+  act(()=>input(tree,'language-select-btn').props.onClick());act(()=>button(tree,'English').props.onClick());assert.ok(tree.root.findAllByProps({role:'alert'}).some(n=>text(n.props.children).includes('Your email is not verified')));assert.ok(button(tree,'Resend verification email'));
  }finally{cleanup(tree);}
 });
 

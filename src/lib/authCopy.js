@@ -1,4 +1,8 @@
 const english = {
+  "Email của bạn chưa được xác minh. Hãy kiểm tra hộp thư, mở liên kết xác minh rồi đăng nhập lại.": "Your email is not verified. Open the verification link in your inbox, then sign in again.",
+  "Nếu chưa thấy email, hãy kiểm tra thư rác.": "If you cannot find the email, check your spam folder.",
+  "Gửi lại email xác minh": "Resend verification email",
+  "Đang gửi lại...": "Resending...",
   "Hẹn nhau ra sân.": "See you on the pitch.",
   "Đăng nhập để kết nối với đội bóng.": "Sign in to connect with your team.",
   "Tạo tài khoản để hẹn nhau ra sân.": "Create an account and join your team.",

@@ -18,6 +18,8 @@ Phạm vi: đối chiếu yêu cầu sản phẩm với code hiện tại, kiể
 | P2 | Push tới trận lịch sử chỉ mở Dashboard nơi trận không còn hiện | Mở đúng chi tiết matchId; giữ luồng focus người xin muộn ở trận chưa lưu trữ. |
 | P2 | Ngày mặc định hạn thu 15 đã quá hạn vào ngày 20; tên/số tiền bị ép cột ở 320px chữ lớn | Ngày mặc định không trước hôm nay; xếp lại hàng nợ trên mobile; tab/shortcut cho phép xuống dòng; input 16px, action tối thiểu 44px. |
 
+**Phát hiện thêm qua hai tài khoản thật:** route Quỹ đội của Member vẫn dùng màn cũ, nên phần tổng quan tháng mới chưa tới được người dùng thường. Đã đưa route về FundManagement dùng chung, quyền lấy từ server; giữ khoản quỹ cũ riêng khi thực sự có dữ liệu legacy. Không mở quyền xem số dư đội. Đồng thời đổi nút “Kết thúc trận” hiển thị nhầm cho Member/trận tương lai thành “Xem chi tiết trận đấu”.
+
 Các nút/nhãn hệ thống sửa liên quan dùng “Chiến thuật”, “Tìm đối”, “Sinh tố lúa mạch”. Giữ theme xanh cỏ hiện tại, không thiết kế lại toàn bộ app.
 
 ## Kiểm chứng đã thực hiện

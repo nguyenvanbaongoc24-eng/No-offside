@@ -910,7 +910,9 @@ export default function PlayerDashboard({
                   <span>
                     {matchStatus === "completed"
                       ? "Xem chi tiết trận · kết quả, thực tế & chi phí"
-                      : "Kết thúc trận & lưu vào lịch sử"}
+                      : isLeader && Date.now() >= Date.parse(activeMatch.datetime)
+                        ? "Kết thúc trận & lưu vào lịch sử"
+                        : "Xem chi tiết trận đấu"}
                   </span>
                 </Pressable>
               )}

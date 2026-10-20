@@ -31,9 +31,9 @@ import {
 import { formatCurrency } from "../lib/formatCurrency";
 import { notify } from "../lib/feedback";
 const sections = [
-  ["board", "Tìm Đối", Swords],
+  ["board", "Tìm đối", Swords],
   ["stars", "Ngôi sao", Trophy],
-  ["finance", "Sinh Tố Lúa Mạch", Beer],
+  ["finance", "Sinh tố lúa mạch", Beer],
   ["media", "Media", Clapperboard],
 ];
 export default function ProHub({
@@ -179,7 +179,7 @@ export default function ProHub({
           {section === "board" && (
             <>
               <div className="pro-toolbar">
-                <h2>Tìm Đối</h2>
+                <h2>Tìm đối</h2>
                 {leader && (
                   <Pressable
                     className="primary-button"
@@ -468,7 +468,7 @@ export default function ProHub({
           {section === "finance" && (
             <>
               <section className="pro-panel pro-finance-summary">
-                <p>Sinh Tố Lúa Mạch · {leader ? "Tổng còn cần đóng" : "Khoản của bạn"}</p>
+                <p>Sinh tố lúa mạch · {leader ? "Tổng còn cần đóng" : "Khoản của bạn"}</p>
                 <strong>
                   {formatCurrency(
                     ownCharges
@@ -482,14 +482,14 @@ export default function ProHub({
                     disabled={busy || demo}
                     onClick={() =>
                       onOpenFund?onOpenFund("bill"):open("bill", {
-                        title: "Sinh Tố Lúa Mạch",
+                        title: "Sinh tố lúa mạch",
                         total: "",
                         participants: [],
                       })
                     }
                   >
                     <Plus size={18} />
-                    Chia bill Sinh Tố Lúa Mạch
+                    Chia bill Sinh tố lúa mạch
                   </Pressable>
                 )}
                 <p className="field-hint">
@@ -540,7 +540,7 @@ export default function ProHub({
                       </strong>
                       <p>{thirdChargeLabel(c.label,c.kind)}</p>
                       <small>
-                        {c.kind === "fine" ? "Phạt · Quỹ đội" : "Sinh Tố Lúa Mạch"} ·{" "}
+                        {c.kind === "fine" ? "Phạt · Quỹ đội" : "Sinh tố lúa mạch"} ·{" "}
                         {
                           {
                             owed: "Cần đóng",
@@ -577,7 +577,7 @@ export default function ProHub({
                 ))}
                 {!state.charges.length && (
                   <p className="pro-empty">
-                    Chưa phát sinh khoản Sinh Tố Lúa Mạch hoặc phạt tự động.
+                    Chưa phát sinh khoản Sinh tố lúa mạch hoặc phạt tự động.
                   </p>
                 )}
               </section>
@@ -769,7 +769,7 @@ export default function ProHub({
             offer: "Đăng kèo giao hữu",
             challenge: "Gửi lời thách đấu",
             accept: "Nhận kèo giao hữu",
-            bill: "Chia bill Sinh Tố Lúa Mạch",
+            bill: "Chia bill Sinh tố lúa mạch",
             charge: "Đối soát khoản cần đóng",
             card: "Thẻ cầu thủ",
             vote: "Bầu chọn MOTM",

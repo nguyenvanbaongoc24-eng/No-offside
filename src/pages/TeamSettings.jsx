@@ -52,7 +52,7 @@ export default function TeamSettings({
         </Pressable>
         <h1 className="text-2xl font-bold mt-4">Cài đặt đội bóng</h1>
       </header>
-      {onOpenPro&&<Pressable className="choice-button menu-long-action m-4" onClick={onOpenPro}>Luật phạt tự động & Sinh Tố Lúa Mạch</Pressable>}
+      {onOpenPro&&<Pressable className="choice-button menu-long-action m-4" onClick={onOpenPro}>Luật phạt tự động & Sinh tố lúa mạch</Pressable>}
       <form onSubmit={save} className="p-4 space-y-4">
         <section className="settings-card">
           <h2>Thông tin đội</h2>

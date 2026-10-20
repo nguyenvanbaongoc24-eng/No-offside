@@ -1,6 +1,5 @@
 import {matchNoticeTarget} from './lib/matchLifecycle';
 import { useFundCollections } from "./hooks/useFundCollections";
-import FundOperations from "./components/FundOperations";
 import { usePro } from "./hooks/usePro";
 import ProDashboard from "./components/pro/ProDashboard";
 import { weeklyAwards } from "./lib/pro";
@@ -702,8 +701,8 @@ function Application({ onRetryStartup }) {
                 />
               </React.Suspense>
             ) : activeTab === "fund" ? (
-              !leader && !fundAccess ? (
-                <>
+              <>
+                {!leader && !fundAccess && (auth.demoSession || shared.user.fundDebt > 0 || shared.user.fundPaymentPending || shared.user.isFundPaid) && <section aria-label="Khoản quỹ từ sổ cũ">
                   <PersonalFund
                     onBack={
                       navigation.hasParent
@@ -715,24 +714,7 @@ function Application({ onRetryStartup }) {
                     onMarkPaid={auth.markFundPaid}
                     showLegacy={auth.demoSession || shared.user.fundDebt > 0 || shared.user.fundPaymentPending || shared.user.isFundPaid}
                   />
-                  <div className="p-4">
-                    <FundOperations
-                      fund={fund}
-                      mode="collections"
-                      qr={auth.teamSettings.treasurerQr}
-                      accountId={auth.accountId}
-                      permissions={auth.teamSettings.members}
-                    />
-                    <FundOperations
-                      fund={fund}
-                      mode="charges"
-                      qr={auth.teamSettings.treasurerQr}
-                      accountId={auth.accountId}
-                      permissions={auth.teamSettings.members}
-                    />
-                  </div>
-                </>
-              ) : (
+                </section>}
                 <FundManagement
                   fund={fund}
                   accountId={auth.accountId}
@@ -768,7 +750,7 @@ function Application({ onRetryStartup }) {
                       : undefined
                   }
                 />
-              )
+              </>
             ) : activeTab === "chat" ? (
               <Chat
                 key={auth.accountId + auth.teamSettings.id}

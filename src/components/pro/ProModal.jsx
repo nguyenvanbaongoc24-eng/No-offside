@@ -10,6 +10,7 @@ export default function ProModal({
   onClose,
   children,
   busy = false,
+  className = "",
 }) {
   const reduced = useReducedMotion();
   useLayerBack(open, () => {
@@ -33,7 +34,7 @@ export default function ProModal({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="pro-sheet"
+            className={"pro-sheet " + className}
             initial={{ opacity: 0, y: reduced ? 0 : 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: reduced ? 0 : 24 }}

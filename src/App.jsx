@@ -937,7 +937,7 @@ function Application({ onRetryStartup }) {
               tabs={tabs}
               activeTab={activeTab}
               canManage={
-                activeTab !== "fund" &&
+                activeTab !== "fund" && activeTab !== "pro" &&
                 (leader || fundAccess) &&
                 auth.hasTeam &&
                 !auth.teamRestriction

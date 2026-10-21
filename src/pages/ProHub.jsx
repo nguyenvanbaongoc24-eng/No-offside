@@ -5,6 +5,8 @@ import { imageDataUrl } from "../lib/images";
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
   ArrowLeft,
+  MoreHorizontal,
+  ChevronRight,
   Plus,
   Swords,
   Trophy,
@@ -106,32 +108,17 @@ export default function ProHub({
     }
   })();
   return (
-    <div className="pro-page">
+    <div className="pro-page mm-hub">
       <header className="compact-header">
         <Pressable aria-label="Quay lại" onClick={onBack}>
           <ArrowLeft size={22} />
         </Pressable>
         <h1>{section==="board"?"Tìm đối":section==="benefits"?"No Offside Pro":"Tiện ích đội"}</h1>
-        <Pressable
-          aria-label="Mở Chiến thuật"
-          onClick={() => onNavigate("lineup")}
-        >
-          <Network size={22} />
-        </Pressable>
+        <Pressable aria-label="Tiện ích đội" aria-haspopup="dialog" onClick={()=>setModal('utilities')}><MoreHorizontal size={24}/></Pressable>
       </header>
-      <div className="pro-sections" role="group" aria-label="Module Pro">
-        {sections.map(([id, label, Icon]) => (
-          <Pressable
-            type="button"
-            key={id}
-            aria-pressed={section === id}
-            onClick={() => setSection(id)}
-          >
-            <Icon size={20} filled={section === id} />
-            <span>{label}</span>
-          </Pressable>
-        ))}
-      </div>
+      <ProModal className="mm-sheet" open={modal==='utilities'} title="Tiện ích đội" onClose={()=>setModal(null)}>
+       <div className="mm-menu">{sections.map(([id,label,Icon])=><Pressable key={id} aria-current={section===id?'page':undefined} onClick={()=>{setSection(id);setModal(null);}}><Icon size={22}/><span>{label}</span><ChevronRight size={20}/></Pressable>)}<Pressable onClick={()=>{setModal(null);onNavigate('lineup');}}><Network size={22}/><span>Chiến thuật</span><ChevronRight size={20}/></Pressable></div>
+      </ProModal>
       {demo && (
         <p className="field-hint pro-inset">
           Bản trải nghiệm: xuất ảnh và Chiến Thuật dùng được. Thao tác lưu cần
@@ -547,7 +534,7 @@ export default function ProHub({
         </>
       )}
       <ProModal
-        open={!!modal}
+        open={!!modal && modal!=='utilities'}
         title={
           {
             offer: "Đăng kèo giao hữu",

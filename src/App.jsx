@@ -60,6 +60,7 @@ import GovernanceNotice from "./components/GovernanceNotice";
 import VersionNotice from "./components/VersionNotice";
 
 const ProHub = React.lazy(() => import("./pages/ProHub"));
+const Matchmaking = React.lazy(() => import('./pages/Matchmaking'));
 
 export default function App() {
   const [startupAttempt, setStartupAttempt] = useState(0);
@@ -92,6 +93,8 @@ function Application({ onRetryStartup }) {
     treasurer = fund.data.treasurer && fundAccess;
   const [attendanceFocus, setAttendanceFocus] = useState(null);
   const [proSection, setProSection] = useState("board");
+  const [matchmakingFocus,setMatchmakingFocus]=useState(null);
+  const [publicBoardOpen,setPublicBoardOpen]=useState(()=>window.location.pathname==='/find-opponents');
   const pro = usePro({
     teamId: auth.teamSettings.id,
     accountId: auth.accountId,
@@ -253,6 +256,7 @@ function Application({ onRetryStartup }) {
       return;
     }
     setProSection(section);
+    setMatchmakingFocus(null);
     navigate("pro");
   };
   const runQuickAction = (action) => {
@@ -294,6 +298,9 @@ function Application({ onRetryStartup }) {
   };
   const openNotice = async (notice) => {
     try {
+      if(notice.kind==='matchmaking'){
+        setProSection('board');setMatchmakingFocus({offerId:notice.offerId,proposalId:notice.proposalId||null});navigate('pro');return;
+      }
       if (notice.matchId) {
         const found = [...auth.matches, ...auth.archivedMatches].find((m) => m.id === notice.matchId);
         if (!found)
@@ -417,6 +424,7 @@ function Application({ onRetryStartup }) {
             key: crypto.randomUUID(),
           });
         }
+        if(pushTarget.view==='pro'){setProSection('board');setMatchmakingFocus({offerId:pushTarget.offerId,proposalId:pushTarget.proposalId||null});}
         navigate(matchTarget?.tab || pushTarget.view,matchTarget?.matchId ? {matchId:matchTarget.matchId} : undefined);
         setPushTarget(null);
         sessionStorage.removeItem("no_offside_push_target");
@@ -471,10 +479,12 @@ function Application({ onRetryStartup }) {
         </div>
       </StartupGate>
     );
+  if(publicBoardOpen)return <React.Suspense fallback={<p role="status">Đang mở Tìm đối…</p>}><main className="app-frame"><header className="compact-header"><Pressable onClick={()=>{setPublicBoardOpen(false);navigate('dashboard',{replace:true});}}>Quay lại</Pressable><h1>Tìm đối</h1></header><Matchmaking onRequireTeam={()=>{setPublicBoardOpen(false);navigate('dashboard',{replace:true});}}/></main></React.Suspense>;
   if (!auth.isLoggedIn && tab !== "invite-landing")
     return (
       <StartupGate onRetry={onRetryStartup}>
         <Login
+          onOpenOpponents={()=>setPublicBoardOpen(true)}
           theme={preferences.value.theme}
           onThemeChange={(theme) => preferences.update({ theme })}
           initialMode={loginInitialMode}
@@ -590,6 +600,7 @@ function Application({ onRetryStartup }) {
               />
             ) : activeTab === "onboarding" ? (
               <TeamOnboarding
+                onOpenOpponents={()=>setPublicBoardOpen(true)}
                 user={auth.user}
                 onOpenCreateTeam={() => navigate("create-team")}
                 onOpenJoinCode={() => {
@@ -687,6 +698,11 @@ function Application({ onRetryStartup }) {
                 }
               >
                 <ProHub
+                  token={auth.authSession?.access_token}
+                  memberships={memberships}
+                  onSwitchTeam={auth.switchTeam}
+                  onOpenMatch={openMatch}
+                  initialFocus={matchmakingFocus}
                   key={auth.accountId + "::" + auth.teamSettings.id}
                   pro={pro}
                   team={auth.teamSettings}

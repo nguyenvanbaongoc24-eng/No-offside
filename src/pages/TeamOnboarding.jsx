@@ -15,6 +15,7 @@ export default function TeamOnboarding({
   onOpenCreateTeam,
   onOpenJoinCode,
   onOpenScanQr,
+  onOpenOpponents,
 }) {
   return (
     <div className="team-onboarding bg-slate-50 flex flex-col justify-between p-5 pt-8 font-sans">
@@ -109,6 +110,7 @@ export default function TeamOnboarding({
       </div>
 
       <footer className="text-center py-4">
+        {onOpenOpponents&&<Pressable className="choice-button" onClick={onOpenOpponents}>Khám phá tin tìm đối công khai</Pressable>}
         <p className="text-xs text-slate-400">
           No Offside · Ứng dụng quản lý đội bóng phong trào
         </p>

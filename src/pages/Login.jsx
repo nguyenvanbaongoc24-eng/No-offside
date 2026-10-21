@@ -77,7 +77,7 @@ function translateAuthError(msg) {
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,20}$/;
 const PASSWORD_6_DIGITS = /^\d{6}$/;
 
-export default function Login({ onLoginSuccess, initialMode, theme = "system", onThemeChange }) {
+export default function Login({ onLoginSuccess, initialMode, theme = "system", onThemeChange, onOpenOpponents }) {
   const [systemDark, setSystemDark] = useState(() => typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-color-scheme: dark)").matches));
   const activeTheme = theme === "system" ? (systemDark ? "dark" : "light") : theme;
   useEffect(() => {
@@ -1615,6 +1615,7 @@ export default function Login({ onLoginSuccess, initialMode, theme = "system", o
 
 
         {/* Footer */}
+        {onOpenOpponents&&<Pressable className="choice-button w-full mt-4" onClick={onOpenOpponents}>Khám phá tin tìm đối công khai</Pressable>}
         <p className="text-[11px] text-center text-slate-500 mt-4 font-medium">
           {t("© No Offside · Hẹn nhau ra sân.")}
         </p>

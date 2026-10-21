@@ -430,7 +430,7 @@ export default function ProfileMenu(props) {
           </div>
         </section>
       )}
-      {hasTeam&&props.onOpenPro&&<section className="profile-group"><h2>No Offside Pro</h2><Row icon={Trophy} onClick={()=>props.onOpenPro('stars')}>Tạo thẻ cầu thủ & MOTM</Row><Row icon={Swords} onClick={()=>props.onOpenPro('board')}>{t("Tìm đối")}</Row><Row icon={Beer} onClick={()=>props.onOpenPro('finance')}>{t("Sinh tố lúa mạch")}</Row><Row icon={Settings} onClick={()=>props.onOpenPro('media')}>Poster & khoảnh khắc</Row></section>}
+      {hasTeam&&props.onOpenPro&&<section className="profile-group"><h2>Tiện ích đội</h2><Row icon={Trophy} onClick={()=>props.onOpenPro('benefits')}>No Offside Pro · quyền lợi theo đội</Row><Row icon={Trophy} onClick={()=>props.onOpenPro('stars')}>Tạo thẻ cầu thủ & MOTM</Row><Row icon={Swords} onClick={()=>props.onOpenPro('board')}>{t("Tìm đối")}</Row><Row icon={Beer} onClick={()=>props.onOpenPro('finance')}>{t("Sinh tố lúa mạch")}</Row><Row icon={Settings} onClick={()=>props.onOpenPro('media')}>Poster & khoảnh khắc</Row></section>}
       <section className="profile-group">
         <h2>{t("Hồ sơ")}</h2>
         <Row icon={User} onClick={() => navigateDetail("profile")}>

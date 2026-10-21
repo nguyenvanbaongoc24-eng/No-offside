@@ -1,3 +1,4 @@
+import Matchmaking from './Matchmaking';
 import {Beer} from '../components/icons';
 import {thirdChargeLabel} from '../lib/menuLabels';
 import { imageDataUrl } from "../lib/images";
@@ -20,8 +21,6 @@ import Avatar from "../components/Avatar";
 import ProModal from "../components/pro/ProModal";
 import PlayerCard from "../components/pro/PlayerCard";
 import {
-  LEVELS,
-  FINANCE,
   splitBill,
   mediaLink,
   proRanking,
@@ -32,6 +31,7 @@ import { formatCurrency } from "../lib/formatCurrency";
 import { notify } from "../lib/feedback";
 const sections = [
   ["board", "Tìm đối", Swords],
+  ["benefits", "Gói theo đội", Check],
   ["stars", "Ngôi sao", Trophy],
   ["finance", "Sinh tố lúa mạch", Beer],
   ["media", "Media", Clapperboard],
@@ -45,7 +45,7 @@ export default function ProHub({
   initialSection = "board",
   onBack,
   onNavigate,
-  onWorkspaceRefresh, onOpenFund,
+  onWorkspaceRefresh, onOpenFund, token, memberships, onSwitchTeam, onOpenMatch, initialFocus,
 }) {
   const { state, loading, error, busy, demo } = pro,
     leader = ["owner", "admin"].includes(role);
@@ -53,7 +53,6 @@ export default function ProHub({
     [modal, setModal] = useState(null),
     [form, setForm] = useState({}),
     [failure, setFailure] = useState(""),
-    [filters, setFilters] = useState({ district: "", level: "", day: "" }),
     [matchId, setMatchId] = useState(matches[0]?.id || ""),
     [posterBg, setPosterBg] = useState(""),
     [exporting, setExporting] = useState(false);
@@ -97,26 +96,8 @@ export default function ProHub({
       setFailure(e.message);
     }
   };
-  const offerSubmit = (e) => {
-    e.preventDefault();
-    const time = new Date(form.kickoff);
-    if (!Number.isFinite(time.getTime()))
-      return setFailure("Chọn ngày giờ hợp lệ.");
-    run("offer", {
-      ...form,
-      kickoff: time.toISOString(),
-      format: Number(form.format),
-    });
-  };
   const title = sections.find((s) => s[0] === section)?.[1];
   const ownCharges = state.charges.filter((c) => c.status === "owed");
-  const visibleOffers = state.offers.filter(
-    (o) =>
-      (!filters.district || o.district === filters.district) &&
-      (!filters.level || o.level === filters.level) &&
-      (!filters.day ||
-        Date.parse(o.kickoff) < Date.now() + Number(filters.day) * 864e5),
-  );
   const billShares = (() => {
     try {
       return splitBill(Number(form.total), form.participants || []);
@@ -130,9 +111,9 @@ export default function ProHub({
         <Pressable aria-label="Quay lại" onClick={onBack}>
           <ArrowLeft size={22} />
         </Pressable>
-        <h1>No Offside Pro</h1>
+        <h1>{section==="board"?"Tìm đối":section==="benefits"?"No Offside Pro":"Tiện ích đội"}</h1>
         <Pressable
-          aria-label="Mở Chiến Thuật Pro"
+          aria-label="Mở Chiến thuật"
           onClick={() => onNavigate("lineup")}
         >
           <Network size={22} />
@@ -153,7 +134,7 @@ export default function ProHub({
       </div>
       {demo && (
         <p className="field-hint pro-inset">
-          Bản trải nghiệm: xuất ảnh và Chiến Thuật dùng được. Ghi dữ liệu Pro cần
+          Bản trải nghiệm: xuất ảnh và Chiến Thuật dùng được. Thao tác lưu cần
           đăng nhập tài khoản thật.
         </p>
       )}
@@ -176,204 +157,7 @@ export default function ProHub({
         </div>
       ) : (
         <>
-          {section === "board" && (
-            <>
-              <div className="pro-toolbar">
-                <h2>Tìm đối</h2>
-                {leader && (
-                  <Pressable
-                    className="primary-button"
-                    disabled={busy || demo}
-                    onClick={() =>
-                      open("offer", {
-                        district: "",
-                        venue: team.venue || "",
-                        kickoff: "",
-                        level: "regular",
-                        format: 7,
-                        finance: "split",
-                      })
-                    }
-                  >
-                    <Plus size={18} />
-                    Đăng kèo
-                  </Pressable>
-                )}
-              </div>
-              <div className="pro-filters">
-                {[
-                  [
-                    "district",
-                    "Khu vực",
-                    [...new Set(state.offers.map((o) => o.district))],
-                  ],
-                  ["level", "Trình độ", Object.keys(LEVELS)],
-                ].map(([key, label, options]) => (
-                  <label key={key}>
-                    <span className="sr-only">{label}</span>
-                    <select
-                      aria-label={label}
-                      value={filters[key]}
-                      onChange={(e) =>
-                        setFilters({ ...filters, [key]: e.target.value })
-                      }
-                    >
-                      <option value="">{label}</option>
-                      {options.map((v) => (
-                        <option key={v} value={v}>
-                          {LEVELS[v] || v}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
-                <label>
-                  <span className="sr-only">Thời gian</span>
-                  <select
-                    aria-label="Thời gian"
-                    value={filters.day}
-                    onChange={(e) =>
-                      setFilters({ ...filters, day: e.target.value })
-                    }
-                  >
-                    <option value="">Thời gian</option>
-                    <option value="7">7 ngày tới</option>
-                    <option value="30">30 ngày tới</option>
-                  </select>
-                </label>
-              </div>
-              <div className="pro-feed">
-                {visibleOffers.map((o) => (
-                    <article className="pro-offer" key={o.id}>
-                      <header>
-                        <Avatar src={o.logo} name={o.teamName} />
-                        <div>
-                          <h3>{o.teamName}</h3>
-                          <p>{o.district}</p>
-                        </div>
-                        <span className={"pro-level " + o.level}>
-                          {LEVELS[o.level]}
-                        </span>
-                      </header>
-                      <p className="pro-offer-time">
-                        Sân {o.format} ·{" "}
-                        {new Date(o.kickoff).toLocaleString("vi-VN", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
-                      </p>
-                      <p>{o.venue}</p>
-                      <p className="pro-money">
-                        <Wallet size={16} />
-                        {FINANCE[o.finance]}
-                      </p>
-                      {o.team_id === team.id ? (
-                        <Pressable
-                          className="choice-button"
-                          disabled={busy}
-                          onClick={() =>
-                            run("close-offer", { offerId: o.id }, false)
-                          }
-                        >
-                          Đóng kèo
-                        </Pressable>
-                      ) : leader ? (
-                        <Pressable
-                          className="pro-challenge"
-                          disabled={
-                            busy ||
-                            state.challenges.some(
-                              (c) =>
-                                c.offer_id === o.id && c.team_id === team.id,
-                            )
-                          }
-                          onClick={() =>
-                            open("challenge", {
-                              offerId: o.id,
-                              opponent: o.teamName,
-                            })
-                          }
-                        >
-                          <Swords size={18} />
-                          {state.challenges.some(
-                            (c) => c.offer_id === o.id && c.team_id === team.id,
-                          )
-                            ? "Đã gửi lời thách đấu"
-                            : "Gửi lời thách đấu"}
-                        </Pressable>
-                      ) : (
-                        <p className="field-hint">
-                          Ban quản trị đội gửi lời thách đấu.
-                        </p>
-                      )}
-                    </article>
-                  ))}
-                {!state.offers.length && (
-                  <p className="pro-empty">
-                    Chưa có kèo được đăng. Đội của bạn có thể mở lời mời giao
-                    hữu đầu tiên.
-                  </p>
-                )}
-                {state.offers.length > 0 && !visibleOffers.length && (
-                  <p className="pro-empty">Chưa có kèo phù hợp bộ lọc này.</p>
-                )}
-              </div>
-              <section className="pro-panel">
-                <h2>Lời thách đấu</h2>
-                {state.challenges.map((c) => (
-                  <article className="pro-list-row" key={c.id}>
-                    <div>
-                      <strong>{c.opponent}</strong>
-                      <p>
-                        {c.venue} ·{" "}
-                        {new Date(c.kickoff).toLocaleString("vi-VN")}
-                      </p>
-                      <small>
-                        {
-                          {
-                            pending: "Đang chờ",
-                            accepted: "Đã nhận kèo",
-                            declined: "Đã từ chối",
-                          }[c.status]
-                        }
-                      </small>
-                    </div>
-                    {leader &&
-                      c.offerTeam === team.id &&
-                      c.status === "pending" &&
-                      state.offers.some((o) => o.id === c.offer_id) && (
-                        <div>
-                          <Pressable
-                            disabled={busy}
-                            className="primary-button"
-                            onClick={() =>
-                              open("accept", {
-                                challengeId: c.id,
-                                opponent: c.opponent,
-                              })
-                            }
-                          >
-                            Nhận kèo
-                          </Pressable>
-                          <Pressable
-                            disabled={busy}
-                            className="choice-button"
-                            onClick={() =>
-                              run("decline", { challengeId: c.id }, false)
-                            }
-                          >
-                            Từ chối
-                          </Pressable>
-                        </div>
-                      )}
-                  </article>
-                ))}
-                {!state.challenges.length && (
-                  <p className="field-hint">Chưa có lời thách đấu.</p>
-                )}
-              </section>
-            </>
-          )}
+          {(section==='board'||section==='benefits')&&<Matchmaking key={team.id+':'+user.id} team={team} user={user} token={token} demo={demo} matches={matches} memberships={memberships} onSwitchTeam={onSwitchTeam} onUpdated={onWorkspaceRefresh} onOpenMatch={onOpenMatch} initialFocus={initialFocus} benefits={section==='benefits'}/>}
           {section === "stars" && (
             <>
               <section className="pro-panel">
@@ -787,265 +571,6 @@ export default function ProHub({
             teamName={team.teamName}
             motm={winners[user.id]}
           />
-        )}
-        {modal === "offer" && (
-          <form className="security-form" onSubmit={offerSubmit}>
-            {[
-              ["district", "Khu vực / Quận", "text"],
-              ["venue", "Sân bóng", "text"],
-              ["kickoff", "Ngày giờ đá", "datetime-local"],
-            ].map(([key, label, type]) => (
-              <label className="form-field" key={key}>
-                {label}
-                <input
-                  required
-                  type={type}
-                  maxLength={key === "district" ? 80 : 150}
-                  value={form[key]}
-                  onChange={(e) => field(key, e.target.value)}
-                />
-              </label>
-            ))}
-            {[
-              ["level", "Trình độ", LEVELS],
-              ["format", "Thể thức", { 5: "Sân 5", 7: "Sân 7", 11: "Sân 11" }],
-              ["finance", "Chi phí", FINANCE],
-            ].map(([key, label, values]) => (
-              <label className="form-field" key={key}>
-                {label}
-                <select
-                  value={form[key]}
-                  onChange={(e) => field(key, e.target.value)}
-                >
-                  {Object.entries(values).map(([id, label]) => (
-                    <option key={id} value={id}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-            <p className="field-hint">
-              Tên/logo đội, khu vực, sân, giờ và điều kiện kèo sẽ hiển thị trên
-              bảng tin cho các đội khác. Không chia sẻ thông tin liên hệ cá
-              nhân.
-            </p>
-            <Pressable className="primary-button" disabled={busy}>
-              Đăng kèo
-            </Pressable>
-          </form>
-        )}
-        {(modal === "challenge" || modal === "accept") && (
-          <div className="security-form">
-            <p>
-              {modal === "accept"
-                ? "Khi nhận, hệ thống tạo một trận duy nhất trong lịch của cả hai đội."
-                : "Gửi lời mời giao hữu cho"}{" "}
-              <strong>{form.opponent}</strong>.
-            </p>
-            <Pressable
-              className="pro-challenge"
-              disabled={busy}
-              onClick={() =>
-                run(modal === "accept" ? "accept" : "challenge", form)
-              }
-            >
-              {busy
-                ? "Đang xử lý…"
-                : modal === "accept"
-                  ? "Đồng ý & tạo lịch hai đội"
-                  : "Gửi lời thách đấu"}
-            </Pressable>
-          </div>
-        )}
-        {modal === "bill" && (
-          <form
-            className="security-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              run("third-bill", { ...form, total: Number(form.total) });
-            }}
-          >
-            <label className="form-field">
-              Nội dung
-              <input
-                required
-                maxLength={120}
-                value={form.title}
-                onChange={(e) => field("title", e.target.value)}
-              />
-            </label>
-            <label className="form-field">
-              Tổng bill (đ)
-              <input
-                required
-                inputMode="numeric"
-                type="number"
-                min="1"
-                max="1000000000"
-                step="1"
-                value={form.total}
-                onChange={(e) => field("total", e.target.value)}
-              />
-            </label>
-            <fieldset>
-              <legend>
-                Người tham gia · {(form.participants || []).length}
-              </legend>
-              {members.map((m) => (
-                <label className="pro-toggle" key={m.id}>
-                  <span>{m.name}</span>
-                  <input
-                    type="checkbox"
-                    checked={(form.participants || []).includes(m.id)}
-                    onChange={(e) =>
-                      field(
-                        "participants",
-                        e.target.checked
-                          ? [...form.participants, m.id]
-                          : form.participants.filter((id) => id !== m.id),
-                      )
-                    }
-                  />
-                </label>
-              ))}
-            </fieldset>
-            {billShares.length > 0 && (
-              <p className="field-hint">
-                {formatCurrency(billShares.at(-1).amount)}–
-                {formatCurrency(billShares[0].amount)}/người. Phần dư được chia
-                từng đồng; tổng luôn bằng bill.
-              </p>
-            )}
-            <Pressable
-              className="primary-button"
-              disabled={busy || !billShares.length}
-            >
-              Chốt chia bill & thông báo
-            </Pressable>
-          </form>
-        )}
-        {modal === "charge" && (
-          <form
-            className="security-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(form.action, {
-                chargeId: form.chargeId,
-                reason: form.reason,
-              });
-            }}
-          >
-            <p>
-              Chỉ xác nhận đã thu khi tiền thực sự đã nhận. Phạt Quỹ đội được
-              thanh toán qua luồng đối soát hiện có.
-            </p>
-            {form.kind === "third" && (
-              <select
-                aria-label="Thao tác đối soát"
-                value={form.action}
-                onChange={(e) => field("action", e.target.value)}
-              >
-                <option value="charge-paid">Đã nhận tiền</option>
-                <option value="charge-void">Miễn khoản này</option>
-              </select>
-            )}
-            <label className="form-field">
-              Ghi chú / lý do
-              <input
-                required
-                minLength={3}
-                maxLength={200}
-                value={form.reason}
-                onChange={(e) => field("reason", e.target.value)}
-              />
-            </label>
-            <Pressable className="primary-button" disabled={busy}>
-              Xác nhận
-            </Pressable>
-          </form>
-        )}
-        {modal === "vote" && (
-          <div className="pro-vote-grid">
-            {members
-              .filter((m) =>
-                state.participation.some(
-                  (p) => p.match_id === form.matchId && p.subject === m.id,
-                ),
-              )
-              .map((m) => (
-                <Pressable
-                  key={m.id}
-                  disabled={busy}
-                  aria-pressed={state.votes.some(
-                    (v) =>
-                      v.own &&
-                      v.match_id === form.matchId &&
-                      v.candidate === m.id,
-                  )}
-                  onClick={() =>
-                    run("vote", { matchId: form.matchId, candidate: m.id })
-                  }
-                >
-                  <Avatar src={m.avatar} name={m.name} />
-                  <strong>{m.name}</strong>
-                </Pressable>
-              ))}
-          </div>
-        )}
-        {modal === "media" && (
-          <form
-            className="security-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              try {
-                run("media-add", {
-                  matchId: form.matchId,
-                  caption: form.caption,
-                  ...mediaLink(form.url),
-                });
-              } catch (err) {
-                setFailure(err.message);
-              }
-            }}
-          >
-            <label className="form-field">
-              Link YouTube / TikTok / ảnh
-              <input
-                type="url"
-                required
-                value={form.url}
-                onChange={(e) => field("url", e.target.value)}
-              />
-            </label>
-            <label className="form-field">
-              Chú thích
-              <input
-                maxLength={200}
-                value={form.caption}
-                onChange={(e) => field("caption", e.target.value)}
-              />
-            </label>
-            <p className="field-hint">
-              Nhúng video có thể gửi thông tin truy cập đến nền tảng nguồn. Chỉ
-              đăng nội dung đội có quyền chia sẻ.
-            </p>
-            <Pressable className="primary-button" disabled={busy}>
-              Thêm khoảnh khắc
-            </Pressable>
-          </form>
-        )}
-        {modal === "hide" && (
-          <div className="security-form">
-            <p>Ẩn khỏi thư viện của đội, giữ bản ghi kiểm toán.</p>
-            <Pressable
-              className="choice-button"
-              disabled={busy}
-              onClick={() => run("media-hide", { mediaId: form.mediaId })}
-            >
-              Ẩn khoảnh khắc
-            </Pressable>
-          </div>
         )}
         {modal === "stats" && (
           <form
